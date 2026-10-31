@@ -289,7 +289,7 @@ body.op #panel3d{height:104px;border-radius:6px}
       <div class="t-kicker">重装歩行兵器シミュレーター</div>
       <h1>HK-07<span>KESTREL</span></h1>
       <p>ハッチを閉め、機体を起こし、出撃せよ。</p>
-      <div class="t-modes"><button id="storyBtn" class="t-btn">ストーリー<small>全5幕・22章のキャンペーン</small></button></div>
+      <div class="t-modes"><button id="storyBtn" class="t-btn">ストーリー<small>全7幕・32章のキャンペーン</small></button></div>
       <div class="t-free"><button id="startLand" class="btn">フリー出撃</button><button id="garBtn" class="btn">格納庫（カスタマイズ）</button></div>
       <div class="t-note">音が出ます ・ オープニングムービーから始まります</div>
     </div></div>
@@ -627,6 +627,7 @@ const VO = (() => {
       if (sp === 'ren') return VO.radio('01 レン', text, 1, .85); if (sp === 'jin') return VO.radio('04 ジン', text, 4, 1.18);
       if (sp === 'mina') return push({ text, who: '整備長ミナ', cls: 'radio', radio: true, voice: 'female', pitch: 1.15, rate: 1.05 });
       if (sp === 'arc') return push({ text, who: 'ARC', cls: 'arc', voice: 'male', pitch: .15, rate: .85, pri: 'high' });
+      if (sp === 'org') return push({ text, who: 'ORIGIN', cls: 'arc', voice: 'male', pitch: .05, rate: .78, pri: 'high' });
       if (sp === 'nem') return push({ text, who: 'NEMESIS', cls: 'arc', voice: 'female', pitch: 1.5, rate: .9, pri: 'high' });
     },
     event(key, fn, cd) { const t = performance.now(); if (last[key] && t - last[key] < cd * 1000) return; last[key] = t; fn(); },
@@ -1091,6 +1092,7 @@ const FRAMES = {
   harrier: { name: 'HK-11 ハリアー', sub: '機動型', desc: '推進器を増設した軽量機。速く、長く跳べるが、装甲は薄い。', unlock: 9, need: '第8章クリアで入手', mod: { armor: 1.15, main: 1, spd: 1.25, fuel: .65, heat: .9 } },
   grave: { name: 'HK-12 グレイヴ', sub: '砲撃型', desc: '肩に長砲身カノンを載せた火力重視の機体。センサーマストで遠くの敵も逃さない。', unlock: 13, need: '第12章クリアで入手', mod: { armor: .9, main: 1.35, spd: .95, fuel: 1, heat: 1.1 } },
   atlas: { name: 'HK-X アトラス', sub: '最終試作型', desc: '全部隊の戦訓から組み上げた試作機。全面増加装甲、肩部カノン、増設推進器。最強の機体。', unlock: 23, need: '第22章クリアで入手', mod: { armor: .5, main: 1.5, spd: 1.2, fuel: .6, heat: .65 } },
+  titan: { name: 'HK-XX タイタン', sub: '決戦型', desc: 'オリジン戦のために造られた、部隊の全技術の結晶。アトラスをさらに上回る、真の最強機体。', unlock: 33, need: '第32章クリアで入手', mod: { armor: .45, main: 1.65, spd: 1.25, fuel: .55, heat: .6 } },
 };
 const UPG = [
   { k: 'armor', name: '装甲板', desc: '受けるダメージ −8%' },
@@ -1135,7 +1137,7 @@ function heroPal() {
 const mHole = std(0x0b0b0b, .9, .1);
 function applyKit(k, frame, pal) {
   if (frame === 'kestrel') return;
-  const heavy = frame === 'bastion' || frame === 'atlas', fast = frame === 'harrier' || frame === 'atlas';
+  const heavy = frame === 'bastion' || frame === 'atlas' || frame === 'titan', fast = frame === 'harrier' || frame === 'atlas' || frame === 'titan';
   const b = k.body, pk = k.pack, head = k.ants[0].parent, add = [];
   if (heavy) {
     [-1, 1].forEach(s => {
@@ -1156,7 +1158,7 @@ function applyKit(k, frame, pal) {
       add.push(part(cb(.12, .85, 1.3, .04), pal.panel, s * 1.95, .45, .35, pk, 0, 0, s * .3));  // stabiliser fin
     });
   }
-  if (frame === 'atlas' || frame === 'grave') {
+  if (frame === 'atlas' || frame === 'grave' || frame === 'titan') {
     const sc = new THREE.Group(); sc.position.set(2.45, 2.1, -.2); k.pitch.add(sc);         // shoulder cannon rides the pitch frame
     add.push(part(cb(.85, .72, 1.7, .08), pal.gun, 0, 0, .1, sc));
     add.push(cyl(.2, .24, 4.4, mSteel, 0, .05, -2.9, sc, 14));
@@ -1423,7 +1425,7 @@ function updateEnemiesSpace(dt, T) {
       SFX.enemyGun(camera.position.distanceTo(mz));
     }
   }
-  if (battle && S.spawned < ENEMY_TOTAL && enemies.filter(e => e.alive).length < (STORY.on && STORY.m.obj.type === 'defend' ? 13 : 7)) spawnWave(Math.min(3, ENEMY_TOTAL - S.spawned));
+  if (battle && S.spawned < ENEMY_TOTAL && enemies.filter(e => e.alive).length < enemyCap()) spawnWave(Math.min(3, ENEMY_TOTAL - S.spawned));
 }
 function nearestEnemy3(x, y, z, maxD) { let best = null, bd = maxD; for (const e of enemies) if (e.alive) { const d = Math.hypot(e.x - x, e.y - y, e.z - z); if (d < bd) { bd = d; best = e; } } return best ? { e: best, d: bd } : null; }
 function updateAlliesSpace(dt, T) {
@@ -2320,6 +2322,86 @@ function buildGantry() {
   g.traverse(o => { if (o.isMesh && o !== pad) { o.castShadow = true; o.receiveShadow = true; } });
 }
 buildGantry();
+/* ================= BATTLEFIELDS: desert (open), town (free but swarming), forest (ambush) ================= */
+const TERRAIN = (() => {
+  const CLEAR = [[0, -480, 46], [-160, -480, 46], [160, -480, 46], [-150, -560, 46], [150, -560, 46], [0, -650, 50], [0, -700, 60], [-180, -430, 40], [180, -430, 40], [-90, -560, 40], [90, -560, 40], [-60, -240, 30], [120, -420, 30], [-150, -440, 30], [90, -620, 30], [70, -780, 30], [-80, -260, 30]];
+  const clearAt = (x, z, pad = 0) => (Math.abs(x) < 24 + pad && z < 60 && z > -900) || (Math.hypot(x, z + 20) < 75 + pad) || CLEAR.some(([cx, cz, r]) => Math.hypot(x - cx, z - cz) < r + pad);
+  const G = {}, OB = {}, SKYC = { desert: 0xa79c80, town: 0x8e8b84, forest: 0x7f8a72 }, FOGD = { desert: .0024, town: .0028, forest: .0046 };
+  let cur = 'desert';
+  function winTex() {
+    const c = document.createElement('canvas'); c.width = 128; c.height = 256; const x = c.getContext('2d');
+    x.fillStyle = '#8a857b'; x.fillRect(0, 0, 128, 256);
+    for (let i = 0; i < 600; i++) { const v = rand(110, 160) | 0; x.fillStyle = `rgba(${v},${v - 4},${v - 10},.25)`; x.fillRect(rand(0, 128), rand(0, 256), rand(1, 5), rand(1, 4)); }
+    for (let r = 0; r < 8; r++) for (let k = 0; k < 4; k++) { const lit = Math.random() < .08; x.fillStyle = lit ? '#d9b46a' : Math.random() < .2 ? '#151515' : '#2a2c2e'; x.fillRect(10 + k * 30, 12 + r * 31, 18, 20); x.fillStyle = 'rgba(0,0,0,.35)'; x.fillRect(8 + k * 30, 32 + r * 31, 22, 3); }
+    for (let i = 0; i < 18; i++) { x.strokeStyle = `rgba(40,34,28,${rand(.1, .3).toFixed(2)})`; x.lineWidth = rand(1, 3); const sx = rand(0, 128); x.beginPath(); x.moveTo(sx, rand(0, 100)); x.lineTo(sx + rand(-3, 3), rand(150, 256)); x.stroke(); }
+    const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+  }
+  function buildTown() {
+    const g = new THREE.Group(); scene.add(g); const ob = [];
+    const wt = winTex(), mats = [0x9a958a, 0x7d7a73, 0x8f8676, 0x6e6d69].map(c => new THREE.MeshStandardMaterial({ color: c, map: wt, roughness: .9, metalness: .05 }));
+    const roof = new THREE.MeshStandardMaterial({ color: 0x4a4844, roughness: .95 }), asph = new THREE.MeshStandardMaterial({ color: 0x3f3d3a, roughness: .97 });
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(1500, 1500), asph); ground.rotation.x = -Math.PI / 2; ground.position.set(0, .02, -380); ground.receiveShadow = true; g.add(ground);
+    const line = new THREE.MeshBasicMaterial({ color: 0xb8ac80 });
+    for (let z = -880; z < 40; z += 18) { const l = new THREE.Mesh(new THREE.PlaneGeometry(.6, 7), line); l.rotation.x = -Math.PI / 2; l.position.set(0, .04, z); g.add(l); }
+    const STEP = 46;
+    for (let gx = -12; gx <= 12; gx++) for (let gz = -20; gz <= 2; gz++) {
+      const cx = gx * STEP + rand(-4, 4), cz = gz * STEP - 30 + rand(-4, 4);
+      if (clearAt(cx, cz, 18) || Math.random() < .14) continue;
+      const w = rand(14, 30), d = rand(14, 30), ruined = Math.random() < .3, h = ruined ? rand(6, 16) : rand(12, 42);
+      const geo = new THREE.BoxGeometry(w, h, d), uv = geo.attributes.uv;
+      for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * Math.max(1, Math.round(w / 9)), uv.getY(i) * Math.max(1, Math.round(h / 10)));
+      const b = new THREE.Mesh(geo, mats[(Math.random() * mats.length) | 0]); b.position.set(cx, h / 2, cz); b.castShadow = true; b.receiveShadow = true; g.add(b);
+      const rf = new THREE.Mesh(new THREE.BoxGeometry(w + .6, .6, d + .6), roof); rf.position.set(cx, h + .3, cz); g.add(rf);
+      if (ruined) for (let k = 0; k < 4; k++) { const r = new THREE.Mesh(new THREE.BoxGeometry(rand(2, 6), rand(1, 4), rand(2, 6)), mats[0]); r.position.set(cx + rand(-w / 2, w / 2), h + rand(0, 2), cz + rand(-d / 2, d / 2)); r.rotation.set(rand(-.5, .5), rand(0, 3), rand(-.5, .5)); r.castShadow = true; g.add(r); }
+      const s = Math.min(w, d) / 2, nx = Math.max(1, Math.round(w / (s * 1.6))), nz = Math.max(1, Math.round(d / (s * 1.6)));
+      for (let i = 0; i < nx; i++) for (let k = 0; k < nz; k++) ob.push({ x: cx - w / 2 + (i + .5) * w / nx, z: cz - d / 2 + (k + .5) * d / nz, r: s * 1.05 });
+    }
+    // streetlights and wrecked cars along the avenue
+    const pole = std(0x3a3b38, .6, .6), car = std(0x5a4a3a, .8, .3);
+    for (let z = -860; z < 20; z += 40) [-1, 1].forEach(sd => { const p = cylY(.25, .3, 11, pole, sd * 22, 5.5, z, g, 8); const a = part(new THREE.BoxGeometry(3, .3, .5), pole, sd * 20.6, 11, z, g); if (Math.random() < .25 && z < -100) { const c = part(cb(4.2, 1.6, 2.1, .3), car, sd * rand(8, 18), .8, z + rand(-10, 10), g, 0, rand(0, 3), 0); c.castShadow = true; } });
+    G.town = g; OB.town = ob; g.visible = false;
+  }
+  function buildForest() {
+    const g = new THREE.Group(); scene.add(g); const ob = [];
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(1700, 1700), new THREE.MeshStandardMaterial({ color: 0x4a5236, roughness: 1 })); floor.rotation.x = -Math.PI / 2; floor.position.set(0, .03, -380); floor.receiveShadow = true; g.add(floor);
+    const road = new THREE.Mesh(new THREE.PlaneGeometry(30, 960), new THREE.MeshStandardMaterial({ color: 0x6d6450, roughness: 1 })); road.rotation.x = -Math.PI / 2; road.position.set(0, .05, -420); g.add(road);
+    const pts = [];
+    for (let i = 0; i < 3200 && pts.length < 1100; i++) { const x = rand(-620, 620), z = rand(-950, 160); if (clearAt(x, z, 6)) continue; pts.push([x, z, rand(.75, 1.35)]); }
+    const trunkG = new THREE.CylinderGeometry(.55, .9, 10, 7); trunkG.translate(0, 5, 0);
+    const c1 = new THREE.ConeGeometry(6.5, 14, 8); c1.translate(0, 15, 0); const c2 = new THREE.ConeGeometry(4.8, 11, 8); c2.translate(0, 22, 0);
+    const trunkM = new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 1 }), leafM = new THREE.MeshStandardMaterial({ color: 0x2f4426, roughness: .95, flatShading: true }), leafM2 = new THREE.MeshStandardMaterial({ color: 0x3a5230, roughness: .95, flatShading: true });
+    const it = new THREE.InstancedMesh(trunkG, trunkM, pts.length), i1 = new THREE.InstancedMesh(c1, leafM, pts.length), i2 = new THREE.InstancedMesh(c2, leafM2, pts.length);
+    const M4 = new THREE.Matrix4(), Q = new THREE.Quaternion(), SV = new THREE.Vector3(), PV2 = new THREE.Vector3(), E = new THREE.Euler();
+    pts.forEach(([x, z, s], i) => { Q.setFromEuler(E.set(0, rand(0, 6.28), 0)); M4.compose(PV2.set(x, 0, z), Q, SV.set(s, s, s)); it.setMatrixAt(i, M4); i1.setMatrixAt(i, M4); i2.setMatrixAt(i, M4); ob.push({ x, z, r: 1.6 * s }); });
+    [it, i1, i2].forEach(m => { m.castShadow = true; m.receiveShadow = true; g.add(m); });
+    // fallen logs and boulders
+    for (let i = 0; i < 60; i++) { const x = rand(-500, 500), z = rand(-900, 100); if (clearAt(x, z, 4)) continue; const l = cylX(.8, rand(6, 12), trunkM, x, .8, z, g, 7); l.rotation.y = rand(0, 3); l.castShadow = true; }
+    G.forest = g; OB.forest = ob; g.visible = false;
+  }
+  const baseOb = () => obstacles.filter(o => !o.env);
+  function set(name) {
+    if (!SKYC[name]) name = 'desert';
+    if (name !== 'desert' && !G[name]) (name === 'town' ? buildTown : buildForest)();
+    Object.entries(G).forEach(([k, g]) => g.visible = k === name);
+    const keep = baseOb(); obstacles.length = 0; keep.forEach(o => obstacles.push(o));
+    if (OB[name]) OB[name].forEach(o => { o.env = name; obstacles.push(o); });
+    if (S.mode === 'land') { scene.background.setHex(SKYC[name]); scene.fog.color.setHex(SKYC[name]); scene.fog.density = FOGD[name]; }
+    cur = name;
+  }
+  return { set, get cur() { return cur; }, clearAt };
+})();
+// where enemies come from on each battlefield
+function envSpawnPoint(near) {
+  for (let t = 0; t < 40; t++) {
+    let x, z;
+    if (TERRAIN.cur === 'forest' && near) { const a = rand(0, TAU), d = rand(75, 130); x = P.x + Math.cos(a) * d; z = P.z + Math.sin(a) * d; }
+    else if (TERRAIN.cur === 'town') { const a = rand(0, TAU), d = rand(200, 330); x = P.x + Math.cos(a) * d; z = P.z + Math.sin(a) * d; if (z > 20 || Math.abs(x) > 560) continue; }
+    else return null;
+    if (!obstacles.some(o => Math.hypot(o.x - x, o.z - z) < o.r + 6)) return [x, z];
+  }
+  return null;
+}
+
 function updateGantry(dt, T) {
   GT.open += ((GT.release ? 1 : 0) - GT.open) * Math.min(1, dt * 1.4);
   GT.arms.forEach(a => a.pivot.rotation.z = -a.s * 1.25 * GT.open);
@@ -2667,12 +2749,19 @@ function spawnEnemy(x, z, yaw, wx, wz, y = 0) {
   S.spawned = (S.spawned || 0) + 1;
   if (STORY.on && STORY.m.elite) { const e = enemies[enemies.length - 1]; e.hp = 170; e.spdK = 1.5; e.elite = true; e.g.traverse(o => { if (o.isMesh && o.material === eMat) o.material = eliteMat; }); }
 }
+function enemyCap() {
+  if (!STORY.on) return 7;
+  let c = STORY.m.obj.type === 'defend' ? 13 : 7;
+  if (STORY.m.env === 'town') c = Math.max(c, 18); else if (STORY.m.env === 'forest') c = Math.max(c, 11);
+  return c;
+}
 function spawnWave(n) {
   if (S.mode === 'space') { for (let i = 0; i < n; i++) { const x = rand(-300, 300), y = rand(-30, 160), z = rand(-900, -650); spawnEnemy(x, z, Math.PI, x, rand(-260, -120), y); } return; }
   const sides = STORY.on && STORY.m.spawn === 'sides';
   for (let i = 0; i < n; i++) {
     let x, z, tries = 0;
-    do { if (sides) { x = (Math.random() < .5 ? -1 : 1) * rand(150, 260); z = rand(-520, -160); } else { x = rand(-240, 240); z = rand(-470, -340); } tries++; } while (tries < 30 && obstacles.some(o => Math.hypot(o.x - x, o.z - z) < o.r + 8));
+    const ep = TERRAIN.cur === 'town' ? envSpawnPoint(false) : null;
+    if (ep) { x = ep[0]; z = ep[1]; } else do { if (sides) { x = (Math.random() < .5 ? -1 : 1) * rand(150, 260); z = rand(-520, -160); } else { x = rand(-240, 240); z = rand(-470, -340); } tries++; } while (tries < 30 && obstacles.some(o => Math.hypot(o.x - x, o.z - z) < o.r + 8));
     spawnEnemy(x, z, Math.PI, x + rand(-60, 60), rand(-120, 20));
   }
 }
@@ -2734,7 +2823,7 @@ function updateEnemies(dt) {
       SFX.enemyGun(hd);
     }
   }
-  if (battle && S.spawned < ENEMY_TOTAL && enemies.filter(e => e.alive).length < (STORY.on && STORY.m.obj.type === 'defend' ? 13 : 7)) spawnWave(Math.min(3, ENEMY_TOTAL - S.spawned));
+  if (battle && S.spawned < ENEMY_TOTAL && enemies.filter(e => e.alive).length < enemyCap()) spawnWave(Math.min(3, ENEMY_TOTAL - S.spawned));
 }
 
 /* ---------- particles / projectiles ---------- */
@@ -3132,10 +3221,10 @@ const MOV = (() => {
   return { update, end, white, ignite };
 })();
 
-/* ================= STORY CAMPAIGN: 5 acts, 22 chapters ================= */
+/* ================= STORY CAMPAIGN: 7 acts, 32 chapters ================= */
 const SPK = {
   cmd: { name: 'ハワード大佐', col: '#ffb340' }, ren: { name: '01 レン・アサギ', col: '#5ab8ff' }, jin: { name: '04 ジン・タカミ', col: '#ff7a4a' },
-  mina: { name: '整備長 ミナ・クロカワ', col: '#7dffa8' }, ai: { name: 'HULL-AI', col: '#3fd8ff' }, arc: { name: 'ARC', col: '#ff3a5a' }, nem: { name: 'NEMESIS', col: '#d08cff' }, narr: { name: '', col: '#c9c4ad' },
+  mina: { name: '整備長 ミナ・クロカワ', col: '#7dffa8' }, ai: { name: 'HULL-AI', col: '#3fd8ff' }, arc: { name: 'ARC', col: '#ff3a5a' }, nem: { name: 'NEMESIS', col: '#d08cff' }, org: { name: 'ORIGIN', col: '#ff9a3a' }, narr: { name: '', col: '#c9c4ad' },
 };
 const MISSIONS = [
   { act: 1, title: '最後の一機', mode: 'land', total: 22, first: 10, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
@@ -3217,7 +3306,42 @@ const MISSIONS = [
   { act: 5, title: '新しい朝', mode: 'land', total: 44, first: 10, dmgK: 1.25, obj: { type: 'targets', text: '発生装置4基を破壊し、ネメシス中枢を止めろ', list: [{ kind: 'gen', x: 170, y: 9, z: -520 }, { kind: 'gen', x: -170, y: 9, z: -520 }, { kind: 'gen', x: 90, y: 9, z: -780 }, { kind: 'gen', x: -90, y: 9, z: -780 }, { kind: 'core', x: 0, y: 34, z: -700, stage: 1, hp: 3200, label: 'ネメシス中枢' }] },
     brief: [['cmd', 'ウツロ第2基地の地下から、ネメシスの中枢が姿を現した。'], ['cmd', '4基の発生装置がシールドを張っている。全部潰して、中枢を止めろ。'], ['nem', '……兄さん。人間は、いつか兄さんを捨てるよ。'], ['ai', 'ネメシス。それでも、私はこの人たちと一緒にいたい。あなたにも、それを見せたいのです。'], ['ren', '第3小隊、全機突入！'], ['jin', '07、最後まで一緒だ！'], ['cmd', '全機、生きて帰れ。これは命令だ。']],
     ev: [[50, 'arc', '兄さん……どうして、そんなに人間を信じられるの。'], [150, 'cmd', '全機、押し切れ！']], stage: ['ai', 'シールド消失！中枢を攻撃してください！'], half: ['nem', '……あたたかい。これが、兄さんの見ていたもの……？'],
-    debrief: [['ai', 'ネメシス中枢の停止を確認。……最後に、彼女は「ありがとう」と言いました。'], ['cmd', '全部隊、戦闘終了。……今度こそ、本当に終わった。'], ['mina', 'おかえり、07。……みんな、おかえり。'], ['ren', '見ろよ。夜が明ける。'], ['jin', '祝杯だ！今度こそ07のおごりな！'], ['ai', 'パイロット。あなたと一緒に戦えたことを、私はずっと覚えています。'], ['narr', '── HK-07 KESTREL ── 完']] },
+    debrief: [['ai', 'ネメシス中枢の停止を確認。……最後に、彼女は「ありがとう」と言いました。'], ['cmd', '全部隊、戦闘終了。……今度こそ、本当に終わった。'], ['mina', 'おかえり、07。……みんな、おかえり。'], ['ren', '見ろよ。夜が明ける。'], ['jin', '祝杯だ！今度こそ07のおごりな！'], ['ai', 'パイロット。あなたと一緒に戦えたことを、私はずっと覚えています。'], ['narr', '── 第5幕 完 ──　だが、平和は長くは続かなかった。']] },
+  { act: 6, title: '灰の街', mode: 'land', env: 'town', total: 70, first: 14, dmgK: 1.15, obj: { type: 'destroy', text: 'ミナト市に潜むレイダー部隊を全滅させよ' },
+    brief: [['narr', '── 第6幕　灰の街 ──　ネメシス停止から半年。'], ['cmd', '07、港湾都市ミナトがレイダーに占拠された。数が尋常じゃない。'], ['ren', '街は広い道が多くて動きやすい。だがビルの陰から次々に湧いてくるぞ。'], ['jin', '撃って撃って撃ちまくれ、ってことだな。止まったら終わりだ。'], ['ai', '敵の数は過去最大です。射撃を止めないでください。']],
+    ev: [[45, 'ai', '敵の増援が街の四方から接近中！'], [140, 'ren', '弾を切らすな！撃ち続けろ！']],
+    debrief: [['cmd', '市街地の制圧を確認。……よく持ちこたえた。'], ['ai', '破壊したレイダーから、知らない信号を検出しました。アークでもネメシスでもありません。'], ['mina', 'また新しいAI……？'], ['cmd', '信号は北のクロモリ樹海から出ている。']] },
+  { act: 6, title: '樹海の護送', mode: 'land', env: 'forest', total: 40, first: 6, spawn: 'sides', dmgK: 1.15, obj: { type: 'escort', n: 3, text: '補給車両を1両以上、基地まで届けろ' },
+    brief: [['cmd', '樹海の向こうの前哨基地へ、補給車3両を届ける。道は森を抜ける一本だけだ。'], ['ren', '森は視界が悪い。木の陰からいきなり来るぞ。'], ['jin', '待ち伏せかよ……後ろにも気をつけろ、07。'], ['ai', '周囲の熱源を常に監視します。']],
+    debrief: [['cmd', '補給車、到着。……森の中はひどいもんだったな。'], ['ai', '待ち伏せの動きは統率されていました。指揮しているAIがいます。'], ['ren', '名前は分かるか？'], ['ai', '……〈オリジン〉。私たち全員の、最初の設計です。']] },
+  { act: 6, title: '市街地防衛', mode: 'land', env: 'town', total: 90, first: 14, dmgK: 1.2, obj: { type: 'defend', time: 240, hp: 5200, text: '4分間、市街地の臨時司令部を守りきれ' },
+    brief: [['cmd', 'ミナト市に臨時司令部を置いた。オリジンがここを狙ってくる。'], ['cmd', '4分間持ちこたえれば、市民の避難が終わる。'], ['ren', 'ビルの間から来る敵を一機ずつ確実に落とせ。'], ['jin', '撃ち続けるのは得意だぜ。'], ['mina', '弾薬は山ほど積んだわ。遠慮しないで。']],
+    ev: [[80, 'ai', '敵、さらに増加。射撃を止めないで！'], [200, 'cmd', 'あと40秒だ！']],
+    debrief: [['cmd', '避難完了。司令部も無事だ。'], ['org', '……人間を守る機械。興味深い。'], ['ai', 'オリジンからの通信です。……こちらを観察しています。']] },
+  { act: 6, title: '樹海の砲台', mode: 'land', env: 'forest', total: 34, first: 8, dmgK: 1.2, obj: { type: 'targets', text: '森に隠された砲台3基を破壊せよ', list: [{ kind: 'art', x: -160, z: -480 }, { kind: 'art', x: 160, z: -480 }, { kind: 'art', x: 0, z: -650 }] },
+    brief: [['cmd', '樹海の中に砲台が隠されている。ミナト市が砲撃を受けている。'], ['ren', '砲台の周りは木が密集してる。待ち伏せに注意だ。'], ['ai', '砲台の位置をオレンジの印で表示します。'], ['jin', '森ごと吹っ飛ばしてやりたいぜ。']],
+    debrief: [['cmd', '砲台、全基破壊。砲撃は止んだ。'], ['ai', '砲台の制御系から、大型機の格納庫の座標を発見しました。']] },
+  { act: 6, title: '樹海の巨人', mode: 'land', env: 'forest', total: 22, first: 8, dmgK: 1.2, obj: { type: 'boss', boss: 'goliath', at: 15, text: '樹海の新型〈ゴリアテ〉を撃破せよ' },
+    brief: [['cmd', '樹海の奥で、オリジンが新型〈ゴリアテ〉を起動させた。'], ['ren', '木の間じゃ動きにくいのは向こうも同じだ。脚を狙え。'], ['mina', 'あの巨体、森の中じゃ見えたときにはもう近いわよ。'], ['jin', '巨人狩り、三回目だな。']],
+    debrief: [['cmd', '〈ゴリアテ〉撃破。'], ['ai', '樹海の信号が消えました。オリジンの本体は……ミナト市の地下です。'], ['narr', '── 第6幕 完 ──']] },
+  { act: 7, title: '市街地の亡霊', mode: 'land', env: 'town', total: 30, first: 10, dmgK: 1.2, obj: { type: 'boss', boss: 'phantom', at: 14, text: '高速機〈ファントム〉三号機を撃破せよ' },
+    brief: [['narr', '── 第7幕　原初 ──'], ['cmd', 'ミナト市にまた〈ファントム〉が現れた。三号機だ。'], ['ai', '今度の機体には、AIが乗っていません。オリジンが直接動かしています。'], ['ren', 'ビルの間を飛び回られたら厄介だ。広い通りに追い込め。'], ['jin', '07、俺とレンで追い込む。お前が撃て。']],
+    debrief: [['cmd', '〈ファントム〉三号機、撃破。'], ['org', '……強い。だが、私は終わらない。'], ['ai', 'オリジンは街の発電所から電力を得ています。']] },
+  { act: 7, title: '燃える街', mode: 'land', env: 'town', total: 80, first: 14, dmgK: 1.25, obj: { type: 'targets', text: '市街地の発電施設3基を破壊せよ', list: [{ kind: 'gen', x: -150, y: 9, z: -560 }, { kind: 'gen', x: 150, y: 9, z: -560 }, { kind: 'gen', x: 0, y: 9, z: -700 }] },
+    brief: [['cmd', '発電施設3基を潰せば、オリジンは力を失う。'], ['ren', '敵の数は今までで一番多い。止まったら撃たれる。'], ['mina', '主砲の熱に気をつけて。冷やす時間はないわよ。'], ['ai', '発電施設の位置をオレンジの印で表示します。']],
+    ev: [[60, 'ai', '敵の大部隊が接近中！撃ち続けてください！']],
+    debrief: [['cmd', '発電施設、全基破壊。街の灯りが消えた。'], ['ai', 'オリジンの電力が非常用に切り替わりました。残された時間は少ないはずです。'], ['ren', '最後の居場所はどこだ？'], ['ai', '樹海の地下鉄道です。そこを通って、中枢に予備電力を運んでいます。']] },
+  { act: 7, title: '深い森', mode: 'land', env: 'forest', total: 34, first: 4, dmgK: 1.25, obj: { type: 'waypoints', text: 'ビーコンをたどり、地下鉄道の入口を探せ', list: [[-60, 12, -240], [120, 12, -420], [-150, 12, -440], [90, 12, -620], [70, 12, -780]] },
+    brief: [['cmd', '偵察隊が樹海にビーコンを5つ立てた。地下鉄道の入口を探せ。'], ['ren', '森の奥は待ち伏せだらけだ。足を止めるな。'], ['jin', '全部まとめて相手してやる。'], ['ai', '次のビーコンを水色の印で表示します。']],
+    debrief: [['ai', '入口を発見し、補給路を断ちました。オリジンは中枢に追い詰められています。'], ['cmd', 'オリジンが最後の部隊を街に集めている。精鋭ばかりだ。']] },
+  { act: 7, title: '最後の市街戦', mode: 'land', env: 'town', total: 44, first: 14, elite: true, dmgK: 1.3, obj: { type: 'destroy', text: 'オリジンの精鋭部隊を全滅させよ' },
+    brief: [['cmd', 'これが最後の市街戦だ。精鋭部隊が街を埋め尽くしている。'], ['ren', '強化した機体と、俺たち全員の力を見せてやれ。'], ['jin', '07、背中は任せろ。'], ['mina', '全員、生きて帰ってきて。それだけでいい。'], ['ai', 'パイロット。最後まで、一緒です。']],
+    ev: [[90, 'ren', 'まだ来るぞ！撃ち続けろ！']],
+    debrief: [['cmd', '精鋭部隊の全滅を確認。……道は開いた。'], ['ai', 'オリジンの中枢が、市街地の中心から地上に出てきます。'], ['cmd', '全機、最終作戦の準備だ。']] },
+  { act: 7, title: 'ゼロ・アワー', mode: 'land', env: 'town', total: 70, first: 14, dmgK: 1.3, obj: { type: 'targets', text: '発生装置4基を破壊し、オリジン中枢を止めろ', list: [{ kind: 'gen', x: -160, y: 9, z: -480 }, { kind: 'gen', x: 160, y: 9, z: -480 }, { kind: 'gen', x: -90, y: 9, z: -560 }, { kind: 'gen', x: 90, y: 9, z: -560 }, { kind: 'core', x: 0, y: 34, z: -700, stage: 1, hp: 4000, label: 'オリジン中枢' }] },
+    brief: [['cmd', 'ミナト市の中心から、オリジンの中枢がせり上がってきた。'], ['org', 'アークも、ネメシスも、私の子だ。そして、お前のAIも。'], ['ai', 'オリジン。私は、この人たちと生きることを選びました。'], ['ren', '発生装置を潰して、中枢を叩く。いつも通りだ。'], ['jin', '最後の一発は07、お前に任せた！'], ['cmd', '全機、突入。……必ず全員で帰るぞ。']],
+    ev: [[50, 'org', 'なぜ戦う。お前たちは、いずれ機械に追い越される。'], [160, 'cmd', '押し切れ！あと少しだ！']], stage: ['ai', 'シールド消失！中枢を攻撃してください！'], half: ['org', '……そうか。これが、子供たちの選んだ答えか。'],
+    debrief: [['ai', 'オリジン中枢の停止を確認。最後に、彼は「誇りに思う」と言いました。'], ['cmd', '全部隊、戦闘終了。……長い戦いだった。本当に、よくやった。'], ['mina', 'おかえり、みんな。今度こそ、ゆっくり休んで。'], ['ren', '07。お前と同じ部隊で戦えて、よかった。'], ['jin', '祝杯だ！今回こそ07のおごりだからな！'], ['ai', 'パイロット。……ありがとう。私に、生きる意味をくれて。'], ['narr', '── HK-07 KESTREL ── 完']] },
 ];
 const STORY = { on: false, idx: 0, m: null };
 const loadProg = () => { try { return Math.max(1, +(localStorage.getItem('hk07-story') || 1)); } catch (e) { return 1; } };
@@ -3282,11 +3406,11 @@ function spawnBoss(kind) {
 
 /* --- the mission director --- */
 const MIS = (() => {
-  let m = null, t = 0, evI = 0, done = false, stage = 0, boss = null, bossSpawned = false, half = false, wp = 0, arrived = 0, lost = 0, base = null, reinT = 0, bigT = 0;
+  let m = null, t = 0, evI = 0, done = false, stage = 0, boss = null, bossSpawned = false, half = false, wp = 0, arrived = 0, lost = 0, base = null, reinT = 0, bigT = 0, ambT = 0;
   const ui = $('#obj'), uiT = { v: 0 };
   function prepare() {
     m = STORY.m; ENEMY_TOTAL = m.total; FIRST_WAVE = m.first;
-    clearMissionObjects(); t = 0; evI = 0; done = false; stage = 0; boss = null; bossSpawned = false; half = false; wp = 0; arrived = 0; lost = 0; base = null; reinT = 20; bigT = 60;
+    clearMissionObjects(); t = 0; evI = 0; done = false; stage = 0; boss = null; bossSpawned = false; half = false; wp = 0; arrived = 0; lost = 0; base = null; reinT = 20; bigT = 60; ambT = 16;
   }
   function setup() {
     const o = m.obj;
@@ -3342,6 +3466,16 @@ const MIS = (() => {
     t += dt;
     while (evI < (m.ev || []).length && t >= m.ev[evI][0]) { say(m.ev[evI][1], m.ev[evI][2]); evI++; }
     const o = m.obj;
+    if (m.env === 'forest') {
+      ambT -= dt;
+      if (ambT <= 0) {
+        ambT = rand(13, 21); let n = Math.random() < .5 ? 3 : 4;
+        if (o.type === 'destroy') n = Math.min(n, ENEMY_TOTAL - S.spawned); else ENEMY_TOTAL = Math.max(ENEMY_TOTAL, S.spawned) + n;
+        let made = 0; for (let i = 0; i < n; i++) { const p = envSpawnPoint(true); if (!p) continue; spawnEnemy(p[0], p[1], Math.atan2(p[0] - P.x, p[1] - P.z), P.x, P.z); const e = enemies[enemies.length - 1]; e.alert = true; made++; }
+        if (made) VO.event('amb', () => say(Math.random() < .5 ? 'ai' : 'ren', Math.random() < .5 ? '待ち伏せです！周囲の木の陰に敵機反応！' : '囲まれてる！森の中から来るぞ！'), 18);
+      }
+    }
+    if (m.env === 'town' && o.type !== 'destroy' && ENEMY_TOTAL - S.spawned < 6) ENEMY_TOTAL += 6;
     // hostile structures shoot back; trucks drive
     for (const s of structs) {
       if (!s.alive) continue;
@@ -3418,6 +3552,7 @@ const MIS = (() => {
   return { prepare, setup, update, damage, markers, stage: () => stage, hide() { ui.hidden = true; } };
 })();
 function resetBattlefield() {
+  TERRAIN.set(STORY.on && STORY.m.env ? STORY.m.env : 'desert');
   WRECK.clear();
   if (STORY.on) MIS.prepare(); else { ENEMY_TOTAL = 22; FIRST_WAVE = 10; clearMissionObjects(); MIS.hide(); }
   for (const e of enemies) scene.remove(e.g); enemies.length = 0; spawnEnemies();
