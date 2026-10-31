@@ -776,13 +776,13 @@ function addBolts(root) { // four bolts on the front corners of every large armo
     n++;
   }
 }
-function wearTexture(seed) { // grime, chipped paint, rust streaks
-  const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d');
-  x.fillStyle = '#d6d6d0'; x.fillRect(0, 0, 256, 256);
-  for (let i = 0; i < 2600; i++) { const v = rand(150, 235) | 0; x.fillStyle = `rgba(${v},${v - 4},${v - 10},.25)`; const s = rand(1, 6); x.fillRect(rand(0, 256), rand(0, 256), s, s); }
-  for (let i = 0; i < 14; i++) { const cx = rand(0, 256), cy = rand(0, 256), r = rand(10, 50), g = x.createRadialGradient(cx, cy, 0, cx, cy, r); g.addColorStop(0, 'rgba(60,48,32,.35)'); g.addColorStop(1, 'rgba(60,48,32,0)'); x.fillStyle = g; x.fillRect(cx - r, cy - r, r * 2, r * 2); }
-  for (let i = 0; i < 40; i++) { x.strokeStyle = `rgba(90,62,38,${rand(.08, .25).toFixed(2)})`; x.lineWidth = rand(1, 3); const sx = rand(0, 256), sy = rand(0, 200); x.beginPath(); x.moveTo(sx, sy); x.lineTo(sx + rand(-3, 3), sy + rand(15, 60)); x.stroke(); }
-  for (let i = 0; i < 160; i++) { x.fillStyle = `rgba(245,245,240,${rand(.25, .6).toFixed(2)})`; x.fillRect(rand(0, 256), rand(0, 256), rand(1, 5), rand(1, 3)); }
+function wearTexture(seed) { // fine grime, faint water streaks and small chips: weathered paint rather than camouflage
+  const N = 512, c = document.createElement('canvas'); c.width = c.height = N; const x = c.getContext('2d');
+  x.fillStyle = '#e6e6e0'; x.fillRect(0, 0, N, N);
+  for (let i = 0; i < 12000; i++) { const v = rand(185, 238) | 0; x.fillStyle = `rgba(${v},${v - 3},${v - 8},.09)`; const sz = rand(1, 3); x.fillRect(rand(0, N), rand(0, N), sz, sz); }
+  for (let i = 0; i < 12; i++) { const cx = rand(0, N), cy = rand(0, N), r = rand(30, 110), g = x.createRadialGradient(cx, cy, 0, cx, cy, r); g.addColorStop(0, 'rgba(70,58,40,.13)'); g.addColorStop(1, 'rgba(70,58,40,0)'); x.fillStyle = g; x.fillRect(cx - r, cy - r, r * 2, r * 2); }
+  for (let i = 0; i < 70; i++) { x.strokeStyle = `rgba(80,62,44,${rand(.04, .12).toFixed(2)})`; x.lineWidth = rand(.8, 2.4); const sx = rand(0, N), sy = rand(0, N * .8); x.beginPath(); x.moveTo(sx, sy); x.lineTo(sx + rand(-4, 4), sy + rand(30, 140)); x.stroke(); }
+  for (let i = 0; i < 260; i++) { const px = rand(0, N), py = rand(0, N), w = rand(1, 4), h = rand(1, 2.5); x.fillStyle = 'rgba(40,36,30,.35)'; x.fillRect(px + .8, py + .8, w, h); x.fillStyle = `rgba(250,250,246,${rand(.3, .6).toFixed(2)})`; x.fillRect(px, py, w, h); }
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
 }
 function stencilTexture(text, w = 256, h = 128, color = 'rgba(232,226,200,.9)') {
@@ -913,7 +913,7 @@ function dustShader(sh) {
 }
 const NMAP = normalTexture(), NSC = new THREE.Vector2(.6, .6);
 const std = (color, rough, metal, extra = {}) => { const m = new THREE.MeshStandardMaterial(Object.assign({ color, roughness: rough, metalness: metal, map: WEAR, normalMap: NMAP, normalScale: NSC, roughnessMap: RMAP, envMapIntensity: .75 }, extra)); m.onBeforeCompile = dustShader; return m; };
-const mGraph = std(0x3a3f46, .5, .55), mPanel = std(0xb9bcb7, .5, .3), mOrange = std(0xd9621c, .5, .2), mGun = std(0x25282c, .42, .75);
+const mGraph = std(0x3a3f46, .5, .55), mPanel = std(0xa3a8a4, .5, .3), mOrange = std(0xd9621c, .5, .2), mGun = std(0x25282c, .42, .75);
 const mVent = new THREE.MeshStandardMaterial({ color: 0x0b0b0a, roughness: .9 });
 const mSteel = new THREE.MeshStandardMaterial({ color: 0x9c9e96, roughness: .32, metalness: .95, envMapIntensity: .9 });
 const mChrome = new THREE.MeshStandardMaterial({ color: 0xe2e2de, roughness: .1, metalness: 1, envMapIntensity: 1 });
@@ -928,6 +928,27 @@ const flameCore = new THREE.MeshBasicMaterial({ color: 0xc8ecff, transparent: tr
 const jetLight = new THREE.PointLight(0xffa060, 0, 45, 2); scene.add(jetLight);
 const HIP = 6.0, EYE = 7.9;
 
+const PISTONS = [], PGH = new THREE.CylinderGeometry(.21, .21, 1, 14), PGR = new THREE.CylinderGeometry(.105, .105, 1, 10), PGC = new THREE.CylinderGeometry(.26, .26, .2, 14);
+PGH.rotateX(Math.PI / 2); PGH.translate(0, 0, .5); PGR.rotateX(Math.PI / 2); PGR.translate(0, 0, .5); PGC.rotateX(Math.PI / 2);
+const PTV = new THREE.Vector3();
+function piston(aParent, ax, ay, az, bParent, bx, by, bz, pal, len = 1.1) {
+  const g = new THREE.Group(); g.position.set(ax, ay, az); aParent.add(g);
+  const b = new THREE.Object3D(); b.position.set(bx, by, bz); bParent.add(b);
+  const h = new THREE.Mesh(PGH, pal.gun); h.scale.z = len; g.add(h);
+  const c1 = new THREE.Mesh(PGC, mSteel); g.add(c1);
+  const r = new THREE.Mesh(PGR, mChrome); g.add(r);
+  const c2 = new THREE.Mesh(PGC, mSteel); c2.scale.setScalar(.75); b.add(c2);
+  [h, c1, r, c2].forEach(m => { m.castShadow = true; m.receiveShadow = true; });
+  const p = { g, b, h, r, len }; PISTONS.push(p); return p;
+}
+function updatePistons() {
+  for (let i = PISTONS.length - 1; i >= 0; i--) {
+    const p = PISTONS[i]; let o = p.g, dep = 0; while (o.parent && dep++ < 40) o = o.parent;
+    if (o !== scene && !o.isScene) { if (!o.parent && o.type !== 'Scene') { if (p.dead === undefined) p.dead = 0; if (++p.dead > 600) PISTONS.splice(i, 1); } continue; }
+    p.b.getWorldPosition(PTV); p.g.lookAt(PTV); const d = PTV.distanceTo(p.g.getWorldPosition(new THREE.Vector3()));
+    p.r.scale.z = d; p.h.scale.z = Math.min(p.len, d * .62);
+  }
+}
 function makeLegS(parent, x, pal) {
   const side = Math.sign(x), l1 = 2.8, l2 = 2.7, w = 1.1;
   const thigh = new THREE.Group(); thigh.position.set(x, HIP, 0); parent.add(thigh);
@@ -950,6 +971,9 @@ function makeLegS(parent, x, pal) {
   part(prism([[1.6, -.28], [1.15, -.02], [-.8, -.02], [-1.0, -.5], [1.45, -.5]], w * 1.15, .08), pal.graph, 0, 0, 0, foot, 0, Math.PI / 2, 0);
   part(cb(w * .6, .3, .8, .08), pal.gun, 0, -.38, .95, foot);
   part(new THREE.BoxGeometry(w * .9, .06, .45), pal.accent, 0, .04, -1.0, foot);
+  piston(thigh, 0, -.55, -.95, knee, 0, -.95, -.95, pal, 1.0);           // knee actuator on the front of the thigh
+  piston(knee, 0, -.55, .95, foot, 0, .45, .72, pal, .8);                 // ankle actuator behind the shin
+  piston(parent, x * .62, HIP + .35, .95, thigh, 0, -1.1, .72, pal, .7);  // hip actuator at the back
   return { thigh, knee, foot };
 }
 function buildKestrel(pal, num, shadow) {
@@ -1169,7 +1193,7 @@ const GARUI = (() => {
     const cv = $('#gview'), w = cv.clientWidth || 300, h = cv.clientHeight || 300;
     if (cv.width !== Math.round(w * ren.getPixelRatio()) || cv.height !== Math.round(h * ren.getPixelRatio())) { ren.setSize(w, h, false); pcam.aspect = w / h; pcam.updateProjectionMatrix(); }
     const a = t * .00025 + 2.4; pcam.position.set(Math.sin(a) * 24, 10.5, Math.cos(a) * 24); pcam.lookAt(0, 7.2, 0);
-    ren.render(pv, pcam);
+    updatePistons(); ren.render(pv, pcam);
   }
   const bar = (label, v, max) => `<div class="gs"><span>${label}</span><i><b style="width:${Math.min(100, v / max * 100).toFixed(0)}%"></b></i></div>`;
   function render() {
@@ -1919,9 +1943,16 @@ const CK = (() => {
     }
     drawSide(d); apply(T);
     if (CM.on) {
-      CM.t += dt; const k = CM.t;
-      CM.flash.scale.y = k < .3 ? Math.max(.01, k / .3) : 1; CM.flash.material.opacity = k < .3 ? 1 : Math.max(0, 1 - (k - .3) / .7);
-      CM.edgeM.emissiveIntensity = 1.2 + .3 * Math.sin(T * 2);
+      CM.t += dt; const t = CM.t, OPEN = 2.1;
+      // 1) machines retract into the bulkhead, 2) the dashboard rises, 3) panel lights come up, 4) the display opens
+      if (CM.stow) { let left = 0; CM.stow.forEach(w => { if (!w.o.visible) return; const k = clamp((t - w.d) / .55, 0, 1), e = k * k * (3 - 2 * k); w.o.position.copy(w.o.userData.p0).addScaledVector(w.dir, e); w.o.scale.copy(w.o.userData.s0).multiplyScalar(Math.max(.02, 1 - e * .97)); if (k >= 1) { w.o.visible = false; if (Math.random() < .35) clank(); } else left++; }); if (!left) CM.stow = null; }
+      if (CM.dash) { const k = clamp((t - .8) / .7, 0, 1); CM.dash.position.y = -.6 * (1 - k * k * (3 - 2 * k)); if (k > 0 && !CM.dashUp) { CM.dashUp = true; servo(80, 160, .7, .05); } }
+      const lk = clamp((t - 1.45) / .5, 0, 1); CM.dashScr.forEach(m => m.color.setScalar(lk > 0 ? (Math.random() < .25 && lk < 1 ? .3 : lk) : 0));
+      if (lk > 0 && !CM.hum) { CM.hum = true; snd(() => { sTone({ f: 50, dur: 1.2, type: 'sawtooth', gain: .05 }); sTone({ f: 2400, f2: 3000, dur: .25, type: 'sine', gain: .03 }); }); }
+      CM.edgeM.emissiveIntensity = t < 1.5 ? 0 : t < 2.1 ? ((t * 14 | 0) % 2 ? 1.4 : .2) : 1.2 + .3 * Math.sin(T * 2);
+      const k = t - OPEN;
+      if (k >= 0 && hinge.visible) { hinge.visible = false; snd(() => { sTone({ f: 300, f2: 1800, dur: .3, type: 'sine', gain: .05 }); sNoise({ dur: .4, type: 'highpass', f: 3000, gain: .08 }); }); }
+      CM.flash.scale.y = k < 0 ? .01 : k < .3 ? Math.max(.01, k / .3) : 1; CM.flash.material.opacity = k < 0 ? 0 : k < .3 ? 1 : Math.max(0, 1 - (k - .3) / .7);
       if (CM.dash) { if ((CM.fr = (CM.fr || 0) + 1) % 3 === 0) drawRadar(T); CM.needles[0].rotation.y = -1.9 + Math.min(1, Math.abs(P.spd) / 12) * 3.2 + Math.sin(T * 9) * .02; CM.needles[1].rotation.y = -1.9 + Math.min(1, P.heat / 100) * 3.2; CM.sw.forEach((t, i) => t.rotation.x = (i === 0 ? (btn.sub || keys.f) : i === 1 ? P.thrust > .05 : i < 4) ? .5 : -.5); }
       if (lamps) lampMats.forEach((m, i) => m.emissiveIntensity = (Math.sin(T * (2 + i * .7) + i * 2) > .2) ? 1.4 : .1);
       (CM.hands || []).forEach(h => {
@@ -2166,9 +2197,10 @@ const CK = (() => {
     part(cb(1.24, .66, .05, .02), paint, 0, -.97, back + .02, D);
     // screens
     CM.rc = document.createElement('canvas'); CM.rc.width = CM.rc.height = 160; CM.rx = CM.rc.getContext('2d'); CM.rt = new THREE.CanvasTexture(CM.rc);
+    CM.dashScr = [];
     [[-.36, CM.rt], [.36, stex2]].forEach(([x, tex]) => {
       part(cb(.4, .04, .3, .015), bez, x, .01, -.02, pg);
-      const sc = new THREE.Mesh(new THREE.PlaneGeometry(.34, .24), new THREE.MeshBasicMaterial({ map: tex })); sc.rotation.x = -Math.PI / 2; sc.position.set(x, .032, -.02); pg.add(sc);
+      const sc = new THREE.Mesh(new THREE.PlaneGeometry(.34, .24), new THREE.MeshBasicMaterial({ map: tex })); CM.dashScr.push(sc.material); sc.rotation.x = -Math.PI / 2; sc.position.set(x, .032, -.02); pg.add(sc);
       for (let i = 0; i < 5; i++) part(new THREE.BoxGeometry(.035, .02, .025), knobM, x - .14 + i * .07, .03, .16, pg);
     });
     // gauges
@@ -2218,12 +2250,22 @@ const CK = (() => {
       // in battle the hatch opening is the display: everything hanging in front of it stows away, the instruments live on a real dashboard
       const CLUT = [XM.tog[0].parent, XM.fanR.parent, ...XM.drum, ...XM.dial, XM.gy[0].parent, X2.bg, X2.wh[0].parent, X2.spr[0].parent, ...X2.val.map(o => o.v), ...gears.map(o => o.gr), ...sides.map(o => o.h), XM.cart.parent === g ? XM.cart : null, scan, glass]
         .concat(g.children.filter(c => ['breakers', 'acc', 'cells', 'belt', 'tube', 'pistons', 'gauges'].includes(c.userData.asm))).filter(Boolean);
-      [hinge, arm, ...OVERHEAD, XM.mask, XM.peri, rbase, X2.w1.parent, ...bars, ...CLUT].forEach(c => { c.userData.cmVis = c.visible; c.visible = false; });
-      if (!CM.dash) buildDash(); CM.dash.userData.cmVis = false; CM.dash.visible = true;
+      [arm, ...OVERHEAD, XM.mask, XM.peri, rbase, X2.w1.parent, ...bars, scan, glass].forEach(c => { c.userData.cmVis = c.visible; c.visible = false; });
+      hinge.userData.cmVis = hinge.visible;                                  // the hatch slab stays until the display opens
+      // the machines fold away into their housings one after another instead of vanishing
+      CM.stow = CLUT.filter(c => c !== scan && c !== glass && c.visible).map((o, i) => {
+        o.userData.cmVis = true; o.userData.p0 = o.position.clone(); o.userData.s0 = o.scale.clone();
+        const p = o.position, dir = p.y > .35 ? new THREE.Vector3(0, .3, -.06) : (p.y < -.2 || Math.abs(p.x) < .3) ? new THREE.Vector3(0, -.38, -.06) : new THREE.Vector3(Math.sign(p.x) * .45, 0, -.06);
+        return { o, dir, d: (i % 9) * .07 + Math.floor(i / 9) * .05 };
+      });
+      if (!CM.dash) buildDash(); CM.dash.userData.cmVis = false; CM.dash.visible = true; CM.dash.position.y = -.6;
+      CM.edgeM.emissiveIntensity = 0; CM.flash.material.opacity = 0; CM.dashScr.forEach(m => m.color.setScalar(0));
+      snd(() => { sTone({ f: 140, f2: 60, dur: 1.4, type: 'sawtooth', gain: .05 }); sNoise({ dur: 1.4, type: 'bandpass', f: 900, q: 2, gain: .12 }); });
       CM.parts.forEach(m => { m.userData.cmVis = false; m.visible = true; });
       camera.remove(g); ckCam.add(g); g.visible = true; drawScreen(null);
     } else {
-      g.children.forEach(c => { if (c.userData.cmVis !== undefined) { c.visible = c.userData.cmVis; delete c.userData.cmVis; } });
+      g.children.forEach(c => { if (c.userData.p0) { c.position.copy(c.userData.p0); c.scale.copy(c.userData.s0); delete c.userData.p0; delete c.userData.s0; } if (c.userData.cmVis !== undefined) { c.visible = c.userData.cmVis; delete c.userData.cmVis; } });
+      CM.stow = null; CM.dashUp = false; CM.hum = false;
       CM.parts.forEach(m => m.visible = false); ckCam.remove(g); camera.add(g);
     }
     apply(0);
@@ -4285,9 +4327,9 @@ function frame(now) {
     MIS.update(dt, T);
     if (S.phase === 'op' && !P.dead) { S.cmdT -= dt; if (S.cmdT <= 0) { S.cmdT = rand(30, 46); const CL = CMD_LINES[S.mode]; VO.radio('司令部', CL[Math.random() * CL.length | 0], 0, .7); } } updateGantry(dt, T); updateEnemies(dt); updateAllies(dt); updateShells(dt); updateParts(dt); updateCamera(T, dt);
     if (CK.combatOn) CK.update(dt, T);
-    renderer.render(scene, camera); CK.renderCombat(); drawLever();
+    updatePistons(); renderer.render(scene, camera); CK.renderCombat(); drawLever();
   } else if (S.phase === 'title' || S.phase === 'movie' || S.phase === 'ignite') {
-    updateMech(dt); followSun(); updateGantry(dt, T); updateEnemies(dt); updateAllies(dt); updateShells(dt); updateParts(dt); MOV.update(dt); renderer.render(scene, camera);
+    updateMech(dt); followSun(); updateGantry(dt, T); updateEnemies(dt); updateAllies(dt); updateShells(dt); updateParts(dt); MOV.update(dt); updatePistons(); renderer.render(scene, camera);
   } else if (S.phase === 'walk') {
     updateMech(dt); followSun(); updateGantry(dt, T); updateParts(dt); WALK.update(dt); renderer.render(scene, camera);
   } else if (S.phase === 'hatch' || S.phase === 'cam') {
