@@ -1911,7 +1911,7 @@ const CK = (() => {
   apply(0);
 
   async function close() {
-    const SL = 1.55, tw = (k, to, d, e) => tween(k, to, d * SL, e), ps = d => pause(d * SL);
+    const SL = .7, tw = (k, to, d, e) => tween(k, to, d * SL, e), ps = d => pause(d * SL);
     const sv = (f0, f1, d, gn) => servo(f0, f1, d * SL, gn);
     // 1. the hatch drops from above
     SFX.relay(); SFX.hiss(2.6);
