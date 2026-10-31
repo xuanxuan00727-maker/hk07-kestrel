@@ -1607,6 +1607,30 @@ const CK = (() => {
   for (let i = 0; i < 7; i++) { const l = part(B(.26, .2, .03), frameM, -.8 + i * .267, -1.01, -1.32, g); louvers.push(l); }
   asm(A0, 'louvers');
 
+  /* --- pillar instrument strips and side-wall breaker panels --- */
+  const panelM = std(0x34372f, .85, .25), bezM = std(0x1d1e1b, .6, .4), btnM = std(0x111111, .6, .2), PILN = [];
+  A0 = g.children.length;
+  [-1, 1].forEach(s => {
+    const pp = new THREE.Group(); pp.position.set(s * 1.54, 0, -1.452); g.add(pp);
+    part(cb(.3, 1.36, .04, .012), panelM, 0, 0, 0, pp);
+    [.46, .18].forEach(y => {
+      cylY(.075, .08, .03, bezM, 0, y, .02, pp, 20).rotation.x = Math.PI / 2;
+      const f = new THREE.Mesh(new THREE.CircleGeometry(.066, 24), new THREE.MeshBasicMaterial({ map: gaugeTex() })); f.position.set(0, y, .037); pp.add(f);
+      const n = new THREE.Group(); n.position.set(0, y, .04); pp.add(n); part(new THREE.BoxGeometry(.006, .055, .004), new THREE.MeshBasicMaterial({ color: 0xd8401c }), 0, .022, 0, n); PILN.push(n);
+    });
+    for (let i = 0; i < 4; i++) { part(new THREE.BoxGeometry(.25, .07, .015), bezM, 0, -.08 - i * .12, .025, pp); for (let k = 0; k < 3; k++) { const t = cylY(.007, .01, .05, mChrome, -.08 + k * .08, -.08 - i * .12, .05, pp, 6); t.rotation.x = 1.1; } }
+    decal(stencilTexture(s < 0 ? 'HYD  PRESS' : 'REACTOR', 256, 48), .22, .045, 0, .6, .025, pp);
+    decal(stencilTexture('ELEC BUS', 256, 48), .22, .045, 0, -.02, .025, pp);
+    // breaker wall between the ribs
+    [-1.15, -.65].forEach(z => {
+      const wp = new THREE.Group(); wp.position.set(s * 1.785, .2, z); wp.rotation.y = -s * Math.PI / 2; g.add(wp);
+      part(cb(.34, .7, .03, .01), panelM, 0, 0, 0, wp);
+      for (let r = 0; r < 6; r++) for (let k = 0; k < 4; k++) cylY(.012, .012, .02, btnM, -.11 + k * .073, .27 - r * .1, .025, wp, 8).rotation.x = Math.PI / 2;
+      decal(stencilTexture('CB-' + (s < 0 ? 'L' : 'R') + (z < -1 ? '1' : '2'), 256, 48), .14, .03, 0, .32, .018, wp);
+    });
+  });
+  asm(A0, 'walls2');
+
   /* --- seat harness bars --- */
   const bars = [];
   [-1, 1].forEach(s => {
@@ -1621,11 +1645,12 @@ const CK = (() => {
   [-1, 1].forEach(s => {
     const c = new THREE.Group(); c.position.set(s * 1.3, -.55, -.95); g.add(c);
     part(cb(.8, .4, .7, .06), frameM, 0, 0, 0, c);
-    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) { const m = glowM([0xff8a20, 0x40ff7a, 0xff3020][(i + j) % 3]); lampMats.push(m); part(B(.1, .04, .1), m, -.22 + i * .22, .22, -.2 + j * .2, c); }
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) { const m = glowM([0xffa030, 0x40ff7a, 0x40ff7a][(i + j) % 3]); lampMats.push(m); part(B(.07, .022, .05), m, -.2 + i * .1, .21, -.22 + j * .09, c); part(B(.075, .012, .055), padM, -.2 + i * .1, .2, -.22 + j * .09, c); }
+    for (let i = 0; i < 4; i++) part(B(.035, .03, .05), padM, .1 + (i % 2) * .08, .215, -.22 + (i >> 1) * .12, c);
     const lid = new THREE.Group(); lid.position.set(0, .22, .32); c.add(lid);
     part(B(.78, .04, .66), frameM, 0, 0, -.33, lid);
     const stick = new THREE.Group(); stick.position.set(s * .17, -.2, .08); c.add(stick);
-    cylY(.04, .05, .5, mChrome, 0, .25, 0, stick, 10); cylY(.08, .07, .2, padM, 0, .55, 0, stick, 12); part(new THREE.SphereGeometry(.035, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff3020 }), 0, .67, 0, stick);
+    cylY(.04, .05, .5, mChrome, 0, .25, 0, stick, 10); cylY(.06, .055, .22, padM, 0, .56, 0, stick, 12); part(new THREE.SphereGeometry(.06, 12, 8, 0, TAU, 0, Math.PI / 2), padM, 0, .67, 0, stick); part(new THREE.CylinderGeometry(.015, .015, .02, 8), new THREE.MeshStandardMaterial({ color: 0x400000, emissive: 0xff2010, emissiveIntensity: .5 }), 0, .72, -.01, stick); part(B(.02, .04, .03), padM, 0, .6, -.06, stick);
     consoles.push({ c, s, lid, stick, jk: [] });
   });
 
@@ -1832,7 +1857,7 @@ const CK = (() => {
     bolts.forEach(b => b.m.position.x = b.s * (1.95 - .42 * st.bolt));
     arm.rotation.x = 0; arm.position.y = 1.5 + (1 - clamp(1 + st.arm / 1.55, 0, 1.03)) * 1.95;
     consoles.forEach(o => {
-      o.c.position.x = o.s * lerp(1.3, 1.05, st.con); const cy = lerp(-.88, -.55, st.jack); o.c.position.y = cy; o.lid.rotation.x = -1.9 * st.lids; o.stick.position.y = lerp(-.2, .02, st.sticks);
+      o.c.position.x = o.s * lerp(1.3, 1.05, st.con); const cy = lerp(-.88, -.55, st.jack); o.c.position.y = cy; o.lid.rotation.x = -1.9 * st.lids; o.stick.position.y = lerp(-.2, -.03, st.sticks);
       const span = Math.max(.02, cy - .2 + 1.25); // console underside to the floor: the jack telescopes
       o.jk.forEach(j => { j.sh.scale.y = span / .45; j.sh.position.y = -.2 - span / 2; const sl = Math.min(span, .2); j.sl.scale.y = sl / .2; j.sl.position.y = -.2 - span + sl / 2; });
     });
@@ -1845,6 +1870,7 @@ const CK = (() => {
     glass.position.y = lerp(1.1, .02, st.glassY); glass.material.opacity = st.glassY * .35;
     pistons.forEach(p => p.m.position.y = p.y - .2 * st.pist * (.5 + .5 * Math.sin(T * 3.2 + p.ph)));
     gauges.forEach((n, i) => n.rotation.z = lerp(2.2, -1.2 + Math.sin(T * (1.3 + i)) * .15, st.gauge));
+    PILN.forEach((n, i) => n.rotation.z = lerp(2.3, -.6 + Math.sin(T * (.7 + i * .4) + i) * .25, Math.max(st.gauge, PILN.cm ? 1 : 0)));
     beacon.rotation.y = T * 5; beaconM.emissiveIntensity = st.beacon * 2; beam.material.opacity = st.beacon * .25; beaconL.intensity = st.beacon * 1.5;
     XM.tog.forEach((p, i) => { const on = st.tog > i; p.rotation.x += ((on ? .6 : -.6) - p.rotation.x) * .35; XM.togL[i].emissiveIntensity = on ? 1.5 : 0; });
     XM.brk.forEach((p, i) => { p.rotation.x += ((st.brk > i ? -.9 : 1.0) - p.rotation.x) * .3; });
@@ -1896,6 +1922,7 @@ const CK = (() => {
       CM.t += dt; const k = CM.t;
       CM.flash.scale.y = k < .3 ? Math.max(.01, k / .3) : 1; CM.flash.material.opacity = k < .3 ? 1 : Math.max(0, 1 - (k - .3) / .7);
       CM.edgeM.emissiveIntensity = 1.2 + .3 * Math.sin(T * 2);
+      if (CM.dash) { if ((CM.fr = (CM.fr || 0) + 1) % 3 === 0) drawRadar(T); CM.needles[0].rotation.y = -1.9 + Math.min(1, Math.abs(P.spd) / 12) * 3.2 + Math.sin(T * 9) * .02; CM.needles[1].rotation.y = -1.9 + Math.min(1, P.heat / 100) * 3.2; CM.sw.forEach((t, i) => t.rotation.x = (i === 0 ? (btn.sub || keys.f) : i === 1 ? P.thrust > .05 : i < 4) ? .5 : -.5); }
       if (lamps) lampMats.forEach((m, i) => m.emissiveIntensity = (Math.sin(T * (2 + i * .7) + i * 2) > .2) ? 1.4 : .1);
       (CM.hands || []).forEach(h => {
         const sh = P.trauma * P.trauma * .012, k = Math.min(1, dt * 12);
@@ -2120,15 +2147,79 @@ const CK = (() => {
       return { base, piv, grip, hand, idx, thumb, s, tz: 0, tx: 0 };
     });
   }
+  function gaugeTex() {
+    if (gaugeTex.t) return gaugeTex.t;
+    const gc = document.createElement('canvas'); gc.width = gc.height = 128; const gx = gc.getContext('2d');
+    gx.fillStyle = '#e7e0c4'; gx.beginPath(); gx.arc(64, 64, 62, 0, TAU); gx.fill(); gx.strokeStyle = '#222'; gx.lineWidth = 3;
+    for (let i = 0; i <= 10; i++) { const a = Math.PI * .75 + i / 10 * Math.PI * 1.5; gx.beginPath(); gx.moveTo(64 + Math.cos(a) * 48, 64 + Math.sin(a) * 48); gx.lineTo(64 + Math.cos(a) * 58, 64 + Math.sin(a) * 58); gx.stroke(); }
+    gx.fillStyle = '#c23a2a'; gx.beginPath(); gx.arc(64, 64, 52, Math.PI * .05, Math.PI * .25); gx.arc(64, 64, 44, Math.PI * .25, Math.PI * .05, true); gx.fill();
+    return gaugeTex.t = new THREE.CanvasTexture(gc);
+  }
+  function buildDash() {
+    // a slanted instrument panel under the display: radar and status screens, round gauges, guarded switches, placards
+    const paint = std(0x3a3d35, .82, .25), bez = std(0x1d1e1b, .6, .4), guardM = std(0xc49a1e, .55, .2), knobM = std(0x151515, .5, .3);
+    const D = new THREE.Group(); g.add(D); CM.dash = D;
+    const back = -1.03, top = -.53, front = -1.45, low = -.75, ang = Math.atan2(top - low, front - back);
+    const pg = new THREE.Group(); pg.position.set(0, (top + low) / 2, (back + front) / 2); pg.rotation.x = -(Math.PI - ang); D.add(pg);
+    const len = Math.hypot(top - low, back - front);
+    part(cb(1.26, .06, len, .02), paint, 0, -.03, 0, pg);
+    part(cb(1.24, .66, .05, .02), paint, 0, -.97, back + .02, D);
+    // screens
+    CM.rc = document.createElement('canvas'); CM.rc.width = CM.rc.height = 160; CM.rx = CM.rc.getContext('2d'); CM.rt = new THREE.CanvasTexture(CM.rc);
+    [[-.36, CM.rt], [.36, stex2]].forEach(([x, tex]) => {
+      part(cb(.4, .04, .3, .015), bez, x, .01, -.02, pg);
+      const sc = new THREE.Mesh(new THREE.PlaneGeometry(.34, .24), new THREE.MeshBasicMaterial({ map: tex })); sc.rotation.x = -Math.PI / 2; sc.position.set(x, .032, -.02); pg.add(sc);
+      for (let i = 0; i < 5; i++) part(new THREE.BoxGeometry(.035, .02, .025), knobM, x - .14 + i * .07, .03, .16, pg);
+    });
+    // gauges
+    const gc = document.createElement('canvas'); gc.width = gc.height = 128; const gx = gc.getContext('2d');
+    gx.fillStyle = '#e7e0c4'; gx.beginPath(); gx.arc(64, 64, 62, 0, TAU); gx.fill(); gx.strokeStyle = '#222'; gx.lineWidth = 3;
+    for (let i = 0; i <= 10; i++) { const a = Math.PI * .75 + i / 10 * Math.PI * 1.5; gx.beginPath(); gx.moveTo(64 + Math.cos(a) * 48, 64 + Math.sin(a) * 48); gx.lineTo(64 + Math.cos(a) * 58, 64 + Math.sin(a) * 58); gx.stroke(); }
+    gx.fillStyle = '#c23a2a'; gx.beginPath(); gx.arc(64, 64, 52, Math.PI * .05, Math.PI * .25); gx.arc(64, 64, 44, Math.PI * .25, Math.PI * .05, true); gx.fill();
+    const gt = new THREE.CanvasTexture(gc); CM.needles = [];
+    [-.08, .08].forEach((x, i) => {
+      const gg = new THREE.Group(); gg.position.set(x, .03, -.08); pg.add(gg);
+      cylY(.062, .066, .03, bez, 0, 0, 0, gg, 20);
+      const f = new THREE.Mesh(new THREE.CircleGeometry(.055, 24), new THREE.MeshBasicMaterial({ map: gt })); f.rotation.x = -Math.PI / 2; f.position.y = .017; gg.add(f);
+      const n = new THREE.Group(); n.position.y = .02; gg.add(n); part(new THREE.BoxGeometry(.006, .004, .045), new THREE.MeshBasicMaterial({ color: 0xd8401c }), 0, 0, -.02, n); CM.needles.push(n);
+    });
+    // guarded switches across the front edge
+    CM.sw = [];
+    for (let i = 0; i < 6; i++) {
+      const x = -.25 + i * .1, sg = new THREE.Group(); sg.position.set(x, .03, .1); pg.add(sg);
+      part(new THREE.BoxGeometry(.05, .012, .06), bez, 0, 0, 0, sg);
+      const t = cylY(.006, .009, .045, mChrome, 0, .025, 0, sg, 6); t.rotation.x = -.5; CM.sw.push(t);
+      const gd = part(new THREE.BoxGeometry(.056, .028, .07), guardM, 0, .03, 0, sg); gd.material = gd.material.clone(); gd.material.transparent = true; gd.material.opacity = .55;
+    }
+    decal(stencilTexture('NAV', 256, 64), .1, .025, -.36, .035, -.155, pg).rotation.x = -Math.PI / 2;
+    decal(stencilTexture('SYS STATUS', 256, 64), .14, .025, .36, .035, -.155, pg).rotation.x = -Math.PI / 2;
+    decal(stencilTexture('MASTER ARM', 256, 64, 'rgba(232,196,60,.95)'), .2, .03, 0, .035, .16, pg).rotation.x = -Math.PI / 2;
+    D.traverse(o => { if (o.isMesh) o.castShadow = false; });
+    D.visible = false;
+  }
+  function drawRadar(T) {
+    const x = CM.rx, W = 160, c = W / 2; x.fillStyle = '#031008'; x.fillRect(0, 0, W, W);
+    x.strokeStyle = 'rgba(80,255,140,.35)'; x.lineWidth = 1; [24, 48, 72].forEach(r => { x.beginPath(); x.arc(c, c, r, 0, TAU); x.stroke(); }); x.beginPath(); x.moveTo(c, 4); x.lineTo(c, W - 4); x.moveTo(4, c); x.lineTo(W - 4, c); x.stroke();
+    const a = T * 2.2; const gr = x.createLinearGradient(c, c, c + Math.cos(a) * 76, c + Math.sin(a) * 76); x.strokeStyle = 'rgba(120,255,170,.9)'; x.lineWidth = 2; x.beginPath(); x.moveTo(c, c); x.lineTo(c + Math.cos(a) * 76, c + Math.sin(a) * 76); x.stroke();
+    const cy = Math.cos(P.yaw), sy = Math.sin(P.yaw);
+    for (const e of enemies) { if (!e.alive) continue; const dx = e.x - P.x, dz = e.z - P.z, rx = dx * cy - dz * sy, rz = dx * sy + dz * cy, d = Math.hypot(rx, rz); if (d > 600) continue; x.fillStyle = '#ff5a40'; x.fillRect(c + rx / 600 * 72 - 2, c + rz / 600 * 72 - 2, 4, 4); }
+    for (const al of allies) { if (!al.alive) continue; const dx = al.x - P.x, dz = al.z - P.z, rx = dx * cy - dz * sy, rz = dx * sy + dz * cy; if (Math.hypot(rx, rz) > 600) continue; x.fillStyle = '#5ab8ff'; x.fillRect(c + rx / 600 * 72 - 2, c + rz / 600 * 72 - 2, 4, 4); }
+    x.fillStyle = '#9fffd0'; x.beginPath(); x.moveTo(c, c - 6); x.lineTo(c - 4, c + 4); x.lineTo(c + 4, c + 4); x.fill();
+    CM.rt.needsUpdate = true;
+  }
   function combat(on) {
-    if (on === CM.on) return; CM.on = on; CM.t = 0;
+    if (on === CM.on) return; CM.on = on; CM.t = 0; PILN.cm = on;
     (CM.hands || []).forEach(h => h.base.visible = on);
     if (on) {
       tweens.length = 0; speed = 1; vent = 0; X2.weldOn = false; lamps = true; sideOn = 2;
       // everything the start-up brought out stays where it is; only the hatch slab and the centre monitor make way for the display
       Object.assign(st, { sky: 1, env: 1, black: 0, door: 0, seatZ: -.3, seatY: .14, red: 0, work: .55, beacon: 0, strobe: 0, scan: 0, glassY: 0, arm: -1.55, weld: Math.min(st.weld, 1) });
       // the hatch slab, the centre monitor and everything hanging over the pilot's head make way for the display
-      [hinge, arm, ...OVERHEAD, XM.mask, XM.peri, rbase, X2.w1.parent, ...bars].forEach(c => { c.userData.cmVis = c.visible; c.visible = false; });
+      // in battle the hatch opening is the display: everything hanging in front of it stows away, the instruments live on a real dashboard
+      const CLUT = [XM.tog[0].parent, XM.fanR.parent, ...XM.drum, ...XM.dial, XM.gy[0].parent, X2.bg, X2.wh[0].parent, X2.spr[0].parent, ...X2.val.map(o => o.v), ...gears.map(o => o.gr), ...sides.map(o => o.h), XM.cart.parent === g ? XM.cart : null, scan, glass]
+        .concat(g.children.filter(c => ['breakers', 'acc', 'cells', 'belt', 'tube', 'pistons', 'gauges'].includes(c.userData.asm))).filter(Boolean);
+      [hinge, arm, ...OVERHEAD, XM.mask, XM.peri, rbase, X2.w1.parent, ...bars, ...CLUT].forEach(c => { c.userData.cmVis = c.visible; c.visible = false; });
+      if (!CM.dash) buildDash(); CM.dash.userData.cmVis = false; CM.dash.visible = true;
       CM.parts.forEach(m => { m.userData.cmVis = false; m.visible = true; });
       camera.remove(g); ckCam.add(g); g.visible = true; drawScreen(null);
     } else {
