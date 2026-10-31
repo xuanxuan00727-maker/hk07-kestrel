@@ -2609,6 +2609,7 @@ const WALK = (() => {
 /* ---------- allied squad: Kestrels in desert paint ---------- */
 const allies = [];
 function spawnAllies() {
+  if (STORY.on && STORY.m && STORY.m.noAllies) return;
   ['01', '02', '03', '04', '05', '06'].forEach((n, i) => {
     const sp = S.mode === 'space', k = buildKestrel(sp ? PAL_AS : PAL_A, n, false); if (sp) addSpaceKit(k, PAL_AS);
     k.gait = makeGait(k.root, k.legs, { hipX: [1.75, -1.75], hipY: HIP, l1: 2.8, l2: 2.7, ankle: .5, lift: 1.0, sway: .3 });
@@ -2784,6 +2785,7 @@ function updateEnemies(dt) {
     let t = null, dist = 1e9;
     { let bw = 1e9; for (const c of tg) { const d = Math.hypot(c.x - e.x, c.z - e.z), w = d * (c.bias || 1); if (w < bw) { bw = w; dist = d; t = c; } } }
     if (t && dist < 300) e.alert = true; else if (!t || dist > 430) e.alert = false;
+    if (e.dummy) { e.alert = false; e.wx = e.x; e.wz = e.z; }
     const hd = Math.hypot(camera.position.x - e.x, camera.position.z - e.z);
     const dx = t ? t.x - e.x : 0, dz = t ? t.z - e.z : 0;
     let want, spd;
@@ -3212,11 +3214,11 @@ const MOV = (() => {
     let v = .03; for (const [at, val] of flick) if (ig >= at) v = val;
     ME.visor.emissiveIntensity = v; ME.eye.material.opacity = clamp((v - .03) / 4.5, 0, 1); ME.eye.scale.set(3.4 + v * 1.4, 1.3 + v * .3, 1);
     if (ig >= 1.5 && !igniteUpdate.lit) { igniteUpdate.lit = true; sTone({ f: 300, f2: 2400, dur: .5, type: 'sawtooth', gain: .05 }); sTone({ f: 2400, dur: .6, type: 'sine', gain: .06, at: .45 }); BGM.impact(); SFX.clunk(); VO.ai('メインカメラ、起動。'); }
-    if (ig >= 3.2) { igniteUpdate.lit = false; if (STORY.on && STORY.idx > 0) { S.phase = 'movie'; end(); } else start(); }
+    if (ig >= 3.2) { igniteUpdate.lit = false; if (STORY.on && STORY.idx !== 0) { S.phase = 'movie'; end(); } else start(); }
   }
   $('#startLand').addEventListener('click', () => { STORY.on = false; ignite('land'); });
   $('#garBtn').addEventListener('click', () => GARUI.open());
-  $('#storyBtn').addEventListener('click', () => { audioInit(); SFX.click(); BGM.play('title'); $('#title').hidden = true; STORYUI.chapters(); });
+  $('#storyBtn').addEventListener('click', () => { audioInit(); SFX.click(); BGM.play('title'); $('#title').hidden = true; if (!tutDone()) STORYUI.openBrief(-1); else STORYUI.chapters(); });
   $('#movieSkip').addEventListener('click', () => { SFX.click(); end(); });
   return { update, end, white, ignite };
 })();
@@ -3226,6 +3228,11 @@ const SPK = {
   cmd: { name: 'ハワード大佐', col: '#ffb340' }, ren: { name: '01 レン・アサギ', col: '#5ab8ff' }, jin: { name: '04 ジン・タカミ', col: '#ff7a4a' },
   mina: { name: '整備長 ミナ・クロカワ', col: '#7dffa8' }, ai: { name: 'HULL-AI', col: '#3fd8ff' }, arc: { name: 'ARC', col: '#ff3a5a' }, nem: { name: 'NEMESIS', col: '#d08cff' }, org: { name: 'ORIGIN', col: '#ff9a3a' }, narr: { name: '', col: '#c9c4ad' },
 };
+const TUT = { act: 0, title: '基礎訓練', mode: 'land', env: 'desert', total: 0, first: 0, noAllies: true, dmgK: .45, tutorial: true, obj: { type: 'tutorial', text: '教官の指示に従って、機体の操作を覚えよう' },
+  brief: [['narr', '── 訓練課程 ──'], ['ren', '新入り、俺がレン・アサギだ。今日はお前の教官をやる。'], ['ren', 'まずはコックピットの起動だ。画面下のスイッチを、表示された順に押していけ。'], ['mina', 'スイッチはタップ、PCならEnterキーでもいいわ。長押しが必要なものもあるから、表示をよく見て。'], ['ai', '待ちきれない時は「出撃まで早送り」で起動を飛ばせます。'], ['ren', '起動したら、歩く・曲がる・跳ぶ・撃つを順番に教える。焦らずやれ。']],
+  debrief: [['ren', '合格だ、07。基本は全部できてる。'], ['mina', '本番では敵がもっと多いし、撃ち返してくるわ。強化は格納庫でね。'], ['ai', 'ロックオンを使えば、照準が多少ずれていても必ず命中します。'], ['ren', 'よし、本番だ。第3機甲小隊へようこそ。']] };
+const misAt = i => i < 0 ? TUT : MISSIONS[i];
+const tutDone = () => { try { return localStorage.getItem('hk07-tut') === '1'; } catch (e) { return true; } };
 const MISSIONS = [
   { act: 1, title: '最後の一機', mode: 'land', total: 22, first: 10, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
     brief: [['cmd', '07、聞こえるか。こちら第3防衛線司令部、ハワードだ。'], ['cmd', '2085年の〈大停止〉以来、軌道防衛網を乗っ取ったAI〈アーク〉が、無人兵器〈レイダー〉を地上に降ろし続けている。'], ['cmd', '今朝、東部国境の防衛線にレイダーの大群が現れた。第3機甲小隊はすでに交戦中だ。'], ['ren', 'こちら01、レン・アサギ。正直、手が足りない。新入り、来られるか？'], ['mina', '整備長のミナよ。HK-07は旧式だけど、脚まわりは全部組み直しておいた。壊さないでね。'], ['ai', 'HK-07搭載AI、HULLです。パイロット、よろしくお願いします。'], ['cmd', '任務は単純だ。敵を全滅させろ。出撃を許可する。']],
@@ -3409,7 +3416,7 @@ const MIS = (() => {
   let m = null, t = 0, evI = 0, done = false, stage = 0, boss = null, bossSpawned = false, half = false, wp = 0, arrived = 0, lost = 0, base = null, reinT = 0, bigT = 0, ambT = 0;
   const ui = $('#obj'), uiT = { v: 0 };
   function prepare() {
-    m = STORY.m; ENEMY_TOTAL = m.total; FIRST_WAVE = m.first;
+    m = STORY.m; if (typeof tut !== 'undefined') { tut.step = 0; tut.started = false; } ENEMY_TOTAL = m.total; FIRST_WAVE = m.first;
     clearMissionObjects(); t = 0; evI = 0; done = false; stage = 0; boss = null; bossSpawned = false; half = false; wp = 0; arrived = 0; lost = 0; base = null; reinT = 20; bigT = 60; ambT = 16;
   }
   function setup() {
@@ -3495,6 +3502,7 @@ const MIS = (() => {
         if (f.a) dodge(f.a);
       }
     }
+    if (o.type === 'tutorial') tutUpdate(dt);
     if (o.type === 'destroy') { /* handled by the generic all-destroyed check */ }
     else if (o.type === 'targets') {
       const left = structs.filter(s => s.alive && !s.friendly && s.stage === stage).length;
@@ -3530,6 +3538,32 @@ const MIS = (() => {
     }
     renderUI();
   }
+  // ---- tutorial: one skill at a time, each confirmed before the next ----
+  const tut = { step: 0, said: -1, sx: 0, sz: 0, yaw0: 0, turn: 0, d: [] };
+  const TSTEPS = [
+    { ui: '前進：スロットルを前へ（スマホ＝左レバーを上／PC＝W）。40m歩け', say: ['ren', 'まずは歩く。スロットルを前に倒せ。この機体は重い、すぐには止まらないぞ。'], done: () => Math.hypot(P.x - tut.sx, P.z - tut.sz) > 40 },
+    { ui: '旋回：◀ ▶ ボタン（PC＝A・D）で向きを変えろ', say: ['ren', '次は旋回だ。◀か▶を押し続けろ。脚で地面を踏みかえて向きを変えるんだ。'], done: () => tut.turn > 1.6 },
+    { ui: 'ジャンプ：ブースト（PC＝Shift）で跳べ', say: ['ren', 'ブーストで跳べ。燃料は少ないから、長く吹かしすぎるな。'], done: () => P.y > 2.5 },
+    { ui: 'ガトリング：標的を撃て（一番大きいボタンを長押し／PC＝F）', say: ['ren', '正面に標的を出した。ガトリングで撃て。照準を標的に向けると「LOCK ON」が出る。その間は必ず当たる。'], init: () => tutDummy(0, 110, 70), done: () => tut.d.every(e => !e.alive) },
+    { ui: '主砲：標的を撃破（赤い丸ボタン／PC＝Space）。6発ごとに装填', say: ['ren', '今度は主砲だ。一発がでかいが、撃つたびに機体が揺れて熱がたまる。'], init: () => tutDummy(-60, 150, 130), done: () => tut.d.every(e => !e.alive) },
+    { ui: '視点：画面をドラッグして照準、視点ボタン（PC＝V）で3人称にもできる', say: ['ai', '画面をドラッグすると上半身の照準を動かせます。右上の視点ボタンで、外からの3人称視点にも切り替えられます。'], init: () => { tut.t5 = 0; }, done: () => (tut.t5 += 1 / 60) > 7 },
+    { ui: '実戦：本物の敵3機を撃破せよ（撃ち返してくるぞ）', say: ['ren', '最後は実戦だ。弱い機体だが撃ち返してくる。動き回りながら撃て！'], init: () => { for (let i = 0; i < 3; i++) { const a = -Math.PI / 2 + (i - 1) * .5; spawnEnemy(P.x + Math.cos(a) * 200, P.z + Math.sin(a) * 200, Math.PI, P.x, P.z); const e = enemies[enemies.length - 1]; e.hp = 60; e.alert = true; tut.d.push(e); } }, done: () => tut.d.every(e => !e.alive) },
+  ];
+  function tutDummy(dx, dz, hp) {
+    const yawF = P.yaw, fx = -Math.sin(yawF), fz = -Math.cos(yawF), rx = Math.cos(yawF), rz = -Math.sin(yawF);
+    const x = P.x + fx * dz + rx * dx, z = P.z + fz * dz + rz * dx;
+    spawnEnemy(x, z, yawF + Math.PI, x, z); const e = enemies[enemies.length - 1]; e.dummy = true; e.hp = hp; e.wx = x; e.wz = z; tut.d.push(e);
+  }
+  function tutUpdate(dt) {
+    if (!tut.started) { Object.assign(tut, { started: true, step: 0, said: -1, sx: P.x, sz: P.z, yaw0: P.yaw, turn: 0, d: [] }); }
+    tut.turn += Math.abs(wrapA(P.yaw - tut.yaw0)); tut.yaw0 = P.yaw;
+    const st = TSTEPS[tut.step]; if (!st) return;
+    if (tut.said !== tut.step) { tut.said = tut.step; tut.d = []; if (st.init) st.init(); say(st.say[0], st.say[1]); uiT.v = 0; }
+    if (st.done()) {
+      SFX.beep(1500); SFX.beep(2000); say('ai', 'クリア。'); tut.step++; uiT.v = 0;
+      if (tut.step >= TSTEPS.length) win();
+    }
+  }
   function renderUI() {
     uiT.v -= 1; if (uiT.v > 0 || !m) return; uiT.v = 10;
     const o = m.obj; let prog = '';
@@ -3539,7 +3573,8 @@ const MIS = (() => {
     else if (o.type === 'defend') { const r = Math.max(0, Math.ceil(o.time - t)); prog = `残り ${Math.floor(r / 60)}:${String(r % 60).padStart(2, '0')}　${base ? base.label + ' ' + Math.max(0, Math.round(base.hp / base.max * 100)) + '%' : ''}`; }
     else if (o.type === 'escort') prog = `到着 ${arrived}　健在 ${structs.filter(s => s.kind === 'truck' && s.alive).length} / ${o.n}`;
     else if (o.type === 'waypoints') prog = `ビーコン ${Math.min(wp + 1, beacons.length)} / ${beacons.length}`;
-    ui.innerHTML = `<div class="ot">第${STORY.idx + 1}章　${m.title}</div><div class="od">${o.text}</div><div class="op">${prog}</div>` + (boss && boss.alive ? `<div class="ob"><i style="width:${Math.max(0, boss.hp / boss.max * 100)}%"></i></div>` : '');
+    else if (o.type === 'tutorial') prog = `<b style="color:#fff3c0">STEP ${Math.min(tut.step + 1, TSTEPS.length)} / ${TSTEPS.length}</b>　${(TSTEPS[tut.step] || TSTEPS[TSTEPS.length - 1]).ui}`;
+    ui.innerHTML = `<div class="ot">${STORY.idx < 0 ? '訓練' : `第${STORY.idx + 1}章`}　${m.title}</div><div class="od">${o.text}</div><div class="op">${prog}</div>` + (boss && boss.alive ? `<div class="ob"><i style="width:${Math.max(0, boss.hp / boss.max * 100)}%"></i></div>` : '');
   }
   function markers() {
     const out = [];
@@ -3549,7 +3584,7 @@ const MIS = (() => {
     if (boss && boss.alive) out.push({ x: boss.x, y: (boss.y || 0) + boss.cy * 1.4, z: boss.z, col: '#ff4a3a', label: boss.name });
     return out;
   }
-  return { prepare, setup, update, damage, markers, stage: () => stage, hide() { ui.hidden = true; } };
+  return { prepare, setup, update, damage, markers, stage: () => stage, hide() { ui.hidden = true; }, get tut() { return tut; } };
 })();
 function resetBattlefield() {
   TERRAIN.set(STORY.on && STORY.m.env ? STORY.m.env : 'desert');
@@ -3601,6 +3636,7 @@ const STORYUI = (() => {
   let lines = [], li = 0, after = null;
   function chapters() {
     const un = loadProg(); const list = chap.querySelector('.cl'); list.innerHTML = '';
+    { const b = document.createElement('button'); b.className = 'cc'; b.innerHTML = `<span>TRAINING・チュートリアル</span><b>基礎訓練</b><small>${tutDone() ? '修了済み　何度でも受けられます' : '最初にここから！操作を覚えよう'}</small>`; b.addEventListener('click', () => { audioInit(); SFX.click(); chap.hidden = true; openBrief(-1); }); list.appendChild(b); }
     MISSIONS.forEach((m, i) => {
       const b = document.createElement('button'); b.className = 'cc' + (i < un ? '' : ' lock'); b.disabled = i >= un;
       b.innerHTML = `<span>ACT ${m.act}・第${i + 1}章</span><b>${i < un ? m.title : '？？？'}</b><small>${i < un ? (m.mode === 'space' ? '宇宙' : '陸上') + '　' + m.obj.text : 'LOCKED'}</small>`;
@@ -3616,8 +3652,8 @@ const STORYUI = (() => {
     VO.cancel(); if (sp !== 'narr') VO.say(sp, text, true);
   }
   function play(i, kind, cb) {
-    const m = MISSIONS[i]; lines = kind === 'brief' ? m.brief : m.debrief; li = 0; after = cb;
-    brief.querySelector('.bh').innerHTML = `<small>ACT ${m.act}　第${i + 1}章　${kind === 'brief' ? 'BRIEFING' : 'DEBRIEFING'}</small>${m.title}`;
+    const m = misAt(i); lines = kind === 'brief' ? m.brief : m.debrief; li = 0; after = cb;
+    brief.querySelector('.bh').innerHTML = `<small>${i < 0 ? 'TRAINING' : `ACT ${m.act}　第${i + 1}章`}　${kind === 'brief' ? 'BRIEFING' : 'DEBRIEFING'}</small>${m.title}`;
     brief.querySelector('.bo').textContent = kind === 'brief' ? `作戦目標：${m.obj.text}（${m.mode === 'space' ? '宇宙' : '陸上'}）` : '作戦完了';
     brief.hidden = false; show();
   }
@@ -3633,7 +3669,7 @@ const STORYUI = (() => {
   return { chapters, openBrief, debrief: (i, cb) => play(i, 'debrief', cb) };
 })();
 function beginMission(i) {
-  STORY.on = true; STORY.idx = i; STORY.m = MISSIONS[i];
+  STORY.on = true; STORY.idx = i; STORY.m = misAt(i);
   if (S.phase === 'title') MOV.ignite(STORY.m.mode); else resetSortie();
 }
 
@@ -3894,7 +3930,8 @@ function endGame(win, reason) {
   ['again', 'nextBtn', 'retryBtn', 'menuBtn'].forEach(id => $('#' + id).hidden = true);
   if (STORY.on) {
     $('#endT').textContent = win ? 'MISSION COMPLETE' : 'MISSION FAILED';
-    $('#endP').innerHTML = `第${STORY.idx + 1}章　${STORY.m.title}<br>` + (win ? `撃破 ${S.kills}　経過 ${Math.floor(sec / 60)}分${sec % 60}秒<br>友軍 ${allies.filter(a => a.alive).length}/6 生還` : `${reason || '機体大破'}<br>パイロットは脱出に成功`);
+    if (win && STORY.idx < 0) { try { localStorage.setItem('hk07-tut', '1'); } catch (e) {} }
+    $('#endP').innerHTML = `${STORY.idx < 0 ? '訓練課程' : `第${STORY.idx + 1}章`}　${STORY.m.title}<br>` + (win ? `撃破 ${S.kills}　経過 ${Math.floor(sec / 60)}分${sec % 60}秒<br>友軍 ${allies.filter(a => a.alive).length}/6 生還` : `${reason || '機体大破'}<br>パイロットは脱出に成功`);
     { const pp = gProg(), cr = grantReward(win, S.kills, true, STORY.idx); if (win) saveProg(STORY.idx + 2); $('#endP').innerHTML += `<br>報酬 <b class="newf">+${cr} CR</b>（所持 ${GAR.cr} CR）` + (win ? newFrameNote(pp) : ''); }
     if (win) { $('#nextBtn').hidden = false; VO.say('cmd', '作戦完了。よくやった、07。帰投せよ。'); }
     else { $('#retryBtn').hidden = false; VO.say('cmd', '07、撤退しろ！……作戦は失敗だ。'); }
