@@ -76,8 +76,9 @@ body.cine #monitor{border-radius:0;box-shadow:none}
 #obj .ob{height:6px;margin-top:4px;background:rgba(255,74,58,.2);border:1px solid rgba(255,74,58,.6)}#obj .ob i{display:block;height:100%;background:#ff4a3a}
 #chap,#brief{position:absolute;inset:0;z-index:8;display:grid;place-items:center;padding:16px;background:rgba(3,5,4,.82)}
 .ch-in{width:min(760px,100%);max-height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;display:flex;flex-direction:column;gap:10px}
-#chap button,#garage button,#brief button,#end button{touch-action:pan-y}
-#garage{touch-action:pan-y;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+#brief button,#end button{touch-action:pan-y}
+#garage,#garage *,#chap .ch-in,#chap .ch-in *{touch-action:none}
+#garage{-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 #chap{place-items:start center}
 .ch-h{font-size:18px;font-weight:700;letter-spacing:.12em;color:#eef0e4}
 .cl{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
@@ -1178,6 +1179,7 @@ function applyKit(k, frame, pal) {
 
 /* ---------- garage screen with a turning 3D preview ---------- */
 const GARUI = (() => {
+  let PVH = 13;
   const el = $('#garage'); let ren = null, pv = null, pcam = null, pmech = null, raf = 0, onClose = null;
   const q = s => el.querySelector(s);
   function preview() {
@@ -1195,12 +1197,13 @@ const GARUI = (() => {
     if (pmech) pv.remove(pmech.root);
     const pal = heroPal(); if (FRAMES[GAR.frame].boss) pmech = buildBossHero(GAR.frame); else { pmech = buildKestrel(pal, '07', false); applyKit(pmech, GAR.frame, pal); }
     scene.remove(pmech.root); pv.add(pmech.root);
+    const bb = new THREE.Box3().setFromObject(pmech.root); PVH = Math.max(8, bb.max.y);
   }
   function loop(t) {
     raf = requestAnimationFrame(loop);
     const cv = $('#gview'), w = cv.clientWidth || 300, h = cv.clientHeight || 300;
     if (cv.width !== Math.round(w * ren.getPixelRatio()) || cv.height !== Math.round(h * ren.getPixelRatio())) { ren.setSize(w, h, false); pcam.aspect = w / h; pcam.updateProjectionMatrix(); }
-    const a = t * .00025 + 2.4; pcam.position.set(Math.sin(a) * 24, 10.5, Math.cos(a) * 24); pcam.lookAt(0, 7.2, 0);
+    const a = t * .00025 + 2.4, D = 24 * PVH / 13; pcam.position.set(Math.sin(a) * D, PVH * .8, Math.cos(a) * D); pcam.lookAt(0, PVH * .55, 0);
     updatePistons(); ren.render(pv, pcam);
   }
   const bar = (label, v, max) => `<div class="gs"><span>${label}</span><i><b style="width:${Math.min(100, v / max * 100).toFixed(0)}%"></b></i></div>`;
@@ -1246,6 +1249,14 @@ const GARUI = (() => {
   }
   return { open, close };
 })();
+function dragScroll(box) {
+  let id = null, y0 = 0, s0 = 0, moved = false;
+  box.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse') return; id = e.pointerId; y0 = e.clientY; s0 = box.scrollTop; moved = false; }, true);
+  box.addEventListener('pointermove', e => { if (e.pointerId !== id) return; const dy = e.clientY - y0; if (Math.abs(dy) > 6) moved = true; if (moved) { box.scrollTop = s0 - dy; e.preventDefault(); } }, true);
+  const end = e => { if (e.pointerId === id) { id = null; if (moved) { const kill = ev => { ev.stopPropagation(); ev.preventDefault(); }; box.addEventListener('click', kill, { capture: true, once: true }); setTimeout(() => box.removeEventListener('click', kill, true), 50); } } };
+  box.addEventListener('pointerup', end, true); box.addEventListener('pointercancel', end, true);
+}
+dragScroll($('#garage')); dragScroll($('#chap .ch-in'));
 function grantReward(win, kills, story, idx) {
   const cr = story ? (win ? 400 + 100 * idx + 15 * kills : 80 + 8 * kills) : (win ? 300 + 12 * kills : 8 * kills);
   GAR.cr += cr; saveGar(); return cr;
@@ -1257,17 +1268,15 @@ function newFrameNote(prevProg) {
 
 let BOSS_READY = false;
 function buildBossHero(kind) {
-  const sc = kind === 'goliath' ? 2.1 : 1.45, t = makeEnemy();
-  const A = kind === 'goliath' ? std(0x4f4236, .62, .45) : std(0x2b2f3d, .4, .65), A2 = kind === 'goliath' ? std(0x3a3029, .7, .4) : std(0x3a3550, .45, .6);
-  const vis = new THREE.MeshStandardMaterial({ color: 0x300000, emissive: kind === 'goliath' ? 0xff3a14 : 0x9a6bff, emissiveIntensity: 1.4, roughness: .1 });
-  t.g.traverse(o => { if (!o.isMesh) return; if (o.material === eMat) o.material = A; else if (o.material === eMat2) o.material = A2; else if (o.material === eEye) o.material = vis; o.castShadow = o.receiveShadow = true; });
+  const sc = kind === 'goliath' ? 2.0 : 1.45, t = makeEnemy(kind);
+  const vis = t.glow;
   t.g.scale.setScalar(sc);
-  const eye = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexW(), color: kind === 'goliath' ? 0xff6a40 : 0xb08cff, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: .35 })); eye.scale.set(2.2, 1, 1); eye.position.set(0, 1.2, -2.15); t.tur.add(eye);
-  const mSub = new THREE.Object3D(); mSub.position.set(-2.1, .8, -3.3); t.tur.add(mSub);
+  const eye = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexW(), color: kind === 'goliath' ? 0xff6a40 : 0x6fe8ff, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: .35 })); eye.scale.set(2.2, 1, 1); eye.position.copy(t.eyeP); t.tur.add(eye);
+  const mSub = new THREE.Object3D(); mSub.position.copy(t.subP); t.tur.add(mSub);
   const flames = [], nozzles = [];
-  [-1, 1].forEach(s => { const n = new THREE.Object3D(); n.position.set(s * 1.0, 3.4, 1.6); t.g.add(n); nozzles.push(n); const f = new THREE.Mesh(new THREE.ConeGeometry(.45, 2.4, 12, 1, true), flameMat); f.rotation.x = Math.PI; f.position.set(s * 1.0, 2.2, 1.6); f.visible = false; t.g.add(f); flames.push(f); });
-  const ants = t.tur.children.filter(o => o.isMesh && o.geometry && o.geometry.type === 'CylinderGeometry' && o.position.y > 3);
-  const k = { root: t.g, legs: t.legs, torso: t.tur, pitch: t.tur, body: t.tur, barrel: new THREE.Object3D(), mg: new THREE.Object3D(), mMain: t.muzzle, mSub, flames, nozzles, pack: t.tur, visor: vis, eye, ants: ants.length ? ants : [new THREE.Object3D()], eyeH: (4.7 + 1.2) * sc, boss: kind };
+  [-1, 1].forEach(s => { const n = new THREE.Object3D(); n.position.set(s * (kind === 'goliath' ? .85 : .5), 4.7 + (kind === 'goliath' ? 3.0 : .1), kind === 'goliath' ? 2.05 : 1.15); t.g.add(n); nozzles.push(n); const f = new THREE.Mesh(new THREE.ConeGeometry(.45, 2.4, 12, 1, true), flameMat); f.rotation.x = Math.PI; f.position.copy(n.position).y -= 1.2; f.visible = false; t.g.add(f); flames.push(f); });
+  const ants = [t.ant];
+  const k = { root: t.g, legs: t.legs, torso: t.tur, pitch: t.tur, body: t.tur, barrel: new THREE.Object3D(), mg: new THREE.Object3D(), mMain: t.muzzle, mSub, flames, nozzles, pack: t.tur, visor: vis, eye, ants: ants.length ? ants : [new THREE.Object3D()], eyeH: (4.7 + (kind === 'goliath' ? 2.62 : 2.45)) * sc, boss: kind };
   k.gait = makeGait(t.g, t.legs, { hipX: [1.5, -1.5], hipY: 4.2, l1: 1.9, l2: 1.8, ankle: .5, lift: .7 * sc, sway: .2 * sc * (kind === 'goliath' ? 1.4 : .7), scale: sc });
   return k;
 }
@@ -1540,7 +1549,102 @@ const burnt = new THREE.MeshStandardMaterial({ color: 0x1b1916, roughness: .95, 
 const ELEG = { armor: eMat, armor2: eMat2, dark: eDark, steel: mSteel, chrome: mChrome, vent: mVent };
 const enemies = [];
 const E_CY = 4.5, E_R = 4.0;
-function makeEnemy() {
+/* ---------- boss chassis: a hulking juggernaut and a sleek wraith, built on the raider leg kinematics ---------- */
+const BOSSMAT = {};
+function bossMats(kind) {
+  if (BOSSMAT[kind]) return BOSSMAT[kind];
+  const glow = (c, i = 2) => new THREE.MeshStandardMaterial({ color: 0x100000, emissive: c, emissiveIntensity: i, roughness: .2 });
+  return BOSSMAT[kind] = kind === 'goliath'
+    ? { a: std(0x6a7078, .42, .45), b: std(0x2c3036, .5, .45), c: std(0xb0281c, .45, .25), d: std(0x8a8e92, .3, .8), glow: glow(0xff2a10, 2.6), glow2: glow(0xff6a20, 1.8) }
+    : { a: std(0x3c4a78, .28, .5), b: std(0x1e2438, .32, .5), c: std(0xe8ebf2, .25, .3), d: std(0x5a6690, .25, .7), glow: glow(0x38e8ff, 2.8), glow2: glow(0xa77bff, 2.4) };
+}
+function makeBossModel(kind) {
+  const M = bossMats(kind), g = new THREE.Group(); scene.add(g);
+  const hipY = 4.2, G = kind === 'goliath';
+  const LEGM = { armor: M.a, armor2: G ? M.b : M.c, dark: M.b, steel: mSteel, chrome: mChrome, vent: mVent };
+  part(cb(G ? 2.9 : 2.0, G ? .95 : .6, G ? 1.9 : 1.2, .15), M.b, 0, hipY, 0, g);
+  [-1, 1].forEach(s => cylX(G ? .55 : .4, .6, M.d, s * 1.25, hipY, 0, g));
+  const legs = [makeLeg(g, 1.5, hipY, 1.9, 1.8, G ? 1.02 : .86, LEGM), makeLeg(g, -1.5, hipY, 1.9, 1.8, G ? 1.02 : .86, LEGM)];
+  legs.forEach((l, i) => {
+    const s = i ? -1 : 1;
+    if (G) { part(prism([[-.55, 0], [.55, 0], [.3, 1.1], [0, 1.45], [-.3, 1.1]], .3, .05), M.a, 0, -.15, -.95, l.knee, -.35); part(new THREE.BoxGeometry(.12, .9, .05), M.c, s * .52, -1.0, -.78, l.knee); }
+    else { part(prism([[-.3, 0], [.3, 0], [0, 1.0]], .16, .03), M.c, 0, -.1, -.6, l.knee, -.5); part(new THREE.BoxGeometry(.04, 1.1, .04), M.glow, s * .4, -.9, -.55, l.knee); }
+  });
+  const tur = new THREE.Group(); tur.position.y = hipY + .5; g.add(tur);
+  cylY(G ? .75 : .55, G ? .9 : .65, .6, M.b, 0, 0, 0, tur, 16);
+  let muzzle, subP, eyeP, ant;
+  if (G) {
+    // hulking torso: layered chest armour, sunken head with a burning visor slit
+    part(prism([[-1.6, 0], [1.6, 0], [2.15, 1.35], [1.55, 2.45], [-1.55, 2.45], [-2.15, 1.35]], 2.7, .16), M.a, 0, .05, .25, tur);
+    part(cb(2.3, 1.05, .32, .08), M.c, 0, 1.45, -1.2, tur, -.22);
+    part(cb(1.7, .55, .3, .06), M.b, 0, .62, -1.18, tur, .15);
+    [-1, 1].forEach(s => part(new THREE.BoxGeometry(.14, .95, .06), M.c, s * 1.05, 1.45, -1.38, tur, -.22));
+    part(cb(1.25, .62, 1.05, .1), M.b, 0, 2.6, -.75, tur);
+    part(cb(1.35, .2, .7, .06), M.a, 0, 2.98, -.85, tur, .12);
+    part(new THREE.BoxGeometry(1.0, .09, .05), M.glow, 0, 2.62, -1.29, tur); eyeP = new THREE.Vector3(0, 2.62, -1.32);
+    [-1, 1].forEach(s => {
+      // sloped pauldrons with red trim and a twin cannon riding each shoulder
+      const sh = new THREE.Group(); sh.position.set(s * 2.45, 1.95, .05); sh.rotation.z = -s * .22; tur.add(sh);
+      part(cb(1.55, 1.25, 2.2, .14), M.a, 0, 0, 0, sh);
+      part(cb(1.7, .25, 2.35, .08), M.b, 0, .7, 0, sh);
+      part(new THREE.BoxGeometry(1.72, .1, .08), M.c, 0, .45, -1.18, sh);
+      part(prism([[-.2, 0], [.2, 0], [0, .9]], .25, .04), M.a, s * .45, .85, .4, sh, 0, 0, -s * .3);
+      const cn = new THREE.Group(); cn.position.set(s * 2.35, 3.05, -.6); tur.add(cn);
+      part(cb(.75, .7, 1.6, .08), M.b, 0, 0, .2, cn);
+      [-.18, .18].forEach(dx => { cyl(.14, .16, 3.2, M.d, dx, .05, -2.0, cn, 12); part(cb(.36, .36, .45, .04), M.b, dx, .05, -3.6, cn); });
+      part(new THREE.BoxGeometry(.78, .05, .3), M.glow2, 0, .37, .6, cn);
+      if (s > 0) { muzzle = new THREE.Object3D(); muzzle.position.set(s * 2.35, 3.1, -4.4); tur.add(muzzle); }
+    });
+    // left-arm rotary cannon
+    part(cb(1.0, 1.0, 1.4, .1), M.b, -2.55, .45, -.5, tur);
+    const gg = new THREE.Group(); gg.position.set(-2.55, .45, -1.3); tur.add(gg);
+    cyl(.38, .38, .4, M.a, 0, 0, 0, gg, 16);
+    for (let i = 0; i < 6; i++) { const a = i / 6 * TAU; cyl(.07, .07, 2.0, M.d, Math.cos(a) * .22, Math.sin(a) * .22, -1.1, gg, 6); }
+    subP = new THREE.Vector3(-2.55, .45, -3.3);
+    // reactor backpack with glowing vents and twin stacks
+    part(cb(2.5, 2.3, 1.3, .14), M.b, 0, 1.35, 1.75, tur);
+    for (let i = 0; i < 3; i++) part(new THREE.BoxGeometry(1.8, .08, .06), M.glow2, 0, .7 + i * .35, 2.42, tur);
+    [-1, 1].forEach(s => { cylY(.28, .34, 1.5, M.d, s * .85, 3.0, 2.05, tur, 12); cylY(.22, .22, .06, M.glow, s * .85, 3.76, 2.05, tur, 12); });
+    ant = cylY(.03, .05, 2.6, M.b, -.95, 3.6, .7, tur, 6);
+  } else {
+    // slim wedge torso with a glowing core and white chest plates
+    part(prism([[-.9, 0], [.9, 0], [1.55, 1.3], [1.15, 2.15], [-1.15, 2.15], [-1.55, 1.3]], 1.9, .12), M.a, 0, .05, .1, tur);
+    [-1, 1].forEach(s => part(cb(.95, .75, .16, .05), M.c, s * .52, 1.42, -.86, tur, -.12, -s * .32, 0));
+    cyl(.24, .24, .1, M.glow, 0, .95, -.87, tur, 20);
+    // sharp head with a V sensor and a white crest
+    part(prism([[-.45, 0], [.45, 0], [.32, .46], [0, .6], [-.32, .46]], 1.25, .06), M.b, 0, 2.2, -.25, tur);
+    [-1, 1].forEach(s => { const v = part(new THREE.BoxGeometry(.42, .045, .04), M.glow, s * .18, 2.5, -.88, tur); v.rotation.z = s * .5; });
+    eyeP = new THREE.Vector3(0, 2.45, -.92);
+    part(prism([[0, 0], [.7, 0], [.15, .9]], .05, .02), M.c, 0, 2.75, .1, tur, 0, Math.PI / 2, 0);
+    [-1, 1].forEach(s => {
+      part(cb(.8, .55, 1.0, .08), M.a, s * 1.55, 1.85, 0, tur, 0, 0, -s * .25);
+      part(new THREE.BoxGeometry(.82, .05, .05), M.glow2, s * 1.55, 2.12, -.5, tur, 0, 0, -s * .25);
+      // swept blade fins with violet edges
+      [0, 1].forEach(j => {
+        const f = new THREE.Group(); f.position.set(s * (.55 + j * .2), 1.9 - j * .55, .9); f.rotation.set(-.55 - j * .25, s * .35, -s * (.45 + j * .3)); tur.add(f);
+        part(prism([[0, -.35], [2.6 - j * .6, -.05], [2.4 - j * .6, .25], [0, .35]], .08, .02), M.a, 0, 0, 0, f, 0, -Math.PI / 2, 0);
+        part(new THREE.BoxGeometry(.1, .04, 2.3 - j * .6), M.glow2, 0, .2, 1.2 - j * .3, f);
+      });
+      cylY(.2, .3, .5, M.d, s * .5, .3, 1.15, tur, 12); cylY(.18, .18, .04, M.glow2, s * .5, .04, 1.15, tur, 12);
+    });
+    // long rail rifle on the right, blade-gun on the left
+    part(cb(.5, .55, 1.6, .06), M.b, 1.75, .45, -.4, tur);
+    cyl(.11, .11, 5.0, M.d, 1.75, .5, -3.4, tur, 10);
+    [-1, 1].forEach(s => part(new THREE.BoxGeometry(.04, .04, 4.6), M.glow, 1.75 + s * .14, .5, -3.4, tur));
+    part(cb(.3, .3, .5, .03), M.b, 1.75, .5, -5.9, tur);
+    muzzle = new THREE.Object3D(); muzzle.position.set(1.75, .5, -6.2); tur.add(muzzle);
+    part(cb(.38, .42, 1.8, .05), M.a, -1.7, .35, -.6, tur);
+    part(prism([[-.04, 0], [.04, 0], [0, 1.6]], .25, .01), M.c, -1.7, .35, -1.5, tur, -Math.PI / 2);
+    subP = new THREE.Vector3(-1.7, .35, -2.4);
+    ant = cylY(.02, .03, 1.8, M.b, .25, 3.2, .2, tur, 6);
+  }
+  g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  return { g, tur, legs, muzzle, eyeP, subP, ant, glow: M.glow, boss: kind };
+}
+
+let NEXT_BOSS = null;
+function makeEnemy(kind) {
+  if (kind) return makeBossModel(kind);
   const g = new THREE.Group(); scene.add(g);
   const hipY = 4.2;
   part(cb(2.4, .9, 1.8, .15), eDark, 0, hipY, 0, g);
@@ -2778,7 +2882,7 @@ const BATTLE = () => S.phase === 'movie' || S.phase === 'op' || S.phase === 'end
 let ENEMY_TOTAL = 22, FIRST_WAVE = 10;
 const eliteMat = std(0x3b3048, .45, .6); const UPV = new THREE.Vector3(0, 1, 0);
 function spawnEnemy(x, z, yaw, wx, wz, y = 0) {
-  const t = makeEnemy();
+  const t = makeEnemy(NEXT_BOSS);
   if (S.mode === 'space') { cyl(.5, .7, 1.4, eDark, 0, 5.2, 1.9, t.g, 12); const f = new THREE.Mesh(new THREE.ConeGeometry(.55, 2.6, 12, 1, true), flameMat); f.rotation.x = Math.PI / 2; f.position.set(0, 5.2, 3.9); t.g.add(f); t.flame = f; }
   enemies.push({ ...t, y, wy: y, v: new THREE.Vector3(), seed: rand(0, 10), pit: 0, gait: makeGait(t.g, t.legs, { hipX: [1.5, -1.5], hipY: 4.2, l1: 1.9, l2: 1.8, ankle: .5, lift: .7, sway: .2 }), x, z, yaw, hp: 100, alive: true, alert: false, cd: rand(3, 6), wx, wz, smokeT: 0, spd: 0 });
   S.spawned = (S.spawned || 0) + 1;
@@ -3435,12 +3539,11 @@ const bossMat = std(0x3a2638, .45, .6);
 BOSS_READY = true;
 function spawnBoss(kind) {
   const land = S.mode === 'land';
-  if (land) spawnEnemy(0, -520, Math.PI, 0, -120); else spawnEnemy(0, -720, Math.PI, 0, -220, 80);
+  NEXT_BOSS = kind; if (land) spawnEnemy(0, -520, Math.PI, 0, -120); else spawnEnemy(0, -720, Math.PI, 0, -220, 80); NEXT_BOSS = null;
   const e = enemies[enemies.length - 1]; S.spawned--;
-  const sc = kind === 'goliath' ? 2.6 : 1.5;
+  const sc = kind === 'goliath' ? 2.3 : 1.55;
   e.g.scale.setScalar(sc); e.cy = E_CY * sc; e.r = E_R * sc; e.boss = true; e.hp = e.max = kind === 'goliath' ? 1900 : 1300; e.spdK = kind === 'goliath' ? .7 : 1.9;
   e.name = kind === 'goliath' ? '〈ゴリアテ〉' : '〈ファントム〉';
-  e.g.traverse(o => { if (o.isMesh && o.material === eMat) o.material = bossMat; });
   if (land) e.gait = makeGait(e.g, e.legs, { hipX: [1.5, -1.5], hipY: 4.2, l1: 1.9, l2: 1.8, ankle: .5, lift: .7 * sc, sway: .2 * sc, scale: sc });
   BGM.impact(); P.trauma = Math.max(P.trauma, .6);
   return e;
