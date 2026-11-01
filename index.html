@@ -4750,7 +4750,7 @@ function beginMission(i) {
 }
 
 /* ================= CUTSCENES: boss entrances and story moments ================= */
-const CUT_SLOW = .5;
+const CUT_SLOW = .5, CUT_POV = false;
 const CUT = (() => {
   let on = false, t = 0, kind = '', d = null, done = null, saveView = null, mgT = 0;
   const cine = $('#cine'), cap = $('#cap'), skipB = $('#movieSkip');
@@ -4782,7 +4782,7 @@ const CUT = (() => {
   const fwd = () => V.set(-Math.sin(P.yaw), 0, -Math.cos(P.yaw)).clone();
   const right = () => new THREE.Vector3(Math.cos(P.yaw), 0, -Math.sin(P.yaw));
   function povAt(dt, tg) {   // cockpit shot: turn the torso and the pilot's eyes toward tg
-    if (!on) return;
+    if (!on || !CUT_POV) return;   // cockpit shots switched off: cutscenes stay on the outside camera
     S.view = 'fp'; const dx = tg.x - P.x, dz = tg.z - P.z;
     P.ty = clamp(wrapA(Math.atan2(-dx, -dz) - P.yaw), -1.2, 1.2); P.tp = clamp(Math.atan2(tg.y - ((ME.eyeH || EYE) + P.y), Math.hypot(dx, dz)), -.6, 1.2);
     updateCamera(T, dt); camera.rotation.x += (P.fallX || 0) * .7; camera.rotation.z += (P.fallZ || 0) * .7;
