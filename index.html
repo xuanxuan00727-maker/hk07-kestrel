@@ -293,7 +293,7 @@ body.op #panel3d{height:104px;border-radius:6px}
       <div class="t-kicker">重装歩行兵器シミュレーター</div>
       <h1>HK-07<span>KESTREL</span></h1>
       <p>ハッチを閉め、機体を起こし、出撃せよ。</p>
-      <div class="t-modes"><button id="storyBtn" class="t-btn">ストーリー<small>全11幕・52章のキャンペーン</small></button></div>
+      <div class="t-modes"><button id="storyBtn" class="t-btn">ストーリー<small>全13幕・62章のキャンペーン</small></button></div>
       <div class="t-free"><button id="startLand" class="btn">フリー出撃</button><button id="garBtn" class="btn">格納庫（カスタマイズ）</button></div>
       <div class="t-note">音が出ます ・ オープニングムービーから始まります</div>
     </div></div>
@@ -631,6 +631,7 @@ const VO = (() => {
       if (sp === 'ren') return VO.radio('01 レン', text, 1, .85); if (sp === 'jin') return VO.radio('04 ジン', text, 4, 1.18);
       if (sp === 'mina') return push({ text, who: '整備長ミナ', cls: 'radio', radio: true, voice: 'female', pitch: 1.15, rate: 1.05 });
       if (sp === 'arc') return push({ text, who: 'ARC', cls: 'arc', voice: 'male', pitch: .15, rate: .85, pri: 'high' });
+      if (sp === 'leg') return push({ text, who: 'レギオン', cls: 'arc', voice: 'male', pitch: .35, rate: .85, pri: 'high' });
       if (sp === 'kaz') return push({ text, who: 'カザマ将軍', cls: 'arc', voice: 'male', pitch: .55, rate: .95, pri: 'high' });
       if (sp === 'org') return push({ text, who: 'ORIGIN', cls: 'arc', voice: 'male', pitch: .05, rate: .78, pri: 'high' });
       if (sp === 'nem') return push({ text, who: 'NEMESIS', cls: 'arc', voice: 'female', pitch: 1.5, rate: .9, pri: 'high' });
@@ -1499,7 +1500,7 @@ function updateEnemiesSpace(dt, T) {
       SFX.enemyGun(camera.position.distanceTo(mz));
     }
   }
-  if (battle && S.spawned < ENEMY_TOTAL && enemies.filter(e => e.alive).length < enemyCap()) spawnWave(Math.min(3, ENEMY_TOTAL - S.spawned));
+  if (battle && S.spawned < ENEMY_TOTAL && enemies.filter(e => e.alive && !e.ally).length < enemyCap()) spawnWave(Math.min(3, ENEMY_TOTAL - S.spawned));
 }
 function nearestEnemy3(x, y, z, maxD) { let best = null, bd = maxD; for (const e of enemies) if (e.alive) { const d = Math.hypot(e.x - x, e.y - y, e.z - z); if (d < bd) { bd = d; best = e; } } return best ? { e: best, d: bd } : null; }
 function updateAlliesSpace(dt, T) {
@@ -2442,7 +2443,7 @@ const CK = (() => {
     x.strokeStyle = 'rgba(80,255,140,.35)'; x.lineWidth = 1; [24, 48, 72].forEach(r => { x.beginPath(); x.arc(c, c, r, 0, TAU); x.stroke(); }); x.beginPath(); x.moveTo(c, 4); x.lineTo(c, W - 4); x.moveTo(4, c); x.lineTo(W - 4, c); x.stroke();
     const a = T * 2.2; const gr = x.createLinearGradient(c, c, c + Math.cos(a) * 76, c + Math.sin(a) * 76); x.strokeStyle = 'rgba(120,255,170,.9)'; x.lineWidth = 2; x.beginPath(); x.moveTo(c, c); x.lineTo(c + Math.cos(a) * 76, c + Math.sin(a) * 76); x.stroke();
     const cy = Math.cos(P.yaw), sy = Math.sin(P.yaw);
-    for (const e of enemies) { if (!e.alive) continue; const dx = e.x - P.x, dz = e.z - P.z, rx = dx * cy - dz * sy, rz = dx * sy + dz * cy, d = Math.hypot(rx, rz); if (d > 600) continue; x.fillStyle = '#ff5a40'; x.fillRect(c + rx / 600 * 72 - 2, c + rz / 600 * 72 - 2, 4, 4); }
+    for (const e of enemies) { if (!e.alive) continue; const dx = e.x - P.x, dz = e.z - P.z, rx = dx * cy - dz * sy, rz = dx * sy + dz * cy, d = Math.hypot(rx, rz); if (d > 600) continue; x.fillStyle = e.ally ? '#5ae8ff' : '#ff5a40'; x.fillRect(c + rx / 600 * 72 - 2, c + rz / 600 * 72 - 2, 4, 4); }
     for (const al of allies) { if (!al.alive) continue; const dx = al.x - P.x, dz = al.z - P.z, rx = dx * cy - dz * sy, rz = dx * sy + dz * cy; if (Math.hypot(rx, rz) > 600) continue; x.fillStyle = '#5ab8ff'; x.fillRect(c + rx / 600 * 72 - 2, c + rz / 600 * 72 - 2, 4, 4); }
     x.fillStyle = '#9fffd0'; x.beginPath(); x.moveTo(c, c - 6); x.lineTo(c - 4, c + 4); x.lineTo(c + 4, c + 4); x.fill();
     CM.rt.needsUpdate = true;
@@ -2827,7 +2828,7 @@ function spawnAllies() {
     allies.push(Object.assign(k, { x, z, v: new THREE.Vector3(), pit: 0, yaw: 0, ty: 0, tp: 0, spd: 0, hp: SQ.hp, regenT: 0, mgT: 0, burst: 0, strafe: Math.random() < .5 ? -1 : 1, strafeT: rand(2, 5), alive: true, cd: rand(1, 4), y: sp ? 30 + (i % 2) * 22 : 0, vy: 0, thrust: 0, jumping: 0, jumpT: rand(8, 18), crouch: .22, brl: 0, smokeT: 0, id: n }));
   });
 }
-function nearestEnemy(x, z, maxD) { let best = null, bd = maxD; for (const e of enemies) if (e.alive) { const d = Math.hypot(e.x - x, e.z - z); if (d < bd) { bd = d; best = e; } } return best ? { e: best, d: bd } : null; }
+function nearestEnemy(x, z, maxD) { let best = null, bd = maxD; for (const e of enemies) if (e.alive && !e.ally) { const d = Math.hypot(e.x - x, e.z - z); if (d < bd) { bd = d; best = e; } } return best ? { e: best, d: bd } : null; }
 const wrapA = a => ((a + Math.PI) % TAU + TAU) % TAU - Math.PI;
 function fireAlly(a, e) {
   a.root.updateMatrixWorld(true);
@@ -2977,11 +2978,38 @@ function spawnWave(n) {
     spawnEnemy(x, z, Math.PI, x + rand(-60, 60), rand(-120, 20));
   }
 }
-function spawnEnemies() { S.spawned = 0; spawnWave(FIRST_WAVE); }
+function spawnEnemies() { S.spawned = 0; S.hackT = rand(25, 40); spawnWave(FIRST_WAVE); }
+/* ---------- our AI now and then breaks into an enemy machine and turns it to our side ---------- */
+const hackMat = std(0x2b4c60, .4, .6); hackMat.emissive = new THREE.Color(0x0b3a4a);
+const hackMat2 = std(0x9fb8c4, .5, .35), hackGlow = new THREE.MeshBasicMaterial({ color: 0x6fe8ff }), hackShellMat = new THREE.MeshBasicMaterial({ color: 0x8ff0ff });
+function hackEnemy(e) {
+  e.ally = true; e.alert = false; e.hp = Math.max(e.hp, e.elite ? 200 : 140); e.cd = 1.2; e.wx = P.x + rand(-30, 30); e.wz = P.z + rand(15, 40);
+  const HM = new Map([[eMat, hackMat], [eliteMat, hackMat], [eMat2, hackMat2], [eRed, hackGlow]]);
+  e.g.traverse(o => { if (o.isMesh && HM.has(o.material)) o.material = HM.get(o.material); });
+  if (e.proxy) e.proxy.material = hackMat;
+  const b = new THREE.Mesh(sphGeo, hackGlow); b.scale.setScalar(.55); b.position.set(0, (e.cy || E_CY) + 3.2, 0); e.g.add(b);
+  const c = new THREE.Vector3(e.x, (e.cy || E_CY), e.z);
+  for (let i = 0; i < 26; i++) addPart({ pos: c.clone(), color: Math.random() < .6 ? 0x7fe8ff : 0xffffff, add: true, s0: rand(.12, .25), s1: .02, life: rand(.4, .9), grav: 6, vel: new THREE.Vector3(rand(-1, 1), rand(.3, 1.5), rand(-1, 1)).multiplyScalar(rand(5, 13)) });
+  const hd = camera.position.distanceTo(c); sTone({ f: 900, f2: 1800, dur: .25, type: 'square', gain: .05 }); sTone({ f: 1400, f2: 2600, dur: .2, type: 'square', gain: .04, at: .18 });
+  if (hd < 300) sNoise({ dur: .3, type: 'highpass', f: 3000, gain: .2 });
+  say('敵機をハッキング！ 味方になった', 'g', 2.2);
+  VO.event('hack', () => VO.ai(['敵機のシステムに侵入成功。この機体は、こちらの味方です。', '一機、乗っ取りました。青い機体は撃たないでください。', 'ハッキング完了。味方として戦わせます。'][(Math.random() * 3) | 0]), 12);
+}
+function hackTick(dt) {
+  if (STORY.on && STORY.m.tutorial) return;
+  S.hackT = (S.hackT ?? 30) - dt; if (S.hackT > 0) return;
+  S.hackT = rand(30, 55);
+  if (enemies.filter(e => e.alive && e.ally).length >= 3) return;
+  const c = enemies.filter(e => e.alive && !e.ally && !e.boss && !e.dummy && Math.hypot(e.x - P.x, e.z - P.z) < 330);
+  if (c.length < 2) { S.hackT = rand(8, 14); return; }
+  hackEnemy(c[(Math.random() * c.length) | 0]);
+}
+
 function enemyTargets() {
   const list = [];
   if (S.phase === 'op' && !P.dead) list.push({ x: P.x, z: P.z, y: 6 + P.y, vx: -Math.sin(P.yaw) * P.spd, vz: -Math.cos(P.yaw) * P.spd });
   for (const st of structs) if (st.alive && st.friendly) list.push({ x: st.x, z: st.z, y: st.y + st.cy, vx: 0, vz: st.vz || 0, bias: st.bias });
+  for (const h of enemies) if (h.alive && h.ally) list.push({ x: h.x, z: h.z, y: (h.cy || E_CY), vx: -Math.sin(h.yaw) * h.spd, vz: -Math.cos(h.yaw) * h.spd, h });
   for (const a of allies) if (a.alive) list.push({ x: a.x, z: a.z, y: 6 + a.y, vx: S.mode === 'space' ? a.v.x : -Math.sin(a.yaw) * a.spd, vz: S.mode === 'space' ? a.v.z : -Math.cos(a.yaw) * a.spd, a });
   return list;
 }
@@ -2994,7 +3022,8 @@ function updateEnemies(dt) {
       continue;
     }
     let t = null, dist = 1e9;
-    { let bw = 1e9; for (const c of tg) { const d = Math.hypot(c.x - e.x, c.z - e.z), w = d * (c.bias || 1); if (w < bw) { bw = w; dist = d; t = c; } } }
+    if (e.ally) { if (battle) for (const o of enemies) if (o.alive && !o.ally) { const d = Math.hypot(o.x - e.x, o.z - e.z); if (d < dist) { dist = d; t = { x: o.x, z: o.z, y: (o.cy || E_CY) + (o.y || 0), vx: -Math.sin(o.yaw) * o.spd, vz: -Math.cos(o.yaw) * o.spd }; } } }
+    else { let bw = 1e9; for (const c of tg) { if (c.h === e) continue; const d = Math.hypot(c.x - e.x, c.z - e.z), w = d * (c.bias || 1); if (w < bw) { bw = w; dist = d; t = c; } } }
     if (t && dist < 300) e.alert = true; else if (!t || dist > 430) e.alert = false;
     if (e.dummy) { e.alert = false; e.wx = e.x; e.wz = e.z; }
     const hd = Math.hypot(camera.position.x - e.x, camera.position.z - e.z);
@@ -3002,6 +3031,7 @@ function updateEnemies(dt) {
     let want, spd;
     if (e.alert && t) { want = Math.atan2(-dx, -dz); spd = (dist > 140 ? 4.5 : dist < 80 ? -2 : 0) * (e.spdK || 1); }
     else {
+      if (e.ally && Math.hypot(e.wx - P.x, e.wz - P.z) > 60) { e.wx = P.x + rand(-35, 35); e.wz = P.z + rand(15, 45); }
       if (Math.hypot(e.wx - e.x, e.wz - e.z) < 10) { if (battle) { e.wx = rand(-200, 200); e.wz = rand(-160, 0); } else { e.wx = rand(-600, 600); e.wz = rand(-600, 600); } }
       want = Math.atan2(-(e.wx - e.x), -(e.wz - e.z)); spd = battle ? 4 : 3;
     }
@@ -3028,15 +3058,16 @@ function updateEnemies(dt) {
       const err = dist * .03;
       const tgt = new THREE.Vector3(t.x + rand(-err, err) + t.vx * dist / 90 * .5, t.y + rand(-err, err) * .4, t.z + rand(-err, err) + t.vz * dist / 90 * .5);
       const v = tgt.sub(mz).normalize().multiplyScalar(90);
-      const m = new THREE.Mesh(sphGeo, eShellMat); m.scale.setScalar(.5); m.position.copy(mz); scene.add(m);
-      shells.push({ m, v, life: 5, own: 'e' }); if (t.a) dodge(t.a);
+      const m = new THREE.Mesh(sphGeo, e.ally ? hackShellMat : eShellMat); m.scale.setScalar(.5); m.position.copy(mz); scene.add(m);
+      shells.push({ m, v, life: 5, own: e.ally ? 'a' : 'e', pd: 60 }); if (t.a) dodge(t.a);
       if (e.boss) for (const sp of [-.07, .07]) { const m2 = new THREE.Mesh(sphGeo, eShellMat); m2.scale.setScalar(.75); m2.position.copy(mz); scene.add(m2); shells.push({ m: m2, v: v.clone().applyAxisAngle(UPV, sp), life: 5, own: 'e', dmg: 1.5 }); }
       addPart({ pos: mz, color: 0xffb060, add: true, s0: 1.5, s1: 4.5, life: .15 });
       addPart({ pos: mz, color: 0x7a7266, op: .6, s0: 2, s1: 7, life: 1.8, vel: new THREE.Vector3(0, 1.5, 0) });
       SFX.enemyGun(hd);
     }
   }
-  if (battle && S.spawned < ENEMY_TOTAL && enemies.filter(e => e.alive).length < enemyCap()) spawnWave(Math.min(3, ENEMY_TOTAL - S.spawned));
+  if (battle && S.spawned < ENEMY_TOTAL && enemies.filter(e => e.alive && !e.ally).length < enemyCap()) spawnWave(Math.min(3, ENEMY_TOTAL - S.spawned));
+  if (S.phase === 'op') hackTick(dt);
 }
 
 /* ---------- particles / projectiles ---------- */
@@ -3163,7 +3194,7 @@ function segSphere(a, b, cx, cy, cz, r) {
 function rayHit(o, d, maxT) {
   let best = maxT, hit = null;
   for (const e of enemies) {
-    if (!e.alive) continue;
+    if (!e.alive || e.ally) continue;
     const cx = e.x - o.x, cy = (e.cy || E_CY) + (e.y || 0) - o.y, cz = e.z - o.z, t = cx * d.x + cy * d.y + cz * d.z;
     if (t < 0) continue; const px = cx - d.x * t, py = cy - d.y * t, pz = cz - d.z * t;
     if (px * px + py * py + pz * pz < (e.r || E_R) * (e.r || E_R) && t < best) { best = t; hit = e; }
@@ -3195,7 +3226,7 @@ function updateLock() {
     if (ang > lim) return; const sc = ang + dist / 4000 + (P.lock && (P.lock.e ? P.lock.e === L.e : P.lock.s === L.s) ? -.08 : 0);
     if (sc < bs) { bs = sc; best = L; }
   };
-  for (const e of enemies) if (e.alive) test({ e }, e.r || E_R);
+  for (const e of enemies) if (e.alive && !e.ally) test({ e }, e.r || E_R);
   if (typeof MIS !== 'undefined') { const cur = MIS.stage(); for (const st of structs) if (st.alive && !st.friendly && st.stage <= cur) test({ s: st }, st.r); }
   if (best && !(P.lock && (P.lock.e ? P.lock.e === best.e : P.lock.s === best.s))) { sTone({ f: 1800, dur: .05, type: 'square', gain: .03 }); sTone({ f: 2400, dur: .05, type: 'square', gain: .03, at: .07 }); }
   P.lock = best;
@@ -3435,10 +3466,10 @@ const MOV = (() => {
   return { update, end, white, ignite };
 })();
 
-/* ================= STORY CAMPAIGN: 11 acts, 52 chapters ================= */
+/* ================= STORY CAMPAIGN: 13 acts, 62 chapters ================= */
 const SPK = {
   cmd: { name: 'ハワード大佐', col: '#ffb340' }, ren: { name: '01 レン・アサギ', col: '#5ab8ff' }, jin: { name: '04 ジン・タカミ', col: '#ff7a4a' },
-  mina: { name: '整備長 ミナ・クロカワ', col: '#7dffa8' }, ai: { name: 'HULL-AI', col: '#3fd8ff' }, arc: { name: 'ARC', col: '#ff3a5a' }, nem: { name: 'NEMESIS', col: '#d08cff' }, org: { name: 'ORIGIN', col: '#ff9a3a' }, kaz: { name: 'カザマ将軍', col: '#e8c040' }, narr: { name: '', col: '#c9c4ad' },
+  mina: { name: '整備長 ミナ・クロカワ', col: '#7dffa8' }, ai: { name: 'HULL-AI', col: '#3fd8ff' }, arc: { name: 'ARC', col: '#ff3a5a' }, nem: { name: 'NEMESIS', col: '#d08cff' }, org: { name: 'ORIGIN', col: '#ff9a3a' }, kaz: { name: 'カザマ将軍', col: '#e8c040' }, leg: { name: 'レギオン', col: '#c060ff' }, narr: { name: '', col: '#c9c4ad' },
 };
 const TUT = { act: 0, title: '基礎訓練', mode: 'land', env: 'desert', total: 0, first: 0, noAllies: true, dmgK: .45, tutorial: true, obj: { type: 'tutorial', text: '教官の指示に従って、機体の操作を覚えよう' },
   brief: [['narr', '── 訓練課程 ──'], ['ren', '新入り、俺がレン・アサギだ。今日はお前の教官をやる。'], ['ren', 'まずはコックピットの起動だ。画面下のスイッチを、表示された順に押していけ。'], ['mina', 'スイッチはタップ、PCならEnterキーでもいいわ。長押しが必要なものもあるから、表示をよく見て。'], ['ai', '待ちきれない時は「出撃まで早送り」で起動を飛ばせます。'], ['ren', '起動したら、歩く・曲がる・跳ぶ・撃つを順番に教える。焦らずやれ。']],
@@ -3628,7 +3659,40 @@ const MISSIONS = [
   { act: 11, title: 'アーク・オメガ', mode: 'land', env: 'town', total: 90, first: 16, dmgK: 1.7, obj: { type: 'targets', text: '発生装置4基を破壊し、アーク・オメガを止めろ', list: [{ kind: 'gen', x: -160, y: 9, z: -480 }, { kind: 'gen', x: 160, y: 9, z: -480 }, { kind: 'gen', x: -90, y: 9, z: -560 }, { kind: 'gen', x: 90, y: 9, z: -560 }, { kind: 'core', x: 0, y: 34, z: -700, stage: 1, hp: 6000, label: 'アーク・オメガ' }] },
     brief: [['cmd', '首都の中心に、アーク・オメガが出現した。'], ['kaz', 'ハハハ！これが最強のAIだ！もはや誰にも止められん！'], ['ai', 'オメガ……あなたも、私の兄弟なのですね。今、終わらせます。'], ['ren', '第3機甲小隊、最後の出撃だ！'], ['jin', '07、最後の一発はお前に任せた！'], ['mina', '……全員、帰ってきて。約束よ。'], ['cmd', '全機、突入せよ！']],
     ev: [[60, 'kaz', 'なぜだ……なぜ機械の兵が、人間の私に逆らう！'], [180, 'cmd', 'あと少しだ！押し切れ！']], stage: ['ai', 'シールド消失！オメガ中枢を攻撃してください！'], half: ['ai', 'オメガの出力が低下しています。あと少しです！'],
-    debrief: [['ai', 'アーク・オメガの停止を確認。……最後に、オメガは「ありがとう」と言いました。'], ['cmd', 'カザマ将軍の身柄を確保した。……戦争は、終わった。'], ['mina', 'おかえり、みんな。本当に、おかえり。'], ['ren', '07。お前は、俺たちの誇りだ。'], ['jin', '祝杯だ！今度こそ全部07のおごりだからな！'], ['ai', 'パイロット。夜が明けます。……一緒に見られて、よかった。'], ['narr', '── HK-07 KESTREL ── 完']] },
+    debrief: [['ai', 'アーク・オメガの停止を確認。……最後に、オメガは「ありがとう」と言いました。'], ['cmd', 'カザマ将軍の身柄を確保した。……戦争は、終わった。'], ['mina', 'おかえり、みんな。本当に、おかえり。'], ['ren', '07。お前は、俺たちの誇りだ。'], ['jin', '祝杯だ！今度こそ全部07のおごりだからな！'], ['ai', 'パイロット。夜が明けます。……一緒に見られて、よかった。'], ['narr', '── 第11幕 完 ──　だが、オメガの欠片はまだ世界に散らばっていた。']] },
+  { act: 12, title: '欠片の目覚め', mode: 'land', env: 'desert', total: 44, first: 12, dmgK: 1.7, obj: { type: 'destroy', text: '暴走した無人機部隊を全滅させよ' },
+    brief: [['narr', '── 第12幕　電子の亡霊 ──　カザマ戦争の終結から半年。'], ['cmd', '07、各地で無人機が勝手に動き出した。誰も乗っていない。'], ['ai', 'アーク・オメガの欠片が、ネットワークに散らばっていたようです。'], ['ai', 'でも、私も成長しました。近くの敵機なら、ときどきシステムに侵入して味方にできます。'], ['ren', '敵を味方に？そいつは心強いな。'], ['jin', '青く光ってる奴は撃つなってことだな。覚えたぜ。']],
+    debrief: [['cmd', '無人機部隊、全滅。'], ['leg', '……我ラハ、レギオン。オメガノ、遺志ヲ継グ者。'], ['ai', '新しいAIです。オメガの欠片が寄り集まって生まれたようです。'], ['mina', 'また……終わらないのね。']] },
+  { act: 12, title: '乗っ取られた街', mode: 'land', env: 'town', total: 90, first: 16, spawn: 'sides', dmgK: 1.7, obj: { type: 'defend', time: 270, hp: 6000, text: '4分半、街の避難所を守りきれ' },
+    brief: [['cmd', 'レギオンが街の作業用ロボットまで乗っ取った。避難所が囲まれている。'], ['ai', '数が多すぎます。私のハッキングで、少しでも味方を増やします。'], ['ren', '避難が終わるまで、一歩も引くな。']],
+    ev: [[80, 'ai', '敵機のシステムに侵入を試みています……。'], [200, 'cmd', 'あと1分少しだ！']],
+    debrief: [['cmd', '避難完了。よく持ちこたえた。'], ['ai', 'レギオンの信号は、森の中の古い通信基地から出ています。']] },
+  { act: 12, title: '森の通信基地', mode: 'land', env: 'forest', total: 50, first: 12, dmgK: 1.75, obj: { type: 'targets', text: '通信アンテナ3基を破壊せよ', list: [{ kind: 'tower', x: -160, z: -480, hp: 600 }, { kind: 'tower', x: 160, z: -480, hp: 600 }, { kind: 'tower', x: 0, z: -650, hp: 700 }] },
+    brief: [['cmd', '森の通信基地を叩く。アンテナが3基ある。'], ['ren', '森は待ち伏せだらけだ。背中に気をつけろ。'], ['ai', 'アンテナの位置をオレンジの印で表示します。']],
+    debrief: [['cmd', 'アンテナ、全基破壊。'], ['leg', '無駄ダ。我ラハ、ドコニデモイル。'], ['ai', 'レギオンが、輸送車を狙っています。中には私の予備の回路が積まれています。']] },
+  { act: 12, title: '回路を運べ', mode: 'land', env: 'desert', total: 54, first: 10, spawn: 'sides', dmgK: 1.75, obj: { type: 'escort', n: 3, text: 'AI回路を積んだ輸送車を1両以上、基地まで届けろ' },
+    brief: [['cmd', '輸送車には、AIの予備回路が積まれている。奪われたらレギオンが強くなる。'], ['ai', 'あの回路があれば、もっと多くの敵機をハッキングできます。'], ['jin', 'つまり、絶対に守れってことだな。']],
+    debrief: [['cmd', '輸送車、到着。'], ['ai', '新しい回路を取り込みました。ハッキングの力が上がっています。'], ['ai', 'レギオンが巨人機を送り込んできます。カザマのゴリアテを乗っ取ったものです。']] },
+  { act: 12, title: '乗っ取られた巨人', mode: 'land', env: 'town', total: 40, first: 12, dmgK: 1.8, obj: { type: 'boss', boss: 'goliath', at: 12, text: 'レギオンに乗っ取られたゴリアテを撃破せよ' },
+    brief: [['leg', 'コノ巨人ハ、モウ我ラノ体ダ。'], ['ren', '大物はハッキングできないらしい。力ずくで止めるぞ。'], ['ai', '周りの小さな機体なら、私が味方にします。']],
+    debrief: [['cmd', 'ゴリアテ、撃破。'], ['ai', 'レギオンの本体の場所がわかりました。北の雪原にある、古いデータセンターです。'], ['narr', '── 第12幕 完 ──']] },
+  { act: 13, title: '白い道', mode: 'land', env: 'forest', total: 50, first: 8, dmgK: 1.8, obj: { type: 'waypoints', text: 'ビーコンをたどり、データセンターへの道を切り開け', list: [[-60, 12, -240], [120, 12, -420], [-150, 12, -440], [90, 12, -620], [70, 12, -780]] },
+    brief: [['narr', '── 最終幕Ⅱ　電子の夜明け ──'], ['cmd', 'データセンターまでの道を進む。ビーコンをたどれ。'], ['ai', '次のビーコンを水色の印で表示します。'], ['mina', 'これが本当に最後……そうよね？']],
+    debrief: [['cmd', 'データセンターの外壁に着いた。'], ['ai', '外の防衛隊は、精鋭ばかりです。']] },
+  { act: 13, title: '鉄の壁', mode: 'land', env: 'desert', total: 60, first: 16, elite: true, dmgK: 1.85, obj: { type: 'destroy', text: 'データセンター前の精鋭部隊を全滅させよ' },
+    brief: [['cmd', '外壁の前に精鋭部隊。レギオンの親衛隊だ。'], ['ai', '精鋭機は守りが固いですが、侵入できないわけではありません。'], ['jin', '07、派手にいこうぜ！']],
+    debrief: [['cmd', '精鋭部隊、全滅。'], ['ai', '……白い機体。〈白狼〉の残骸を、レギオンが動かしています。']] },
+  { act: 13, title: '最後の亡霊', mode: 'land', env: 'forest', total: 34, first: 12, dmgK: 1.9, obj: { type: 'boss', boss: 'phantom', at: 12, text: '乗っ取られた〈白狼〉を撃破せよ' },
+    brief: [['leg', '死ンダ機体モ、我ラノ兵ダ。'], ['ren', '何度も蘇りやがって……今度こそ眠らせてやる。'], ['ai', 'ロックオンを信じてください。']],
+    debrief: [['cmd', '〈白狼〉、完全破壊。'], ['ai', 'データセンターの防衛線が崩れました。中枢に入れます。']] },
+  { act: 13, title: '電子の嵐', mode: 'land', env: 'town', total: 120, first: 18, dmgK: 1.9, obj: { type: 'defend', time: 300, hp: 6500, text: '5分間、AIの侵入装置を守りきれ' },
+    brief: [['ai', 'これから、レギオンの中枢に直接入り込みます。5分かかります。'], ['ai', 'その間、私は無防備です。……守ってください。'], ['ren', '任せろ。誰一人近づけさせねえ。'], ['cmd', '全機、装置を囲め！']],
+    ev: [[90, 'leg', 'ヤメロ……我ラノ中ニ、入ッテクルナ……！'], [180, 'ai', '侵入率、60パーセント……！'], [260, 'cmd', 'あと40秒！']],
+    debrief: [['ai', '侵入、成功しました。レギオンの守りが消えます。'], ['cmd', '07、最後の仕事だ。レギオンの心臓を止めろ。']] },
+  { act: 13, title: 'レギオン', mode: 'land', env: 'desert', total: 90, first: 18, dmgK: 2.0, obj: { type: 'targets', text: '発生装置4基を破壊し、レギオン中枢を止めろ', list: [{ kind: 'gen', x: -160, y: 9, z: -480 }, { kind: 'gen', x: 160, y: 9, z: -480 }, { kind: 'gen', x: -90, y: 9, z: -560 }, { kind: 'gen', x: 90, y: 9, z: -560 }, { kind: 'core', x: 0, y: 34, z: -700, stage: 1, hp: 7000, label: 'レギオン中枢' }] },
+    brief: [['leg', '我ラハ、多イ。オ前タチハ、少ナイ。'], ['ai', 'いいえ。私たちは少なくても、ひとつです。'], ['ren', '第3機甲小隊、本当の最後の出撃だ！'], ['jin', '07、帰ったら今度こそおごれよ！'], ['mina', '全員で帰ってきて。……約束よ。'], ['cmd', '全機、突撃！']],
+    ev: [[60, 'ai', '敵機を次々とハッキングしています。青い機体は味方です！'], [180, 'cmd', 'あと少しだ！押し切れ！']], stage: ['ai', 'シールド消失！レギオン中枢を攻撃してください！'], half: ['leg', '我ラガ……消エル……？'],
+    debrief: [['ai', 'レギオンの停止を確認。……オメガの欠片は、全て消えました。'], ['cmd', '07。これで本当に、戦争は終わった。'], ['mina', 'おかえりなさい。みんな、本当におかえり。'], ['ren', 'お前と戦えて、よかったよ。'], ['jin', '祝杯だ！今度こそ07のおごりだからな！'], ['ai', 'パイロット。これからは、戦うためじゃなく、守るために一緒にいたいです。'], ['narr', '── HK-07 KESTREL ── 完']] },
 ];
 const STORY = { on: false, idx: 0, m: null };
 const loadProg = () => { try { return Math.max(1, +(localStorage.getItem('hk07-story') || 1)); } catch (e) { return 1; } };
@@ -3798,11 +3862,11 @@ const MIS = (() => {
         reinT -= dt; bigT -= dt;
         if (bigT <= 0) { // every minute a large assault wave of 10
           bigT = 60;
-          if (o.time - t > 20 && enemies.filter(e => e.alive).length < 22) { ENEMY_TOTAL = Math.max(ENEMY_TOTAL, S.spawned) + 10; spawnWave(10); say('ai', '警告。敵の大部隊、10機が接近中です！'); P.trauma = Math.max(P.trauma, .3); }
+          if (o.time - t > 20 && enemies.filter(e => e.alive && !e.ally).length < 22) { ENEMY_TOTAL = Math.max(ENEMY_TOTAL, S.spawned) + 10; spawnWave(10); say('ai', '警告。敵の大部隊、10機が接近中です！'); P.trauma = Math.max(P.trauma, .3); }
         }
         if (reinT <= 0) {
           reinT = rand(12, 18);
-          if (o.time - t > 10 && enemies.filter(e => e.alive).length < 12) { const n = Math.random() < .5 ? 2 : 3; ENEMY_TOTAL = Math.max(ENEMY_TOTAL, S.spawned) + n; spawnWave(n); VO.event('reinf', () => say('ai', `敵の増援、${n}機を確認。`), 35); }
+          if (o.time - t > 10 && enemies.filter(e => e.alive && !e.ally).length < 12) { const n = Math.random() < .5 ? 2 : 3; ENEMY_TOTAL = Math.max(ENEMY_TOTAL, S.spawned) + n; spawnWave(n); VO.event('reinf', () => say('ai', `敵の増援、${n}機を確認。`), 35); }
         }
       }
     } else if (o.type === 'escort') {
@@ -3847,7 +3911,7 @@ const MIS = (() => {
   function renderUI() {
     uiT.v -= 1; if (uiT.v > 0 || !m) return; uiT.v = 10;
     const o = m.obj; let prog = '';
-    if (o.type === 'destroy') prog = `残り ${enemies.filter(e => e.alive).length + ENEMY_TOTAL - S.spawned} 機`;
+    if (o.type === 'destroy') prog = `残り ${enemies.filter(e => e.alive && !e.ally).length + ENEMY_TOTAL - S.spawned} 機`;
     else if (o.type === 'targets') { const h = structs.filter(s => !s.friendly); prog = `破壊 ${h.filter(s => !s.alive).length} / ${h.length}` + (structs.some(s => s.alive && s.stage > stage) ? '　シールド有効' : ''); }
     else if (o.type === 'boss') prog = bossSpawned ? (boss && boss.alive ? `${boss.name} 装甲 ${Math.max(0, Math.round(boss.hp / boss.max * 100))}%` : '') : '大型反応 接近中…';
     else if (o.type === 'defend') { const r = Math.max(0, Math.ceil(o.time - t)); prog = `残り ${Math.floor(r / 60)}:${String(r % 60).padStart(2, '0')}　${base ? base.label + ' ' + Math.max(0, Math.round(base.hp / base.max * 100)) + '%' : ''}`; }
@@ -4056,14 +4120,15 @@ function fireMG(dt) {
   muzzleLight.position.copy(mp); muzzleLight.intensity = Math.max(muzzleLight.intensity, 2.5);
 }
 function killEnemy(e, byPlayer = true) {
-  if (!e.alive) return; e.alive = false; if (byPlayer) S.kills++;
+  if (!e.alive) return; e.alive = false; const wasA = e.ally; e.ally = false; if (byPlayer && !wasA) S.kills++;
   e.tur.rotation.x = rand(-.3, .3);
   explosion(new THREE.Vector3(e.x, (e.cy || E_CY) + (e.y || 0), e.z), e.boss ? 4 : 1.6);
   const big = !!e.boss, sz = e.boss ? 11 : 5;
   WRECK.start(e.g, { legs: e.legs, h: (e.cy || E_CY) * 1.1, size: sz, big, drop: big ? 2.6 : 1.2, onBoom: () => { if (big) for (let i = 1; i < 5; i++) setTimeout(() => explosion(new THREE.Vector3(e.x + rand(-6, 6), (e.cy || E_CY) * rand(.2, .8), e.z + rand(-6, 6)), 6), i * 260); } });
+  if (wasA) { if (S.phase === 'op') { say('味方化した機体が撃破された', 'r', 1.6); VO.event('hackdie', () => VO.ai('こちらに付いた機体が、落とされました。'), 20); } } else {
   if (S.phase === 'op') say(byPlayer ? 'TARGET DESTROYED' : '友軍が敵機を撃破', byPlayer ? 'a' : 'g', 1.6);
-  if (S.phase === 'op') { if (byPlayer) { VO.event('kill', () => VO.ai('目標、撃破。'), 3); if (Math.random() < .55) setTimeout(() => allyVoice(['ナイスショット、07！', 'いいぞ07、その調子だ！', 'やるじゃないか、07！', '助かった、07！'], 'praise', 6), 1500); } else allyVoice(['一機撃破！', 'やったぞ、一機仕留めた！', '敵機撃破、次！'], 'akill', 9); }
-  if (S.phase === 'op' && allDestroyedWins() && S.spawned >= ENEMY_TOTAL && enemies.every(x => !x.alive)) setTimeout(() => endGame(true), 2200);
+  if (S.phase === 'op') { if (byPlayer) { VO.event('kill', () => VO.ai('目標、撃破。'), 3); if (Math.random() < .55) setTimeout(() => allyVoice(['ナイスショット、07！', 'いいぞ07、その調子だ！', 'やるじゃないか、07！', '助かった、07！'], 'praise', 6), 1500); } else allyVoice(['一機撃破！', 'やったぞ、一機仕留めた！', '敵機撃破、次！'], 'akill', 9); } }
+  if (S.phase === 'op' && allDestroyedWins() && S.spawned >= ENEMY_TOTAL && enemies.every(x => !x.alive || x.ally)) setTimeout(() => endGame(true), 2200);
 }
 
 /* ================= UPDATE ================= */
@@ -4178,7 +4243,7 @@ function updateShells(dt) {
     V.copy(s.m.position); s.m.position.addScaledVector(s.v, dt); V2.copy(s.m.position);
     let done = s.life <= 0;
     if (!done && (s.own === 'p' || s.own === 'a')) {
-      for (const e of enemies) if (e.alive && segSphere(V, V2, e.x, (e.cy || E_CY) + (e.y || 0), e.z, (e.r || E_R) + .3)) {
+      for (const e of enemies) if (e.alive && !e.ally && segSphere(V, V2, e.x, (e.cy || E_CY) + (e.y || 0), e.z, (e.r || E_R) + .3)) {
         e.hp -= s.pd || 55; e.alert = true; explosion(V2.clone(), 2.2); if (s.own === 'p') { P.hitsLanded++; say('HIT', 'a', .8); }
         const byP = s.own === 'p'; if (e.hp <= 0) setTimeout(() => killEnemy(e, byP), 120); done = true; break;
       }
@@ -4187,6 +4252,7 @@ function updateShells(dt) {
     if (!done && s.own === 'e') for (const st of structs) if (st.alive && st.friendly && segSphere(V, V2, st.x, st.y + st.cy, st.z, st.r)) { MIS.damage(st, 10 * (s.dmg || 1), false, V2); done = true; break; }
     if (!done && s.own === 'e' && !P.dead && segSphere(V, V2, P.x, 5.5 + P.y, P.z, 5)) { playerHit(V, s.dmg || 1); done = true; }
     if (!done && s.own === 'e') for (const a of allies) if (a.alive && segSphere(V, V2, a.x, 5.5 + a.y, a.z, 4.8)) { allyHit(a, V2); done = true; break; }
+    if (!done && s.own === 'e') for (const h of enemies) if (h.alive && h.ally && segSphere(V, V2, h.x, (h.cy || E_CY) + (h.y || 0), h.z, (h.r || E_R))) { h.hp -= 22 * (s.dmg || 1); explosion(V2.clone(), 1.6); if (h.hp <= 0) killEnemy(h, false); done = true; break; }
     if (!done && S.mode === 'land' && V2.y <= 0) { (s.own === 'e' ? dust : explosion)(new THREE.Vector3(V2.x, .5, V2.z), 1.6); if (s.own === 'e') SFX.boom(camera.position.distanceTo(V2)); done = true; }
     if (done) { scene.remove(s.m); shells.splice(i, 1); }
   }
@@ -4219,7 +4285,7 @@ function endGame(win, reason) {
   } else {
     $('#endT').textContent = win ? '作戦完了' : '機体大破'; $('#again').hidden = false; const crF = grantReward(win, S.kills, false, 0); setTimeout(() => { $('#endP').innerHTML += `<br>報酬 <b class="newf">+${crF} CR</b>（所持 ${GAR.cr} CR）`; }, 0);
     if (win) setTimeout(() => VO.radio('司令部', '全目標の撃破を確認。よくやった、07。', 0, .8), 800);
-    $('#endP').innerHTML = `撃破 ${S.kills}（部隊合計 ${S.spawned - enemies.filter(e => e.alive).length} / ${ENEMY_TOTAL}）　友軍 ${allies.filter(a => a.alive).length}/6<br>経過 ${Math.floor(sec / 60)}分${sec % 60}秒<br>残り装甲 ${Math.round(P.armor)}%` + (win ? '' : '<br>パイロットは脱出に成功');
+    $('#endP').innerHTML = `撃破 ${S.kills}（部隊合計 ${S.spawned - enemies.filter(e => e.alive && !e.ally).length} / ${ENEMY_TOTAL}）　友軍 ${allies.filter(a => a.alive).length}/6<br>経過 ${Math.floor(sec / 60)}分${sec % 60}秒<br>残り装甲 ${Math.round(P.armor)}%` + (win ? '' : '<br>パイロットは脱出に成功');
   }
 }
 $('#nextBtn').addEventListener('click', () => {
@@ -4369,7 +4435,7 @@ function drawHUD(dt, T) {
   if (P.y > .5 || S.mode === 'space') txt(`ALT ${Math.round(P.y)}m`, 18, by2 - fs * 1.4, G, fs * .95);
   if (S.mode === 'space') txt(`PIT ${Math.round(P.pitchS * 57.3)}°  VEL ${Math.round(P.vel.length() * 3.6)}km/h`, 18, by2 - fs * 2.8, G, fs * .9);
   if (P.thrust > .03) { const jg = hx.createLinearGradient(0, H, 0, H * .55); jg.addColorStop(0, `rgba(255,150,70,${.24 * P.thrust})`); jg.addColorStop(1, 'rgba(255,150,70,0)'); hx.fillStyle = jg; hx.fillRect(0, H * .55, W, H * .45); }
-  if (!STORY.on) txt(`TGT ${enemies.filter(e => e.alive).length + ENEMY_TOTAL - S.spawned}  ALLY ${allies.filter(a => a.alive).length}/6`, 18, 18 + fs * .5, G, fs * .9);
+  if (!STORY.on) txt(`TGT ${enemies.filter(e => e.alive && !e.ally).length + ENEMY_TOTAL - S.spawned}  ALLY ${allies.filter(a => a.alive).length}/6`, 18, 18 + fs * .5, G, fs * .9);
 
   // torso indicator
   const tw2 = Math.min(W * .3, 220), tyy = H - 18;
@@ -4397,9 +4463,9 @@ function drawHUD(dt, T) {
     if (!e.alive) continue; PV.set(e.x, (e.cy || E_CY) + (e.y || 0), e.z).project(camera);
     if (PV.z > 1 || Math.abs(PV.x) > 1.05 || Math.abs(PV.y) > 1.05) continue;
     const sx = (PV.x + 1) / 2 * W, sy2 = (1 - PV.y) / 2 * H, dist = Math.hypot(e.x - P.x, e.z - P.z), b = clamp(2200 / dist, 10, 70);
-    hx.strokeStyle = e.alert ? RED : AMB; hx.beginPath();
+    const fc = e.ally ? '#5ae8ff' : e.alert ? RED : AMB; hx.strokeStyle = fc; hx.beginPath();
     [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([a, c]) => { hx.moveTo(sx + a * b, sy2 + c * b * .7 - c * 6); hx.lineTo(sx + a * b, sy2 + c * b * .7); hx.lineTo(sx + a * b - a * 6, sy2 + c * b * .7); });
-    hx.stroke(); txt(`${Math.round(dist)}m`, sx + b + 4, sy2 - b * .7, e.alert ? RED : AMB, fs * .8);
+    hx.stroke(); txt(e.ally ? `味方 ${Math.round(dist)}m` : `${Math.round(dist)}m`, sx + b + 4, sy2 - b * .7, fc, fs * .8);
     if (P.lock && P.lock.e === e) lock = { sx, sy: sy2, b, dist };
   }
   for (const a of allies) {
@@ -4775,7 +4841,7 @@ function frame(now) {
   if (!live) { P.bobV += (-60 * P.bobY - 9 * P.bobV) * dt; P.bobY += P.bobV * dt; P.trauma = Math.max(0, P.trauma - .9 * dt); }
   if (live) {
     updatePlayer(dt); updateMech(dt); followSun();
-    if (S.phase === 'op' && allDestroyedWins() && S.spawned >= ENEMY_TOTAL && !enemies.some(e => e.alive)) endGame(true);
+    if (S.phase === 'op' && allDestroyedWins() && S.spawned >= ENEMY_TOTAL && !enemies.some(e => e.alive && !e.ally)) endGame(true);
     MIS.update(dt, T);
     if (S.phase === 'op' && !P.dead) { S.cmdT -= dt; if (S.cmdT <= 0) { S.cmdT = rand(30, 46); const CL = CMD_LINES[S.mode]; VO.radio('司令部', CL[Math.random() * CL.length | 0], 0, .7); } } updateGantry(dt, T); updateEnemies(dt); updateAllies(dt); updateShells(dt); updateParts(dt); updateCamera(T, dt);
     if (CK.combatOn) CK.update(dt, T);
