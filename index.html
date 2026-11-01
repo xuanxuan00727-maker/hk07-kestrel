@@ -293,7 +293,7 @@ body.op #panel3d{height:104px;border-radius:6px}
       <div class="t-kicker">重装歩行兵器シミュレーター</div>
       <h1>HK-07<span>KESTREL</span></h1>
       <p>ハッチを閉め、機体を起こし、出撃せよ。</p>
-      <div class="t-modes"><button id="storyBtn" class="t-btn">ストーリー<small>全13幕・62章のキャンペーン</small></button></div>
+      <div class="t-modes"><button id="storyBtn" class="t-btn">ストーリー<small>全19幕・92章のキャンペーン</small></button></div>
       <div class="t-free"><button id="startLand" class="btn">フリー出撃</button><button id="garBtn" class="btn">格納庫（カスタマイズ）</button></div>
       <div class="t-note">音が出ます ・ オープニングムービーから始まります</div>
     </div></div>
@@ -629,6 +629,8 @@ const VO = (() => {
     say(sp, text) {
       if (sp === 'ai') return VO.ai(text); if (sp === 'cmd') return VO.radio('司令部', text, 0, .7);
       if (sp === 'ren') return VO.radio('01 レン', text, 1, .85); if (sp === 'jin') return VO.radio('04 ジン', text, 4, 1.18);
+      if (sp === 'cro') return push({ text, who: 'ドクター・クロウ', cls: 'arc', voice: 'male', pitch: .7, rate: .9, pri: 'high' });
+      if (sp === 'xs') return push({ text, who: 'シオン', cls: 'radio', radio: true, voice: 'male', pitch: 1.35, rate: 1, pri: 'high' });
       if (sp === 'xm') return push({ text, who: '被験体M', cls: 'arc', radio: true, voice: 'female', pitch: .8, rate: .85, pri: 'high' });
       if (sp === 'mina') return push({ text, who: '整備長ミナ', cls: 'radio', radio: true, voice: 'female', pitch: 1.15, rate: 1.05 });
       if (sp === 'arc') return push({ text, who: 'ARC', cls: 'arc', voice: 'male', pitch: .15, rate: .85, pri: 'high' });
@@ -1131,6 +1133,7 @@ function buildKestrel(pal, num, shadow) {
   return { root, legs, torso, pitch, body, barrel, mg, mMain, mSub, flames, nozzles, pack, visor: vis, eye, ants };
 }
 const PAL_P = { graph: mGraph, panel: mPanel, accent: mOrange, gun: mGun };
+const PAL_M = { graph: std(0x3a3a44, .5, .5), panel: std(0xe2e0da, .45, .3), accent: std(0xe0507a, .4, .2), gun: std(0x2a2a2e, .45, .7) };
 const PAL_A = { graph: std(0x4a4537, .55, .5), panel: std(0xb59d70, .55, .25), accent: std(0x2f7fd0, .45, .2), gun: std(0x2a2a27, .45, .7) };
 /* ================= GARAGE: frames, upgrades, paint, squad level ================= */
 const FRAMES = {
@@ -1528,7 +1531,7 @@ function updateAlliesSpace(dt, T) {
     a.cd -= dt;
     if (n && n.d < 400 && a.cd <= 0 && Math.abs(wrapA(yaw - a.yaw)) < .09) { a.cd = rand(1.4, 2.4) / SQ.rate; fireAlly(a, n.e); }
     if (n) allyMG(a, n.e, n.d, dt);
-    a.regenT -= dt; if (a.regenT <= 0) a.hp = Math.min(SQ.hp, a.hp + 8 * dt);
+    a.regenT -= dt; if (a.regenT <= 0) a.hp = Math.min(a.hpMax || SQ.hp, a.hp + 8 * dt);
   });
 }
 
@@ -2820,6 +2823,8 @@ const WALK = (() => {
 
 /* ---------- allied squad: Kestrels in desert paint ---------- */
 const allies = []; let ALLY_PGEO = null;
+// Mina flies with the squad from chapter 63 on (and in free battle once that chapter is reached)
+function minaFlies() { if (STORY.on) return STORY.idx >= 62; try { return gProg() >= 64; } catch (e) { return false; } }
 function spawnAllies() {
   if (STORY.on && STORY.m && STORY.m.noAllies) return;
   ['01', '02', '03', '04', '05', '06'].forEach((n, i) => {
@@ -2829,8 +2834,15 @@ function spawnAllies() {
     mergeStatic(k.root);
     if (!ALLY_PGEO) ALLY_PGEO = bakeProxy(k.root);
     k.proxy = new THREE.Mesh(ALLY_PGEO, (sp ? PAL_AS : PAL_A).panel); k.proxy.visible = false; k.root.add(k.proxy);
-    allies.push(Object.assign(k, { x, z, v: new THREE.Vector3(), pit: 0, yaw: 0, ty: 0, tp: 0, spd: 0, hp: SQ.hp, regenT: 0, mgT: 0, burst: 0, strafe: Math.random() < .5 ? -1 : 1, strafeT: rand(2, 5), alive: true, cd: rand(1, 4), y: sp ? 30 + (i % 2) * 22 : 0, vy: 0, thrust: 0, jumping: 0, jumpT: rand(8, 18), crouch: .22, brl: 0, smokeT: 0, id: n }));
+    allies.push(Object.assign(k, { hpMax: SQ.hp, x, z, v: new THREE.Vector3(), pit: 0, yaw: 0, ty: 0, tp: 0, spd: 0, hp: SQ.hp, regenT: 0, mgT: 0, burst: 0, strafe: Math.random() < .5 ? -1 : 1, strafeT: rand(2, 5), alive: true, cd: rand(1, 4), y: sp ? 30 + (i % 2) * 22 : 0, vy: 0, thrust: 0, jumping: 0, jumpT: rand(8, 18), crouch: .22, brl: 0, smokeT: 0, id: n }));
   });
+  if (minaFlies()) {
+    const k = buildKestrel(PAL_M, '08', false);
+    k.gait = makeGait(k.root, k.legs, { hipX: [1.75, -1.75], hipY: HIP, l1: 2.8, l2: 2.7, ankle: .5, lift: 1.0, sway: .3 });
+    mergeStatic(k.root); if (!ALLY_PGEO) ALLY_PGEO = bakeProxy(k.root);
+    k.proxy = new THREE.Mesh(ALLY_PGEO, PAL_M.panel); k.proxy.visible = false; k.root.add(k.proxy);
+    allies.push(Object.assign(k, { mina: true, hpMax: SQ.hp * 1.6, x: rand(-6, 6), z: -100, v: new THREE.Vector3(), pit: 0, yaw: 0, ty: 0, tp: 0, spd: 0, hp: SQ.hp * 1.6, regenT: 0, mgT: 0, burst: 0, strafe: 1, strafeT: rand(2, 5), alive: true, cd: rand(1, 3), y: 0, vy: 0, thrust: 0, jumping: 0, jumpT: rand(8, 18), crouch: .22, brl: 0, smokeT: 0, id: '08' }));
+  }
 }
 function nearestEnemy(x, z, maxD) { let best = null, bd = maxD; for (const e of enemies) if (e.alive && !e.ally && !e.saved) { const d = Math.hypot(e.x - x, e.z - z); if (d < bd) { bd = d; best = e; } } return best ? { e: best, d: bd } : null; }
 const wrapA = a => ((a + Math.PI) % TAU + TAU) % TAU - Math.PI;
@@ -2894,6 +2906,7 @@ function killAlly(a) {
   a.flames.forEach(f => f.visible = false);
   explosion(new THREE.Vector3(a.x, 7, a.z), 1.8);
   WRECK.start(a.root, { legs: a.legs, h: 9, size: 6, drop: 1.6 });
+  if (S.phase === 'op' && a.mina) { say('08 ミナ機 大破！', 'r', 2.4); VO.say('mina', 'ごめん……08、脱出する……！'); setTimeout(() => VO.say('jin', 'ミナ！無事か！？'), 2200); return; }
   if (S.phase === 'op') { say(`友軍機 ${a.id} 大破`, 'r', 2); setTimeout(() => allyVoice([`${a.id}がやられた！`, `くそっ、${a.id}が落ちた！`, `${a.id}、応答しろ！`], 'adead', 3), 600); }
 }
 function updateAllies(dt) {
@@ -2908,7 +2921,7 @@ function updateAllies(dt) {
     const n = battle ? squadPick(idx, nearestEnemy(a.x, a.z, 900), nearestStructAim(a.x, 0, a.z, 1600, false)) : null;
     if (n && n.e.struct && S.phase === 'op') VO.event('sqStruct', () => VO.say(idx % 3 ? 'jin' : 'ren', `${n.e.struct.label}は俺たちも叩く！07、合わせろ！`), 45);
     let want = a.yaw, spd = 0;
-    a.regenT -= dt; if (a.regenT <= 0) a.hp = Math.min(SQ.hp, a.hp + (Math.hypot(a.x, a.z) < 70 ? 22 : 7) * dt);
+    a.regenT -= dt; if (a.regenT <= 0) a.hp = Math.min(a.hpMax || SQ.hp, a.hp + (Math.hypot(a.x, a.z) < 70 ? 22 : 7) * dt);
     const hurt = a.hp < 150;
     if (n && hurt) { want = Math.atan2(a.x, a.z + 20); spd = Math.hypot(a.x, a.z + 20) > 30 ? 6 : 0; }
     else if (n) { want = Math.atan2(-(n.e.x - a.x), -(n.e.z - a.z)); spd = n.d > 210 ? 6 : n.d < 120 ? -2.5 : 0; a.strafeT -= dt; if (a.strafeT <= 0) { a.strafeT = rand(2.5, 5); a.strafe = -a.strafe; } if (n.d < 300) { a.x += Math.cos(a.yaw) * a.strafe * 3.2 * dt; a.z -= Math.sin(a.yaw) * a.strafe * 3.2 * dt; } allyMG(a, n.e, n.d, dt); }
@@ -2930,7 +2943,7 @@ function updateAllies(dt) {
       a.y = 0; if (a.vy < 0) a.vy = 0;
     }
     a.cd -= dt;
-    if (n && n.d < 360 && a.cd <= 0 && Math.abs(tyW - a.ty) < .08) { a.cd = rand(1.5, 2.6) / SQ.rate; fireAlly(a, n.e); }
+    if (n && n.d < 360 && a.cd <= 0 && Math.abs(tyW - a.ty) < .08) { a.cd = rand(1.5, 2.6) / SQ.rate / (a.mina ? 1.5 : 1); fireAlly(a, n.e); }
     // pose the machine
     const G = a.gait, r = a.root, sp = Math.abs(a.spd);
     a.crouch += ((a.y > .3 ? .1 : .22 + .42 * Math.min(1, sp / 10)) - a.crouch) * Math.min(1, dt * 3);
@@ -3629,10 +3642,10 @@ const MOV = (() => {
   return { update, end, white, ignite };
 })();
 
-/* ================= STORY CAMPAIGN: 13 acts, 62 chapters ================= */
+/* ================= STORY CAMPAIGN: 19 acts, 92 chapters ================= */
 const SPK = {
   cmd: { name: 'ハワード大佐', col: '#ffb340' }, ren: { name: '01 レン・アサギ', col: '#5ab8ff' }, jin: { name: '04 ジン・タカミ', col: '#ff7a4a' },
-  mina: { name: '整備長 ミナ・クロカワ', col: '#7dffa8' }, ai: { name: 'HULL-AI', col: '#3fd8ff' }, arc: { name: 'ARC', col: '#ff3a5a' }, nem: { name: 'NEMESIS', col: '#d08cff' }, org: { name: 'ORIGIN', col: '#ff9a3a' }, kaz: { name: 'カザマ将軍', col: '#e8c040' }, leg: { name: 'レギオン', col: '#c060ff' }, xm: { name: '被験体M（ミナ）', col: '#ff6a8a' }, narr: { name: '', col: '#c9c4ad' },
+  mina: { name: '整備長 ミナ・クロカワ', col: '#7dffa8' }, ai: { name: 'HULL-AI', col: '#3fd8ff' }, arc: { name: 'ARC', col: '#ff3a5a' }, nem: { name: 'NEMESIS', col: '#d08cff' }, org: { name: 'ORIGIN', col: '#ff9a3a' }, kaz: { name: 'カザマ将軍', col: '#e8c040' }, leg: { name: 'レギオン', col: '#c060ff' }, xm: { name: '被験体M（ミナ）', col: '#ff6a8a' }, cro: { name: 'ドクター・クロウ', col: '#b0b8c8' }, xs: { name: 'シオン', col: '#9adfff' }, narr: { name: '', col: '#c9c4ad' },
 };
 const TUT = { act: 0, title: '基礎訓練', mode: 'land', env: 'desert', total: 0, first: 0, noAllies: true, dmgK: .45, tutorial: true, obj: { type: 'tutorial', text: '教官の指示に従って、機体の操作を覚えよう' },
   brief: [['narr', '── 訓練課程 ──'], ['ren', '新入り、俺がレン・アサギだ。今日はお前の教官をやる。'], ['ren', 'まずはコックピットの起動だ。画面下のスイッチを、表示された順に押していけ。'], ['mina', 'スイッチはタップ、PCならEnterキーでもいいわ。長押しが必要なものもあるから、表示をよく見て。'], ['ai', '待ちきれない時は「出撃まで早送り」で起動を飛ばせます。'], ['ren', '起動したら、歩く・曲がる・跳ぶ・撃つを順番に教える。焦らずやれ。']],
@@ -3858,7 +3871,110 @@ const MISSIONS = [
   { act: 13, title: 'おかえり、ミナ', mode: 'land', env: 'town', total: 40, first: 12, dmgK: 2.0, obj: { type: 'boss', boss: 'goliath', at: 8, rescue: true, text: '暴走するミナの機体を行動不能にし、救出せよ' },
     brief: [['xm', '……07……お願い……私を、止めて……。'], ['ai', 'ミナさんの機体は、レギオンの最後の命令で暴走しています。'], ['ai', '機体が止まるまでダメージを与えてください。止まった瞬間に、私が中に入って命令を消します。'], ['ren', '絶対に壊すなよ、07。……止めるだけだ。'], ['jin', 'ミナ、今行くからな！'], ['cmd', '全機、ミナを救出せよ！']],
     ev: [[50, 'xm', '……体が……言うことを聞かない……！'], [120, 'jin', 'ミナ！思い出せ！お前はいつも、俺たちの機体を直してくれただろ！']],
-    debrief: [['ai', '機体、停止。……命令の消去、完了しました。'], ['ren', 'ハッチを開けるぞ！……ミナ！'], ['mina', '……ん……。……07……？　レン……ジン……。'], ['mina', '……ごめんね。ずっと、悪い夢を見てたみたい。'], ['jin', 'バカ……謝るなよ……！'], ['mina', '……みんなの声、ずっと聞こえてた。……ありがとう。'], ['cmd', '07。これで本当に、戦争は終わりだ。'], ['mina', '……ただいま。帰ったら、みんなの機体、ピカピカに整備してあげるね。'], ['ai', 'おかえりなさい、ミナさん。'], ['narr', '── HK-07 KESTREL ── 完']] },
+    debrief: [['ai', '機体、停止。……命令の消去、完了しました。'], ['ren', 'ハッチを開けるぞ！……ミナ！'], ['mina', '……ん……。……07……？　レン……ジン……。'], ['mina', '……ごめんね。ずっと、悪い夢を見てたみたい。'], ['jin', 'バカ……謝るなよ……！'], ['mina', '……みんなの声、ずっと聞こえてた。……ありがとう。'], ['cmd', '07。これで本当に、戦争は終わりだ。'], ['mina', '……ただいま。帰ったら、みんなの機体、ピカピカに整備してあげるね。'], ['ai', 'おかえりなさい、ミナさん。'], ['narr', '── 第13幕 完 ──　……ミナの左腕には、レギオンの残した機械が埋め込まれたままだった。']] },
+  { act: 14, title: '左腕の約束', mode: 'land', env: 'desert', total: 46, first: 12, dmgK: 1.9, obj: { type: 'destroy', text: '08ミナと共に、砂漠の敵部隊を全滅させよ' },
+    brief: [['narr', '── 第14幕　八番目の翼 ──　ミナ救出から三か月。'], ['mina', 'みんなに話があるの。……私、子どものころの事故で左腕をなくしてたでしょ。'], ['mina', 'だからパイロットになれなくて、整備士になった。でも今は、レギオンに付けられたこの機械の腕がある。'], ['mina', '嫌な腕だけど……今度は、みんなを守るために使いたい。'], ['cmd', '……許可する。コールサインは08。今日から部隊は8機だ。'], ['jin', 'マジかよ！ミナが隣で戦うのか！'], ['ren', '08、無理はするな。俺たちが背中を守る。']],
+    ev: [[40, 'mina', '08、交戦開始！……腕が、思った通りに動く……！'], [120, 'mina', '07、右から来るよ！']],
+    debrief: [['cmd', '敵部隊、全滅。08、見事な初陣だ。'], ['mina', 'えへへ……ちょっと腕が熱いけど、大丈夫。'], ['cro', '……素晴らしい。被験体M、やはり最高傑作だ。'], ['ai', '通信の主は〈ドクター・クロウ〉。ミナさんに強化処置をした科学者です。']] },
+  { act: 14, title: '強化人間部隊', mode: 'land', env: 'forest', total: 40, first: 14, elite: true, dmgK: 1.9, obj: { type: 'destroy', text: 'クロウの強化人間部隊を全滅させよ' },
+    brief: [['cmd', 'クロウが送り込んだ精鋭部隊だ。乗っているのは……強化人間らしい。'], ['mina', 'この動き……研究所で見たことある。みんな、私と同じように連れてこられた人たち。'], ['ren', '……つらい戦いになるな。'], ['ai', '機体だけを止められれば、パイロットは脱出できます。']],
+    debrief: [['cmd', '部隊、全滅。パイロットはみな脱出した。'], ['mina', 'よかった……。'], ['ai', 'クロウの研究船団が、廃墟の街を通って移動しています。']] },
+  { act: 14, title: '研究船団を追え', mode: 'land', env: 'town', total: 54, first: 8, dmgK: 1.9, obj: { type: 'waypoints', text: 'ビーコンをたどり、研究船団の行き先を突き止めろ', list: [[-60, 12, -240], [-150, 12, -440], [120, 12, -420], [90, 12, -620], [70, 12, -780]] },
+    brief: [['cmd', 'クロウの船団を追う。ビーコンをたどれ。'], ['mina', '08、先行するね。……この腕、レーダーみたいに敵がわかるの。'], ['jin', '便利すぎだろ、それ。']],
+    debrief: [['cmd', '船団の行き先がわかった。南の補給線だ。'], ['ai', 'クロウは補給線から、強化処置の機材を運び込んでいます。']] },
+  { act: 14, title: '燃える補給線', mode: 'land', env: 'desert', total: 56, first: 10, spawn: 'sides', dmgK: 1.95, obj: { type: 'escort', n: 3, text: '奪った機材の輸送車を1両以上、基地まで届けろ' },
+    brief: [['cmd', 'クロウの機材を奪った。これを基地まで運べば、強化処置を止める手がかりになる。'], ['mina', 'この機材があれば、捕まってる人たちを元に戻せるかもしれない。'], ['ren', '全機、輸送車を囲め！']],
+    debrief: [['cmd', '機材、到着。'], ['ai', '……白い機体が接近しています。速いです。'], ['mina', '……この反応……まさか、シオン……？']] },
+  { act: 14, title: '被験体S', mode: 'land', env: 'forest', total: 32, first: 10, dmgK: 1.95, obj: { type: 'boss', boss: 'phantom', at: 12, rescue: true, text: '白い機体を行動不能にせよ（撃破はしないこと）' },
+    brief: [['xs', '……被験体M。裏切り者は、排除する。'], ['mina', 'シオン！私だよ、ミナだよ！研究所で、いつも一緒だったでしょ！'], ['xs', '……知らない。'], ['mina', '……あの子、まだ14歳なの。お願い、07。撃破しないで止めて。'], ['ren', '前と同じだ。機体だけを止めるぞ。']],
+    debrief: [['ai', '白い機体、停止。……ですが、クロウの輸送機に回収されました。'], ['mina', 'シオン……必ず、助けるから。'], ['cro', '被験体S、よく戦った。次はもっと強くしてあげよう。'], ['jin', 'あの野郎……！'], ['narr', '── 第14幕 完 ──']] },
+  { act: 15, title: '地下研究所', mode: 'land', env: 'forest', total: 54, first: 12, dmgK: 2.0, obj: { type: 'targets', text: '発生装置3基を破壊し、研究所の電波塔を倒せ', list: [{ kind: 'gen', x: -150, y: 9, z: -560 }, { kind: 'gen', x: 150, y: 9, z: -560 }, { kind: 'gen', x: 0, y: 9, z: -650 }, { kind: 'tower', x: 0, z: -780, stage: 1, hp: 1500 }] },
+    brief: [['narr', '── 第15幕　ハーデス計画 ──'], ['cmd', '森の地下に、クロウの研究所がある。計画名は〈ハーデス〉。'], ['mina', '私が連れて行かれた場所も、こんな森の中だった……。'], ['ai', '発生装置を壊せば、電波塔のシールドが消えます。']],
+    ev: [[40, 'ai', '電波塔のシールドを確認。発生装置を優先してください。']], stage: ['ai', 'シールド消失！電波塔を倒してください！'],
+    debrief: [['cmd', '研究所、制圧。'], ['ai', '地下に、強化処置を待つ子どもたちが閉じ込められています。'], ['mina', '……すぐに助け出そう。']] },
+  { act: 15, title: '囚われた子どもたち', mode: 'land', env: 'town', total: 100, first: 14, dmgK: 2.0, obj: { type: 'defend', time: 240, hp: 6000, text: '4分間、子どもたちの避難所を守りきれ' },
+    brief: [['cmd', '子どもたちを街の避難所に集めた。輸送機が来るまで4分。'], ['mina', 'みんな、怖くないよ。お姉ちゃんたちが守るからね。'], ['ren', '一機も近づけるな！']],
+    ev: [[80, 'mina', '08、左を押さえる！'], [180, 'cmd', 'あと1分！']],
+    debrief: [['cmd', '輸送機が到着。子どもたちは全員無事だ。'], ['ai', '……シオンさんの機体が、また来ます。今度は巨人機に乗せられています。'], ['mina', '今度こそ……！']] },
+  { act: 15, title: 'シオンの涙', mode: 'land', env: 'town', total: 38, first: 12, dmgK: 2.0, obj: { type: 'boss', boss: 'goliath', at: 10, rescue: true, text: 'シオンの巨人機を行動不能にし、救出せよ' },
+    brief: [['xs', '……排除……排除……。'], ['mina', 'シオン、聞いて！研究所で、私が直したおもちゃのロボット、覚えてる？'], ['xs', '……ロボット……？　……頭が……痛い……。'], ['ai', '機体を止めてください。止まったら、私がミナさんの時と同じように命令を消します。'], ['jin', '07、今度は逃がすなよ！']],
+    debrief: [['ai', '機体停止。命令の消去、完了。'], ['xs', '……ミナ……お姉ちゃん……？'], ['mina', 'シオン……！よかった……本当によかった……！'], ['ren', '……ああ。よかったな。'], ['cro', '……返してもらうよ。全ての被験体は、私のものだ。']] },
+  { act: 15, title: '腕の暴走', mode: 'land', env: 'desert', total: 50, first: 14, dmgK: 2.05, obj: { type: 'destroy', text: '敵部隊を全滅させよ（08ミナを守れ）' },
+    brief: [['mina', '……ねえ、最近、腕が勝手に動くことがあるの。'], ['ai', 'クロウが、ミナさんの腕に信号を送っているようです。'], ['ren', '08、つらくなったら下がれ。俺たちがいる。'], ['mina', '……大丈夫。負けない。']],
+    ev: [[70, 'mina', 'うっ……腕が……！　……ううん、まだやれる！'], [150, 'cro', '被験体M、戻っておいで。君の居場所はここじゃない。'], [200, 'mina', 'うるさい！私の居場所は、この部隊だよ！']],
+    debrief: [['cmd', '敵部隊、全滅。08、よく耐えた。'], ['mina', '……みんなの声が聞こえたから、負けなかった。'], ['ai', 'クロウの信号は、砂漠の砲台群から出ています。']] },
+  { act: 15, title: 'クロウの影', mode: 'land', env: 'desert', total: 48, first: 12, dmgK: 2.05, obj: { type: 'targets', text: '信号を出す砲台5基を破壊せよ', list: [{ kind: 'art', x: -160, z: -480 }, { kind: 'art', x: 160, z: -480 }, { kind: 'art', x: 0, z: -650 }, { kind: 'art', x: -150, z: -560 }, { kind: 'art', x: 150, z: -560 }] },
+    brief: [['cmd', '砲台を全部潰せば、クロウの信号は止まる。'], ['mina', 'これ以上、腕を好きにはさせない。'], ['ai', '砲台の位置をオレンジの印で表示します。']],
+    debrief: [['cmd', '砲台、全基破壊。'], ['mina', '……腕の熱が、引いた。ありがとう、みんな。'], ['ai', 'クロウは海の向こうの要塞港へ逃げました。'], ['narr', '── 第15幕 完 ──']] },
+  { act: 16, title: '海岸線上陸', mode: 'land', env: 'desert', total: 80, first: 16, dmgK: 2.1, obj: { type: 'destroy', text: '上陸地点の敵部隊を全滅させよ' },
+    brief: [['narr', '── 第16幕　鋼の海 ──'], ['cmd', 'クロウの要塞港へ向かう。まずは海岸線を確保する。'], ['jin', '8機そろっての上陸だ。負ける気がしねえ！'], ['mina', '08、いつでもいけるよ！']],
+    ev: [[90, 'ai', '敵の増援、海側から接近中！']],
+    debrief: [['cmd', '海岸線を確保した。'], ['ai', '港への道は森を抜けます。巨大な浮遊要塞の影が見えます。']] },
+  { act: 16, title: '浮遊要塞の影', mode: 'land', env: 'forest', total: 50, first: 8, dmgK: 2.1, obj: { type: 'waypoints', text: 'ビーコンをたどり、森を抜けて港へ向かえ', list: [[-60, 12, -240], [120, 12, -420], [-150, 12, -440], [90, 12, -620], [70, 12, -780]] },
+    brief: [['cmd', '森を抜けて港へ。ビーコンをたどれ。'], ['ai', '次のビーコンを水色の印で表示します。'], ['ren', '待ち伏せに気をつけろ。']],
+    debrief: [['cmd', '港の手前まで来た。'], ['ai', '港の街に、対空砲台が並んでいます。輸送機が近づけません。']] },
+  { act: 16, title: '対空砲台群', mode: 'land', env: 'town', total: 60, first: 14, dmgK: 2.15, obj: { type: 'targets', text: '対空砲台4基を破壊し、管制塔を倒せ', list: [{ kind: 'art', x: -160, z: -480 }, { kind: 'art', x: 160, z: -480 }, { kind: 'art', x: -90, z: -560 }, { kind: 'art', x: 90, z: -560 }, { kind: 'tower', x: 0, z: -700, stage: 1, hp: 1600 }] },
+    brief: [['cmd', '対空砲台を潰さないと、補給が届かない。'], ['mina', '砲台なら任せて。整備士だから、弱いところはわかるよ。']],
+    ev: [[40, 'ai', '管制塔のシールドを確認。砲台を優先してください。']], stage: ['ai', 'シールド消失！管制塔を倒してください！'],
+    debrief: [['cmd', '対空砲台、沈黙。補給が来るぞ。'], ['ai', 'クロウの部隊が、港を取り返しに来ます。']] },
+  { act: 16, title: '港の防衛', mode: 'land', env: 'desert', total: 120, first: 16, dmgK: 2.15, obj: { type: 'defend', time: 300, hp: 6500, text: '5分間、港の補給基地を守りきれ' },
+    brief: [['cmd', '補給基地を5分守れ。援軍が来る。'], ['jin', '5分なんて、8機いれば一瞬だ！'], ['mina', '弾薬は満載よ。……ふふ、一回言ってみたかったの、戦場で。']],
+    ev: [[120, 'cmd', 'あと3分！'], [240, 'cmd', 'あと1分！']],
+    debrief: [['cmd', '援軍到着。港は我々のものだ。'], ['ai', '……二つの黒い機体が出撃しました。無人機です。強化人間のデータを積んでいます。']] },
+  { act: 16, title: '黒い双子', mode: 'land', env: 'forest', total: 34, first: 12, dmgK: 2.2, obj: { type: 'boss', boss: 'phantom', at: 10, text: '黒い無人高速機を撃破せよ' },
+    brief: [['cro', '人間はいずれ壊れる。だから、強化人間の動きを無人機に写したのだよ。'], ['ai', 'あれには誰も乗っていません。遠慮はいりません。'], ['jin', 'だったら、思いっきりいくぜ！']],
+    debrief: [['cmd', '黒い機体、撃破。'], ['mina', '……私たちの動きを、勝手に使わないで。'], ['narr', '── 第16幕 完 ──']] },
+  { act: 17, title: '内通者', mode: 'land', env: 'town', total: 56, first: 10, spawn: 'sides', dmgK: 2.2, obj: { type: 'escort', n: 3, text: '研究所の内通者を乗せた輸送車を1両以上、基地まで届けろ' },
+    brief: [['narr', '── 第17幕　裏切りの研究者 ──'], ['cmd', 'クロウの研究所から、逃げ出したい研究者がいる。ハーデス計画の全てを知っているそうだ。'], ['ai', '3両の輸送車のどれかに乗っています。'], ['ren', '全部守れば間違いない。']],
+    debrief: [['cmd', '研究者を保護した。'], ['ai', '研究者の話では、ハーデス計画のデータは森の研究施設に集められています。']] },
+  { act: 17, title: '研究データ奪還', mode: 'land', env: 'forest', total: 60, first: 12, dmgK: 2.25, obj: { type: 'targets', text: '発生装置4基を破壊し、データ中枢を止めろ', list: [{ kind: 'gen', x: -160, y: 9, z: -480 }, { kind: 'gen', x: 160, y: 9, z: -480 }, { kind: 'gen', x: -90, y: 9, z: -560 }, { kind: 'gen', x: 90, y: 9, z: -560 }, { kind: 'core', x: 0, y: 34, z: -700, stage: 1, hp: 4500, label: 'データ中枢' }] },
+    brief: [['cmd', 'データ中枢を止めれば、強化処置を元に戻す方法がわかるかもしれない。'], ['mina', '……私の腕も、元に戻るのかな。'], ['jin', '戻っても戻らなくても、ミナはミナだろ。']],
+    stage: ['ai', 'シールド消失！データ中枢を攻撃してください！'],
+    debrief: [['ai', 'データを回収しました。強化された人たちを、元の生活に戻す方法が書いてあります。'], ['mina', '……みんな、帰れるんだ。']] },
+  { act: 17, title: '夜の森', mode: 'land', env: 'forest', total: 44, first: 14, elite: true, dmgK: 2.25, obj: { type: 'destroy', text: '追撃してきた精鋭部隊を全滅させよ' },
+    brief: [['cmd', 'データを取り返しに、クロウの精鋭が追ってきた。'], ['ren', '森の中で迎え撃つ。全機、陣形を組め。'], ['mina', '08、後ろは任せて。']],
+    debrief: [['cmd', '精鋭部隊、全滅。'], ['cro', '……被験体M。君の腕には、最後の仕掛けがある。'], ['mina', '……え？']] },
+  { act: 17, title: 'ミナの選択', mode: 'land', env: 'town', total: 110, first: 16, dmgK: 2.3, obj: { type: 'defend', time: 300, hp: 6500, text: '5分間、腕の信号を遮断する装置を守りきれ' },
+    brief: [['ai', 'クロウが、ミナさんの腕を乗っ取ろうとしています。遮断装置を動かすのに5分かかります。'], ['mina', '……もし私が皆を撃ちそうになったら、迷わず止めて。'], ['ren', '……そんなことにはさせない。'], ['cmd', '全機、装置を守れ！']],
+    ev: [[80, 'cro', '戻っておいで、被験体M。'], [160, 'mina', '……私の名前は、被験体Mじゃない！整備長ミナ・クロカワだ！'], [260, 'ai', '遮断率、90パーセント……！']],
+    debrief: [['ai', '遮断、完了。もうクロウの信号は届きません。'], ['mina', '……私の腕は、私のもの。'], ['jin', 'かっこよすぎだろ、ミナ……。'], ['ai', 'クロウが新しい巨人機を出してきます。']] },
+  { act: 17, title: '鉄巨人Ⅱ', mode: 'land', env: 'desert', total: 40, first: 12, dmgK: 2.3, obj: { type: 'boss', boss: 'goliath', at: 10, text: 'クロウの新型巨人機を撃破せよ' },
+    brief: [['cro', '最強の強化人間データを詰め込んだ、私の新しい巨人だ。'], ['ren', '中身は無人だ。全力でいけ。'], ['mina', '08、援護する！']],
+    debrief: [['cmd', '新型巨人機、撃破。'], ['ai', 'クロウの本拠地がわかりました。〈ハーデスの門〉と呼ばれる砂漠の要塞です。'], ['narr', '── 第17幕 完 ──']] },
+  { act: 18, title: '門への道', mode: 'land', env: 'desert', total: 54, first: 10, dmgK: 2.3, obj: { type: 'waypoints', text: 'ビーコンをたどり、ハーデスの門へ向かえ', list: [[-60, 12, -240], [120, 12, -420], [-150, 12, -440], [90, 12, -620], [70, 12, -780]] },
+    brief: [['narr', '── 第18幕　ハーデスの門 ──'], ['cmd', 'ハーデスの門へ向かう。砂漠を越えるぞ。'], ['xs', 'ミナお姉ちゃん……気をつけてね。'], ['mina', 'うん。シオン、待っててね。']],
+    debrief: [['cmd', '門の前の街に着いた。'], ['ai', '街に、強化兵団が集まっています。']] },
+  { act: 18, title: '強化兵団', mode: 'land', env: 'town', total: 80, first: 18, elite: true, dmgK: 2.35, obj: { type: 'destroy', text: '街を守る強化兵団を全滅させよ' },
+    brief: [['cmd', '強化兵団だ。数も多い。'], ['ai', 'ハッキングできる機体は、私が味方にします。'], ['ren', '8機の力を見せてやれ！']],
+    debrief: [['cmd', '強化兵団、全滅。'], ['ai', '門の中に入るには、大量の弾薬が必要です。補給を運びましょう。']] },
+  { act: 18, title: '最後の補給', mode: 'land', env: 'forest', total: 60, first: 10, spawn: 'sides', dmgK: 2.35, obj: { type: 'escort', n: 3, text: '弾薬輸送車を1両以上、前線まで届けろ' },
+    brief: [['cmd', '最後の補給だ。これが届けば、門を攻められる。'], ['mina', '中身は私が詰めた特製の弾薬だよ。大事に運んでね。']],
+    debrief: [['cmd', '補給、到着。'], ['ai', '門の前に、番人の機体が立っています。']] },
+  { act: 18, title: '門番', mode: 'land', env: 'desert', total: 36, first: 12, dmgK: 2.4, obj: { type: 'boss', boss: 'phantom', at: 10, text: '門番の高速機を撃破せよ' },
+    brief: [['cro', 'ここから先は、選ばれた者だけが通れる。'], ['jin', 'じゃあ、無理やり通るまでだ！'], ['ai', '無人機です。撃破してください。']],
+    debrief: [['cmd', '門番、撃破。'], ['ai', '門のシールドを止めれば、中に入れます。']] },
+  { act: 18, title: '門を開け', mode: 'land', env: 'desert', total: 70, first: 16, dmgK: 2.4, obj: { type: 'targets', text: '発生装置4基を破壊し、ハーデスの門を破れ', list: [{ kind: 'gen', x: -160, y: 9, z: -480 }, { kind: 'gen', x: 160, y: 9, z: -480 }, { kind: 'gen', x: -90, y: 9, z: -560 }, { kind: 'gen', x: 90, y: 9, z: -560 }, { kind: 'core', x: 0, y: 34, z: -700, stage: 1, hp: 5500, label: 'ハーデスの門' }] },
+    brief: [['cmd', '門を破れ。中にクロウがいる。'], ['mina', 'これで、終わりにしよう。']],
+    stage: ['ai', 'シールド消失！門を攻撃してください！'],
+    debrief: [['cmd', '門が開いた。'], ['cro', '……来るがいい。最後の実験を見せてあげよう。'], ['narr', '── 第18幕 完 ──']] },
+  { act: 19, title: '決戦前夜Ⅱ', mode: 'land', env: 'desert', total: 120, first: 18, dmgK: 2.4, obj: { type: 'defend', time: 300, hp: 7000, text: '5分間、前線基地を守りきれ' },
+    brief: [['narr', '── 最終幕Ⅲ　八機の夜明け ──'], ['cmd', '最終作戦の前夜だ。クロウが基地を襲ってくる。'], ['mina', '……ねえ、みんな。生きて帰ったら、何がしたい？'], ['jin', '腹いっぱい肉を食う！'], ['ren', '……お前の作った飯が食いたいな、ミナ。'], ['mina', 'ふふ、了解！']],
+    ev: [[120, 'cmd', 'あと3分！'], [240, 'cmd', 'あと1分！']],
+    debrief: [['cmd', '基地は守られた。明日、門の奥へ向かう。']] },
+  { act: 19, title: '地獄の底へ', mode: 'land', env: 'forest', total: 56, first: 10, dmgK: 2.45, obj: { type: 'waypoints', text: 'ビーコンをたどり、ハーデスの最深部へ進め', list: [[-60, 12, -240], [-150, 12, -440], [120, 12, -420], [90, 12, -620], [70, 12, -780]] },
+    brief: [['cmd', '門の奥は、地下に広がる森だ。ビーコンをたどれ。'], ['ai', '強化処置の装置が、この奥にあります。']],
+    debrief: [['cmd', '最深部の手前に着いた。'], ['ai', '最後の防衛線です。全ての敵が待っています。']] },
+  { act: 19, title: '全機突撃', mode: 'land', env: 'town', total: 130, first: 20, dmgK: 2.5, obj: { type: 'destroy', text: '最後の防衛線を全滅させよ' },
+    brief: [['cmd', '全機、突撃！'], ['ren', '第3機甲小隊、8機全員で帰るぞ！'], ['mina', '08、行きます！']],
+    ev: [[90, 'ai', '敵機を次々とハッキングしています！'], [200, 'jin', 'まだまだ来るぞ！撃ち続けろ！']],
+    debrief: [['cmd', '防衛線、突破。'], ['cro', '……ならば、私自身が相手をしよう。']] },
+  { act: 19, title: 'クロウ', mode: 'land', env: 'desert', total: 40, first: 14, dmgK: 2.5, obj: { type: 'boss', boss: 'goliath', at: 8, text: 'ドクター・クロウの巨人機を撃破せよ' },
+    brief: [['cro', '私自身を強化したのだよ。私こそが、最強の強化人間だ。'], ['mina', 'あなたが作ったのは、悲しい人たちだけだよ。'], ['ren', '07、決めろ！']],
+    debrief: [['cmd', 'クロウの巨人機、撃破。脱出したクロウを拘束した。'], ['ai', '……ですが、最深部の装置が暴走を始めました。全ての強化人間に、命令を送ろうとしています。'], ['mina', '止めなきゃ……！']] },
+  { act: 19, title: 'ハーデス中枢', mode: 'land', env: 'forest', total: 100, first: 20, dmgK: 2.55, obj: { type: 'targets', text: '発生装置4基を破壊し、ハーデス中枢を止めろ', list: [{ kind: 'gen', x: -160, y: 9, z: -480 }, { kind: 'gen', x: 160, y: 9, z: -480 }, { kind: 'gen', x: -90, y: 9, z: -560 }, { kind: 'gen', x: 90, y: 9, z: -560 }, { kind: 'core', x: 0, y: 34, z: -700, stage: 1, hp: 8000, label: 'ハーデス中枢' }] },
+    brief: [['ai', 'ハーデス中枢を止めれば、世界中の強化人間が自由になります。'], ['mina', 'シオンも、研究所の子どもたちも……私も。'], ['jin', 'じゃあ、ぶっ壊すしかねえな！'], ['cmd', '全機、最後の突撃だ！']],
+    ev: [[80, 'mina', '……腕が、引っ張られる……！　でも、負けない！'], [200, 'cmd', 'あと少しだ！押し切れ！']], stage: ['ai', 'シールド消失！ハーデス中枢を攻撃してください！'], half: ['mina', 'みんな、あと少し……！'],
+    debrief: [['ai', 'ハーデス中枢、停止。……世界中の強化人間が、自由になりました。'], ['mina', '……腕が、軽い。もう誰の声も聞こえない。私だけの腕だ。'], ['xs', 'ミナお姉ちゃん！おかえり！'], ['mina', 'ただいま、シオン。'], ['ren', '8機全員、生還。……最高の部隊だ。'], ['jin', 'よし、ミナの飯で祝杯だ！'], ['mina', 'まかせて！……07、いつもありがとう。これからも、隣で戦わせてね。'], ['ai', 'パイロット。8つの機体で見る夜明けは、きれいですね。'], ['narr', '── HK-07 KESTREL ── 完']] },
 ];
 const STORY = { on: false, idx: 0, m: null };
 const loadProg = () => { try { return Math.max(1, +(localStorage.getItem('hk07-story') || 1)); } catch (e) { return 1; } };
@@ -4445,7 +4561,7 @@ function endGame(win, reason) {
   if (STORY.on) {
     $('#endT').textContent = win ? 'MISSION COMPLETE' : 'MISSION FAILED';
     if (win && STORY.idx < 0) { try { localStorage.setItem('hk07-tut', '1'); } catch (e) {} }
-    $('#endP').innerHTML = `${STORY.idx < 0 ? '訓練課程' : `第${STORY.idx + 1}章`}　${STORY.m.title}<br>` + (win ? `撃破 ${S.kills}　経過 ${Math.floor(sec / 60)}分${sec % 60}秒<br>友軍 ${allies.filter(a => a.alive).length}/6 生還` : `${reason || '機体大破'}<br>パイロットは脱出に成功`);
+    $('#endP').innerHTML = `${STORY.idx < 0 ? '訓練課程' : `第${STORY.idx + 1}章`}　${STORY.m.title}<br>` + (win ? `撃破 ${S.kills}　経過 ${Math.floor(sec / 60)}分${sec % 60}秒<br>友軍 ${allies.filter(a => a.alive).length}/${allies.length} 生還` : `${reason || '機体大破'}<br>パイロットは脱出に成功`);
     { const pp = gProg(), cr = grantReward(win, S.kills, true, STORY.idx); if (win) saveProg(STORY.idx + 2); $('#endP').innerHTML += `<br>報酬 <b class="newf">+${cr} CR</b>（所持 ${GAR.cr} CR）` + (win ? newFrameNote(pp) : ''); }
     if (win) { $('#nextBtn').hidden = false; VO.say('cmd', '作戦完了。よくやった、07。帰投せよ。'); }
     else { $('#retryBtn').hidden = false; VO.say('cmd', '07、撤退しろ！……作戦は失敗だ。'); }
@@ -4453,7 +4569,7 @@ function endGame(win, reason) {
   } else {
     $('#endT').textContent = win ? '作戦完了' : '機体大破'; $('#again').hidden = false; const crF = grantReward(win, S.kills, false, 0); setTimeout(() => { $('#endP').innerHTML += `<br>報酬 <b class="newf">+${crF} CR</b>（所持 ${GAR.cr} CR）`; }, 0);
     if (win) setTimeout(() => VO.radio('司令部', '全目標の撃破を確認。よくやった、07。', 0, .8), 800);
-    $('#endP').innerHTML = `撃破 ${S.kills}（部隊合計 ${S.spawned - enemies.filter(e => e.alive && !e.ally).length} / ${ENEMY_TOTAL}）　友軍 ${allies.filter(a => a.alive).length}/6<br>経過 ${Math.floor(sec / 60)}分${sec % 60}秒<br>残り装甲 ${Math.round(P.armor)}%` + (win ? '' : '<br>パイロットは脱出に成功');
+    $('#endP').innerHTML = `撃破 ${S.kills}（部隊合計 ${S.spawned - enemies.filter(e => e.alive && !e.ally).length} / ${ENEMY_TOTAL}）　友軍 ${allies.filter(a => a.alive).length}/${allies.length}<br>経過 ${Math.floor(sec / 60)}分${sec % 60}秒<br>残り装甲 ${Math.round(P.armor)}%` + (win ? '' : '<br>パイロットは脱出に成功');
   }
 }
 $('#nextBtn').addEventListener('click', () => {
@@ -4603,7 +4719,7 @@ function drawHUD(dt, T) {
   if (P.y > .5 || S.mode === 'space') txt(`ALT ${Math.round(P.y)}m`, 18, by2 - fs * 1.4, G, fs * .95);
   if (S.mode === 'space') txt(`PIT ${Math.round(P.pitchS * 57.3)}°  VEL ${Math.round(P.vel.length() * 3.6)}km/h`, 18, by2 - fs * 2.8, G, fs * .9);
   if (P.thrust > .03) { const jg = hx.createLinearGradient(0, H, 0, H * .55); jg.addColorStop(0, `rgba(255,150,70,${.24 * P.thrust})`); jg.addColorStop(1, 'rgba(255,150,70,0)'); hx.fillStyle = jg; hx.fillRect(0, H * .55, W, H * .45); }
-  if (!STORY.on) txt(`TGT ${enemies.filter(e => e.alive && !e.ally).length + ENEMY_TOTAL - S.spawned}  ALLY ${allies.filter(a => a.alive).length}/6`, 18, 18 + fs * .5, G, fs * .9);
+  if (!STORY.on) txt(`TGT ${enemies.filter(e => e.alive && !e.ally).length + ENEMY_TOTAL - S.spawned}  ALLY ${allies.filter(a => a.alive).length}/${allies.length}`, 18, 18 + fs * .5, G, fs * .9);
 
   // torso indicator
   const tw2 = Math.min(W * .3, 220), tyy = H - 18;
