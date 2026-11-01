@@ -1869,6 +1869,7 @@ function updateMech(dt) {
     solveLegs(G);
   }
   ME.torso.rotation.y = P.ty + G.twist; ME.torso.rotation.z = -P.turn * .05;
+  { if (!ME.mgBase) ME.mgBase = ME.mg.position.clone(); const rc = P.reach || 0; ME.mg.position.set(ME.mgBase.x + rc * .9, ME.mgBase.y + rc * 1.6, ME.mgBase.z - rc * 2.2); ME.mg.rotation.x = rc * .55; ME.mg.rotation.z = -rc * .25; }
   ME.pitch.rotation.x = P.tp + P.kick * .12 - P.bobV * .012;
   P.brl = Math.max(0, P.brl - dt * 1.3); ME.barrel.position.z = -2.85 + P.brl;
   ME.mg.rotation.z += dt * 28 * P.mgSpin; P.mgSpin = Math.max(0, P.mgSpin - dt * 2);
@@ -4637,7 +4638,7 @@ const CUT = (() => {
   function end() {
     on = false; S.phase = 'op'; S.view = saveView || S.view; caption('');
     cine.hidden = true; document.body.classList.remove('cine'); skipB.style.display = '';
-    $('#controls').hidden = false; $('#obj').style.visibility = ''; P.thrust = 0; P.knock = false; P.fallX = P.fallZ = 0; P.vy = 0; P.y = Math.max(0, P.y); P.spd = 0;
+    $('#controls').hidden = false; $('#obj').style.visibility = ''; P.thrust = 0; P.reach = 0; P.knock = false; P.fallX = P.fallZ = 0; P.vy = 0; P.y = Math.max(0, P.y); P.spd = 0;
     if (d && d.wall) { const w = d.wall; setTimeout(() => scene.remove(w), 9000); }
     if (d && d.boss) { d.boss.cutHold = false; d.boss.alert = true; d.boss.cd = 1.5; }
     camera.near = .5; camera.updateProjectionMatrix(); window.dispatchEvent(new Event('resize'));
@@ -4764,46 +4765,68 @@ const CUT = (() => {
     if (R.y > .3) { R.legs.forEach((l, i) => { l.thigh.rotation.x = i ? .5 : .25; l.knee.rotation.x = i ? -1 : -.6; }); G.init = false; }
     else { gaitStep(G, dt, R.x, R.z, R.yaw, vx, vz, () => sTone({ f: 70, f2: 40, dur: .2, gain: .25 })); solveLegs(G); }
   }
-  // Ch53: 07 boosts after the kidnapper, can't close the gap, and is rammed out of the sky by another machine
+  // Ch53: 07 sprints, fires the boosters, reaches out for Mina's truck — and is shot down a hand's width short
   function chase(dt, k, R) {
     const D = d;
-    if (!D.ch) { D.ch = { t0: k, ir: null, hit: false, land: -1, vx: 0, vz: 0, sg: 1 }; VO.ai('ブースト全開。追跡します！', 'high'); SFX.spinup(); sNoise({ dur: 2.5, f: 300, f2: 1600, gain: .4, a: .3 }); P.knock = false; P.fallX = P.fallZ = 0; }
-    const C = D.ch, ck = k - C.t0, pp = new THREE.Vector3(P.x, P.y, P.z);
-    const moveIR = () => { const ir = C.ir; if (!ir) return; if (!C.hit) C.dir.set(P.x - ir.x, 0, P.z - ir.z).normalize(); ir.x += C.dir.x * (C.hit ? 40 : 58) * dt; ir.z += C.dir.z * (C.hit ? 40 : 58) * dt; ir.y = Math.max(4, ir.y + (C.hit ? 6 : 0) * dt); ir.yaw = Math.atan2(-C.dir.x, -C.dir.z); stepR(ir, dt, 0, 0); if (Math.random() < .6) addPart({ pos: new THREE.Vector3(ir.x, ir.y + 4, ir.z), color: 0xffb070, add: true, s0: 1.1, s1: .3, life: .3 }); };
-    if (!C.hit) {
-      const dx = R.x - P.x, dz = R.z - P.z, dl = Math.hypot(dx, dz) || 1;
-      P.yaw = Math.atan2(-dx, -dz); P.thrust = 1; P.spd = 0; P.vy = 0;
-      const sp = Math.min(22, 8 + ck * 14); P.x += dx / dl * sp * dt; P.z += dz / dl * sp * dt; P.y = Math.min(13, P.y + dt * 9);
-      if (Math.random() < .5) addPart({ pos: new THREE.Vector3(P.x, P.y + 1, P.z), color: 0xffb070, add: true, s0: 1.2, s1: 3, life: .25, vel: new THREE.Vector3(0, -14, 0) });
-      const back = new THREE.Vector3(-dx / dl, 0, -dz / dl);
-      shot(pp.clone().addScaledVector(back, 27).add(new THREE.Vector3(back.z * 10, 9, -back.x * 10)), new THREE.Vector3((R.x + P.x) / 2, (R.y + P.y) / 2 + 5, (R.z + P.z) / 2), dt, 2.5);
-      if (ck > .5 && !C.v1) { C.v1 = true; VO.say('mina', '07……！'); }
-      if (ck > 1.1 && !C.ir) {
-        C.sg = Math.random() < .5 ? 1 : -1; const perp = new THREE.Vector3(-dz / dl * C.sg, 0, dx / dl * C.sg);
-        const ir = makeEnemy(); ir.gait = makeGait(ir.g, ir.legs, { hipX: [1.5, -1.5], hipY: 4.2, l1: 1.9, l2: 1.8, ankle: .5, lift: .7, sway: .2 });
-        Object.assign(ir, { x: P.x + perp.x * 48 + dx / dl * 14, z: P.z + perp.z * 48 + dz / dl * 14, y: P.y - 1, yaw: 0, spd: 0 });
-        C.ir = ir; C.dir = new THREE.Vector3(P.x + dx / dl * 7 - ir.x, 0, P.z + dz / dl * 7 - ir.z).normalize();
-        VO.say('ren', '07、横だ！！'); sNoise({ dur: .8, f: 400, f2: 3000, gain: .5 });
-      }
-      moveIR();
-      if (C.ir && (Math.hypot(C.ir.x - P.x, C.ir.z - P.z) < 7.5 || ck > 4)) {
-        C.hit = true; P.knock = true; P.thrust = 0; C.vx = C.dir.x * 20 + dx / dl * 5; C.vz = C.dir.z * 20 + dz / dl * 5; P.vy = 3;
-        explosion(new THREE.Vector3(P.x, P.y + 6, P.z), 3); sTone({ f: 80, f2: 28, dur: .9, gain: 1 }); sNoise({ dur: .7, f: 1500, f2: 200, gain: .8 });
-        P.trauma = 1; P.glitch = .7; buzz([300, 60, 250]); VO.ai('被弾！ 姿勢制御、不能……！', 'high'); C.sg = C.dir.x * (-dz / dl) + C.dir.z * (dx / dl) > 0 ? 1 : -1;
-      }
-    } else {
-      moveIR();
-      if (C.land < 0) {
-        P.x += C.vx * dt; P.z += C.vz * dt; P.vy -= 24 * dt; P.y += P.vy * dt; P.yaw += 2.5 * dt * C.sg; knockPose(dt, .35, 1.25 * C.sg, 5);
-        if (Math.random() < .5) addPart({ pos: pp.clone().add(new THREE.Vector3(0, 6, 0)), color: 0x2f2b26, op: .6, s0: 1, s1: 4, life: 1.5, vel: new THREE.Vector3(0, 2, 0) });
-        if (P.y <= 0) { P.y = 0; C.land = t; crash(new THREE.Vector3(P.x, 1, P.z), 18); P.trauma = 1; P.glitch = .5; setTimeout(() => VO.say('jin', '07！！大丈夫か！？'), 500); }
+    if (!D.ch) { D.ch = { t0: k, ph: 'run', hitT: -1, land: -1, vx: 0, vz: 0, sg: 1, sh: null, shell: null }; VO.ai('追跡します！', 'high'); P.knock = false; P.fallX = P.fallZ = 0; P.y = 0; P.gy = 0; }
+    const C = D.ch, ck = k - C.t0, pp = new THREE.Vector3(P.x, P.y, P.z), tp = new THREE.Vector3(D.s.g.position.x, D.s.g.position.y, D.s.g.position.z);
+    const dx = tp.x - P.x, dz = tp.z - P.z, dl = Math.hypot(dx, dz) || 1, ux = dx / dl, uz = dz / dl;
+    if (C.ph === 'run' || C.ph === 'boost') {
+      P.yaw = Math.atan2(-dx, -dz);
+      if (C.ph === 'run') {
+        P.spd = 15; P.x += ux * 15 * dt; P.z += uz * 15 * dt; P.y = 0; P.thrust = 0; P.reach = 0;
+        shot(pp.clone().add(new THREE.Vector3(-uz * 15 + ux * 4, 4, ux * 15 + uz * 4)), pp.clone().add(new THREE.Vector3(ux * 8, 6, uz * 8)), dt, 3);
+        if (ck > 1.3) { C.ph = 'boost'; C.bt = ck; SFX.spinup(); sNoise({ dur: 2.5, f: 300, f2: 1800, gain: .45, a: .2 }); VO.say('mina', '07……！'); for (let i = 0; i < 12; i++) { const q = i / 12 * TAU; addPart({ pos: new THREE.Vector3(P.x + Math.cos(q) * 3, .5, P.z + Math.sin(q) * 3), color: 0x9a8a6c, op: .55, s0: 1.5, s1: 6, life: 1.2, vel: new THREE.Vector3(Math.cos(q) * 10, 2, Math.sin(q) * 10) }); } }
       } else {
-        C.vx *= Math.exp(-4 * dt); C.vz *= Math.exp(-4 * dt); P.x += C.vx * dt; P.z += C.vz * dt;
+        const bk = ck - C.bt, sp = Math.min(34, 15 + bk * 22);
+        P.spd = 0; P.thrust = 1; P.x += ux * sp * dt; P.z += uz * sp * dt; P.y += clamp((tp.y - 5 - P.y) * 2.2, -6, 14) * dt; P.vy = 0;
+        P.reach = Math.min(1, (P.reach || 0) + dt * 1.6); P.fallX += (-.38 - (P.fallX || 0)) * Math.min(1, dt * 3);
+        if (Math.random() < .6) addPart({ pos: new THREE.Vector3(P.x, P.y + 1, P.z), color: 0xffb070, add: true, s0: 1.3, s1: 3, life: .25, vel: new THREE.Vector3(0, -14, 0) });
+        // side-on tracking shot: the reaching arm and the dangling truck in one frame
+        const mid = pp.clone().lerp(tp, .5), side = new THREE.Vector3(-uz * C.sg, 0, ux * C.sg);
+        shot(mid.clone().addScaledVector(side, 20 + dl * .35).add(new THREE.Vector3(0, 3, 0)), mid.clone().add(new THREE.Vector3(0, 2, 0)), dt, 3);
+        if (bk > .6 && !C.v1) { C.v1 = true; VO.say('mina', '07！手を……！'); }
+        if (!C.sh && (dl < 22 || bk > 2.2)) {      // a gunner on the ground draws a bead
+          const ir = makeEnemy(); ir.gait = makeGait(ir.g, ir.legs, { hipX: [1.5, -1.5], hipY: 4.2, l1: 1.9, l2: 1.8, ankle: .5, lift: .7, sway: .2 });
+          Object.assign(ir, { x: P.x - side.x * 55 - ux * 20, z: P.z - side.z * 55 - uz * 20, y: 0, yaw: 0, spd: 0 }); ir.yaw = Math.atan2(-(P.x - ir.x), -(P.z - ir.z)); stepR(ir, dt, 0, 0); C.sh = ir; C.st = bk;
+        }
+        if (C.sh) { const ir = C.sh; ir.yaw = Math.atan2(-(P.x - ir.x), -(P.z - ir.z)); stepR(ir, dt, 0, 0); }
+        if (C.sh && !C.shell && (dl < 10 || bk - C.st > .9)) {
+          C.ph = 'shot'; const ir = C.sh; ir.g.updateMatrixWorld(true);
+          const from = ir.muzzle ? ir.muzzle.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3(ir.x, 6, ir.z);
+          const m = new THREE.Mesh(sphGeo, eShellMat); m.scale.setScalar(.8); m.position.copy(from); scene.add(m); C.shell = { m, from, t: 0 };
+          addPart({ pos: from, color: 0xffb060, add: true, s0: 2.5, s1: 7, life: .2 }); SFX.enemyGun(30); VO.say('ren', '07、下だ！撃たれるぞ！');
+        }
+      }
+    }
+    if (C.ph === 'shot') {
+      // the last stretch: arm out, almost there, the round comes in
+      P.thrust = 1; P.x += ux * 26 * dt; P.z += uz * 26 * dt; P.reach = 1;
+      const S2 = C.shell; S2.t += dt / .45; const to = new THREE.Vector3(P.x, P.y + 6, P.z); S2.m.position.lerpVectors(S2.from, to, Math.min(1, S2.t));
+      addPart({ pos: S2.m.position.clone(), color: 0xffd080, add: true, s0: .8, s1: .1, life: .15 });
+      const side = new THREE.Vector3(-uz * C.sg, 0, ux * C.sg);
+      shot(pp.clone().addScaledVector(side, 13).add(new THREE.Vector3(ux * 5, 3, uz * 5)), pp.clone().lerp(tp, .4).add(new THREE.Vector3(0, 4, 0)), dt, 4);
+      if (S2.t >= 1) {
+        scene.remove(S2.m); C.ph = 'fall'; C.hitT = t; P.knock = true; P.thrust = 0; C.vx = -ux * 9 + side.x * 7; C.vz = -uz * 9 + side.z * 7; P.vy = 4; C.sg = -C.sg;
+        explosion(new THREE.Vector3(P.x, P.y + 6, P.z), 3.2); sTone({ f: 85, f2: 28, dur: 1, gain: 1 }); sNoise({ dur: .8, f: 1600, f2: 200, gain: .85 });
+        P.trauma = 1; P.glitch = .8; buzz([320, 60, 260]); VO.ai('被弾！ 推進器、損傷……！', 'high'); setTimeout(() => VO.say('mina', 'いやあっ……07！！'), 400);
+      }
+    }
+    if (C.ph === 'fall') {
+      if (C.land < 0) {
+        P.x += C.vx * dt; P.z += C.vz * dt; P.vy -= 22 * dt; P.y += P.vy * dt; P.reach = Math.max(0, (P.reach || 0) - dt * .8); knockPose(dt, .9, .5 * C.sg, 3.5);
+        if (Math.random() < .6) addPart({ pos: pp.clone().add(new THREE.Vector3(0, 6, 0)), color: 0x2f2b26, op: .6, s0: 1, s1: 4, life: 1.6, vel: new THREE.Vector3(0, 2, 0) });
+        if (Math.random() < .3) sparks(pp.clone().add(new THREE.Vector3(0, 5, 0)));
+        if (P.y <= 0) { P.y = 0; C.land = t; crash(new THREE.Vector3(P.x, 1, P.z), 20); P.trauma = 1; P.glitch = .5; knockPose(1, 1.35, .3 * C.sg, 1); setTimeout(() => VO.say('jin', '07！！大丈夫か！？'), 500); }
+      } else {
+        C.vx *= Math.exp(-5 * dt); C.vz *= Math.exp(-5 * dt); P.x += C.vx * dt; P.z += C.vz * dt; knockPose(dt, 1.35, .3 * C.sg, 4); P.reach = 0;
+        if (Math.random() < dt * 5) sparks(pp.clone().add(new THREE.Vector3(0, 2.5, 0)));
         if (t - C.land > 1 && !C.v2) { C.v2 = true; caption('ミナが、車ごと連れ去られた……', 'LOST'); VO.ai('……追跡、失敗。目標、ロスト。'); }
       }
       const side = new THREE.Vector3(-Math.sin(P.yaw + Math.PI / 2), 0, -Math.cos(P.yaw + Math.PI / 2));
-      shot(pp.clone().addScaledVector(side, 17).add(new THREE.Vector3(0, C.land < 0 ? 4 : 5, 0)), pp.clone().add(new THREE.Vector3(0, C.land < 0 ? 3 : 2, 0)), dt, 2.2);
-      if (C.land > 0 && t - C.land > 3.4) { if (C.ir) scene.remove(C.ir.g); C.ir = null; end(); }
+      // look past the fallen machine at the truck shrinking into the sky
+      shot(pp.clone().addScaledVector(side, C.land < 0 ? 16 : 10).add(new THREE.Vector3(0, C.land < 0 ? 4 : 2.5, 0)), C.land < 0 ? pp.clone().add(new THREE.Vector3(0, 3, 0)) : tp.clone(), dt, 2);
+      if (C.land > 0 && t - C.land > 3.6) { if (C.sh) scene.remove(C.sh.g); C.sh = null; P.reach = 0; end(); }
     }
   }
   function upGrab(dt) {
@@ -4822,13 +4845,13 @@ const CUT = (() => {
       else {
         if (!D.away) { D.away = true; R.awayYaw = Math.atan2(-(D.side), -(-.4)); SFX.spinup(); if (D.mina) { VO.say('jin', 'ミナ！！くそっ、待ちやがれ！'); setTimeout(() => VO.say('ren', '撃つな！ミナに当たる！'), 1400); } else VO.say('jin', 'あいつ、輸送車を持っていきやがった！'); }
         R.yaw += clamp(wrapA(R.awayYaw - R.yaw), -3 * dt, 3 * dt);
-        R.spd = Math.min(D.mina ? 36 : 32, R.spd + 30 * dt); R.x += -Math.sin(R.yaw) * R.spd * dt; R.z += -Math.cos(R.yaw) * R.spd * dt;
-        R.y = Math.min(D.mina ? 16 : 9, R.y + dt * 6); stepR(R, dt, 0, 0);
+        R.spd = Math.min(D.mina ? (D.ch && D.ch.ph !== 'fall' ? 20 : 38) : 32, R.spd + 30 * dt); R.x += -Math.sin(R.yaw) * R.spd * dt; R.z += -Math.cos(R.yaw) * R.spd * dt;
+        R.y = Math.min(D.mina ? 15 : 9, R.y + dt * 6); stepR(R, dt, 0, 0);
         if (Math.random() < .6) addPart({ pos: new THREE.Vector3(R.x, R.y + 3, R.z), color: 0xffb070, add: true, s0: 1, s1: 2.5, life: .25, vel: new THREE.Vector3(0, -12, 0) });
       }
       // the truck hangs from the machine's arms
       s.g.position.set(R.x - Math.sin(R.yaw) * 3, R.y + 4.5, R.z - Math.cos(R.yaw) * 3); s.g.rotation.set(.25, R.yaw, Math.sin(t * 6) * .05); s.x = s.g.position.x; s.z = s.g.position.z;
-      if (D.mina && k > 1.7) { chase(dt, k, R); return; }
+      if (D.mina && k > 1.2) { chase(dt, k, R); return; }
       const rp = new THREE.Vector3(R.x, 0, R.z);
       shot(rp.clone().add(new THREE.Vector3(-D.side * 14, 9 + R.y * .6, 17)), rp.clone().setY(5 + R.y * .7), dt, 1.6);
       if (k > 1.4 && !D.c2) { D.c2 = true; if (D.mina) caption('ミナを乗せた車が連れ去られる！', 'ALERT'); else { caption('輸送車が奪われた！', 'LOST'); say('cmd', 'くそっ……1両奪われた！残りを守れ！'); } }
