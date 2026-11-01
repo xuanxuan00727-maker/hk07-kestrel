@@ -1096,8 +1096,8 @@ const FRAMES = {
 };
 const UPG = [
   { k: 'armor', name: '装甲板', desc: '受けるダメージ −8%' },
-  { k: 'main', name: '主砲', desc: '主砲の威力 +12%' },
-  { k: 'mg', name: '機銃', desc: '機銃の威力 +20%' },
+  { k: 'main', name: '主砲', desc: '主砲の威力 +40%' },
+  { k: 'mg', name: '機銃', desc: '機銃の威力 +50%' },
   { k: 'legs', name: '脚部駆動', desc: '歩行速度 +6%' },
   { k: 'boost', name: 'ブースター', desc: '燃料消費 −10%' },
   { k: 'cool', name: '冷却装置', desc: '冷却速度 +15%' },
@@ -1123,9 +1123,10 @@ const frameOwned = k => gProg() >= FRAMES[k].unlock;
 let ST = {}, SQ = {};
 function calcStats() {
   const f = FRAMES[frameOwned(GAR.frame) ? GAR.frame : 'kestrel'].mod, L = GAR.lv;
-  ST = { armor: f.armor * (1 - .08 * L.armor), main: f.main * (1 + .12 * L.main), mg: 1 + .2 * L.mg, spd: f.spd * (1 + .06 * L.legs), fuel: f.fuel * (1 - .1 * L.boost), cool: (1 / f.heat) * (1 + .15 * L.cool) };
+  const full = UPG.every(u => L[u.k] >= UPG_MAX), FB = full ? 1.5 : 1;   // full tune: every part maxed multiplies firepower again
+  ST = { full, armor: f.armor * (1 - .08 * L.armor) * (full ? .8 : 1), main: f.main * (1 + .4 * L.main) * FB, mg: (1 + .5 * L.mg) * FB, spd: f.spd * (1 + .06 * L.legs), fuel: f.fuel * (1 - .1 * L.boost), cool: (1 / f.heat) * (1 + .15 * L.cool) };
   const n = UPG.reduce((s, u) => s + L[u.k], 0);
-  SQ = { lv: n, hp: Math.round(480 * (1 + .04 * n)), dmg: 1 + .03 * n, rate: 1 + .02 * n, aim: Math.max(.45, 1 - .018 * n) };
+  SQ = { lv: n, hp: Math.round(480 * (1 + .04 * n)), dmg: (1 + .06 * n) * (full ? 1.5 : 1), rate: 1 + .02 * n, aim: Math.max(.45, 1 - .018 * n) };
 }
 calcStats();
 const PAINT_PAL = {};
@@ -1202,9 +1203,9 @@ const GARUI = (() => {
     calcStats();
     const F = FRAMES[GAR.frame];
     q('.g-cr').textContent = `${GAR.cr} CR`; q('.g-prog').textContent = `ストーリー 第${Math.min(MISSIONS.length, gProg() - 1)}章までクリア`;
-    q('.g-sq').textContent = `部隊Lv ${SQ.lv} / 30`;
+    q('.g-sq').innerHTML = `部隊Lv ${SQ.lv} / 30` + (ST.full ? '　<b style="color:#ffb340">★フルチューン：攻撃力×1.5</b>' : '');
     q('.g-fname').innerHTML = `<b>${F.name}</b><span>${F.sub}</span>`;
-    q('.g-stats').innerHTML = bar('装甲', 1 / ST.armor, 3.2) + bar('火力', ST.main, 2.4) + bar('機動', ST.spd, 1.7) + bar('推進', 1 / ST.fuel, 3.2) + bar('冷却', ST.cool, 2.6);
+    q('.g-stats').innerHTML = bar('装甲', 1 / ST.armor, 3.2) + bar('火力', ST.main, 7) + bar('機動', ST.spd, 1.7) + bar('推進', 1 / ST.fuel, 3.2) + bar('冷却', ST.cool, 2.6);
     q('.g-frames').innerHTML = Object.entries(FRAMES).map(([k, f]) => {
       const own = frameOwned(k), sel = GAR.frame === k;
       return `<button class="gf${sel ? ' on' : ''}${own ? '' : ' lock'}" data-f="${k}"><b>${own ? f.name : '🔒 ？？？'}</b><span>${own ? f.sub + (sel ? '　◀ 使用中' : '　タップで選択') : '未入手'}</span><small>${own ? f.desc : ''}</small>${own ? '' : `<span class="lk">${f.need}</span>`}</button>`;
