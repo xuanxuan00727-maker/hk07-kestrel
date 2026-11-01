@@ -3897,10 +3897,10 @@ const MISSIONS = [
     brief: [['cmd', '首都の中心に、アーク・オメガが出現した。'], ['kaz', 'ハハハ！これが最強のAIだ！もはや誰にも止められん！'], ['ai', 'オメガ……あなたも、私の兄弟なのですね。今、終わらせます。'], ['ren', '第3機甲小隊、最後の出撃だ！'], ['jin', '07、最後の一発はお前に任せた！'], ['mina', '……全員、帰ってきて。約束よ。'], ['cmd', '全機、突入せよ！']],
     ev: [[60, 'kaz', 'なぜだ……なぜ機械の兵が、人間の私に逆らう！'], [180, 'cmd', 'あと少しだ！押し切れ！']], stage: ['ai', 'シールド消失！オメガ中枢を攻撃してください！'], half: ['ai', 'オメガの出力が低下しています。あと少しです！'],
     debrief: [['ai', 'アーク・オメガの停止を確認。……最後に、オメガは「ありがとう」と言いました。'], ['cmd', 'カザマ将軍の身柄を確保した。……戦争は、終わった。'], ['mina', 'おかえり、みんな。本当に、おかえり。'], ['ren', '07。お前は、俺たちの誇りだ。'], ['jin', '祝杯だ！今度こそ全部07のおごりだからな！'], ['ai', 'パイロット。夜が明けます。……一緒に見られて、よかった。'], ['narr', '── 第11幕 完 ──　だが、オメガの欠片はまだ世界に散らばっていた。']] },
-  { act: 12, title: '奪われた格納庫', mode: 'land', env: 'desert', total: 100, first: 14, dmgK: 1.7, obj: { type: 'defend', time: 240, hp: 6000, text: '4分間、基地の格納庫を守りきれ' },
-    brief: [['narr', '── 第12幕　消えた整備長 ──　カザマ戦争の終結から半年。'], ['cmd', '07、基地に正体不明の無人機部隊が迫っている！'], ['mina', '格納庫には整備中の機体がたくさんあるの。お願い、守って！'], ['ai', '私も成長しました。近くの敵機なら、ときどきシステムに侵入して味方にできます。青い機体は撃たないでください。'], ['ren', '全機、格納庫の前に壁を作れ！']],
-    ev: [[60, 'mina', 'まだ大丈夫！みんな、がんばって！'], [150, 'ai', '……格納庫の裏手に、輸送機が着陸しています！'], [210, 'mina', 'きゃっ……！何、この人たち……離して！']],
-    debrief: [['cmd', '敵は撤退した。……だが、ミナがいない。'], ['ren', '格納庫の裏に、輸送機の跡がある。……連れ去られたんだ。'], ['leg', '……コノ人間ハ、我ラガ預カッタ。'], ['ai', '新しいAIです。オメガの欠片が集まって生まれたようです。名前は〈レギオン〉。'], ['jin', 'ふざけんな……ミナを返せ！']] },
+  { act: 12, title: '奪われた格納庫', mode: 'land', env: 'desert', total: 100, first: 14, dmgK: 1.7, kidnap: 150, obj: { type: 'defend', time: 240, hp: 6000, text: '4分間、基地の格納庫を守りきれ' },
+    brief: [['narr', '── 第12幕　消えた整備長 ──　カザマ戦争の終結から半年。'], ['cmd', '07、基地に正体不明の無人機部隊が迫っている！'], ['mina', '格納庫には整備中の機体がたくさんあるの。お願い、守って！'], ['mina', '私は整備車両で弾薬を運ぶね。前線まで持っていく！'], ['ren', '危なくなったらすぐ下がれよ、ミナ。'], ['ai', '私も成長しました。近くの敵機なら、ときどきシステムに侵入して味方にできます。青い機体は撃たないでください。'], ['ren', '全機、格納庫の前に壁を作れ！']],
+    ev: [[60, 'mina', 'まだ大丈夫！弾薬、もうすぐ届けるからね！'], [130, 'ai', '……未確認の機体が、整備車両の方へ向かっています！']],
+    debrief: [['cmd', '……敵は撤退した。だが、ミナが連れ去られた。'], ['ren', 'ミナを乗せたまま、車ごと北へ運ばれた。……俺たちの目の前で。'], ['jin', 'くそっ……くそっ！撃てなかった……ミナに当たるから……！'], ['leg', '……コノ人間ハ、我ラガ預カッタ。'], ['ai', '新しいAIです。オメガの欠片が集まって生まれたようです。名前は〈レギオン〉。'], ['jin', 'ふざけんな……ミナを返せ！']] },
   { act: 12, title: '消えた整備長', mode: 'land', env: 'town', total: 60, first: 10, dmgK: 1.7, obj: { type: 'waypoints', text: 'ビーコンをたどり、輸送機の足取りを追え', list: [[-60, 12, -240], [-150, 12, -440], [120, 12, -420], [90, 12, -620], [70, 12, -780]] },
     brief: [['cmd', '輸送機は廃墟の街を越えて北へ向かった。'], ['ai', '機体の発信器の跡を、水色のビーコンで表示します。'], ['ren', '……ミナはいつも、俺たちの機体を直してくれた。今度は俺たちが助ける番だ。'], ['jin', '07、全速力で行くぞ！']],
     debrief: [['cmd', '輸送機の着陸地点を見つけた。森の奥に、古い研究所がある。'], ['ai', '研究所から、人体実験の記録らしき信号が出ています……。'], ['ren', '……嫌な予感がする。']] },
@@ -4160,6 +4160,13 @@ const MIS = (() => {
     t += dt;
     while (evI < (m.ev || []).length && t >= m.ev[evI][0]) { say(m.ev[evI][1], m.ev[evI][2]); evI++; }
     const o = m.obj;
+    if (m.kidnap && !grabbed && t >= m.kidnap && S.phase === 'op' && !P.dead) {
+      grabbed = true;
+      const f = new THREE.Vector3(-Math.sin(P.yaw), 0, -Math.cos(P.yaw)), sd = Math.random() < .5 ? 1 : -1;
+      const tr = makeStruct('truck', P.x + f.x * 40 + f.z * 30 * sd, 0, P.z + f.z * 40 - f.x * 30 * sd, { friendly: true, label: 'ミナの整備車両', hp: 99999 });
+      tr.vz = 0; tr.home = true; tr.bias = 99; tr.g.rotation.y = P.yaw + Math.PI / 2;
+      CUT.grab(tr, () => { say('cmd', '……ミナが、連れ去られた。'); win(); }, { mina: true });
+    }
     if (m.env === 'forest') {
       ambT -= dt;
       if (ambT <= 0) {
@@ -4214,7 +4221,6 @@ const MIS = (() => {
         }
       }
     } else if (o.type === 'escort') {
-      if (!grabbed && t > 26) { const tr = structs.filter(q => q.kind === 'truck' && q.alive && !q.home); if (tr.length >= 2) { grabbed = true; CUT.grab(tr[(Math.random() * tr.length) | 0], () => { lost++; }); } else if (t > 60) grabbed = true; }
       if (arrived >= 1 && structs.every(s => s.kind !== 'truck' || !s.alive || s.home)) win();
       else if (lost >= o.n) fail('輸送車が全滅した');
     } else if (o.type === 'waypoints') {
@@ -4497,13 +4503,13 @@ const CUT = (() => {
   }
 
   // --- story: an enemy machine snatches an escort truck and runs off with it
-  function grab(s, onLost) {
+  function grab(s, onLost, opt = {}) {
     if (!s || !s.g) { if (onLost) onLost(); return; }
     const side = s.x < 0 ? -1 : 1, rd = makeEnemy();
     rd.gait = makeGait(rd.g, rd.legs, { hipX: [1.5, -1.5], hipY: 4.2, l1: 1.9, l2: 1.8, ankle: .5, lift: .7, sway: .2 });
     const R = { ...rd, x: s.x + side * 46, z: s.z - 14, y: 0, yaw: 0, spd: 0 };
     R.yaw = Math.atan2(-(s.x - R.x), -(s.z - R.z));
-    if (!begin('grab', { s, R, side, held: false }, () => { scene.remove(R.g); if (s.alive) { s.alive = false; s.grabbed = true; scene.remove(s.g); if (onLost) onLost(); } })) scene.remove(R.g);
+    if (!begin('grab', { s, R, side, held: false, mina: !!opt.mina }, () => { scene.remove(R.g); if (s.alive) { s.alive = false; s.grabbed = true; scene.remove(s.g); if (onLost) onLost(); } })) scene.remove(R.g);
   }
   function stepR(R, dt, vx, vz) {
     const G = R.gait; R.g.position.set(R.x + Math.cos(R.yaw) * G.sway, R.y - .18 - Math.min(1, Math.abs(R.spd) / 4.5) * .3, R.z - Math.sin(R.yaw) * G.sway);
@@ -4518,14 +4524,14 @@ const CUT = (() => {
       R.yaw = Math.atan2(-dx, -dz); R.spd = Math.min(14, dist * 2);
       if (dist > 5.5) { R.x += dx / dist * R.spd * dt; R.z += dz / dist * R.spd * dt; }
       stepR(R, dt, dist > 5.5 ? dx / dist * R.spd : 0, dist > 5.5 ? dz / dist * R.spd : 0);
-      shot(tp.clone().add(new THREE.Vector3(-D.side * 22, 11, 26)), tp.clone().setY(3).add(new THREE.Vector3(D.side * 6, 0, 0)), dt, 2);
-      if (t > .6 && !D.c1) { D.c1 = true; say('cmd', '輸送車に敵機が接近している！'); }
-      if (dist <= 5.5 || t > 3.2) { D.held = true; D.ht = t; SFX.clunk(); sTone({ f: 140, f2: 60, dur: .4, type: 'square', gain: .2 }); P.trauma = .3; caption('輸送車が掴まれた！', 'ALERT'); }
+      shot(tp.clone().add(new THREE.Vector3(-D.side * 15, 8, 17)), tp.clone().setY(4).add(new THREE.Vector3(D.side * 5, 0, 0)), dt, 2);
+      if (t > .6 && !D.c1) { D.c1 = true; if (D.mina) { VO.say('mina', 'え……何、あのロボット……こっちに来る！'); caption('ミナの整備車両に、敵機が迫る', 'ALERT'); } else say('cmd', '輸送車に敵機が接近している！'); }
+      if (dist <= 5.5 || t > 3.2) { D.held = true; D.ht = t; SFX.clunk(); sTone({ f: 140, f2: 60, dur: .4, type: 'square', gain: .2 }); P.trauma = .3; if (D.mina) { caption('ミナの車が掴まれた！', 'ALERT'); setTimeout(() => VO.say('mina', 'きゃあっ……！離して！……07！助けて！'), 200); } else caption('輸送車が掴まれた！', 'ALERT'); }
     } else {
       const k = t - D.ht;
       if (k < .7) { R.spd = 0; stepR(R, dt, 0, 0); }
       else {
-        if (!D.away) { D.away = true; R.awayYaw = Math.atan2(-(D.side), -(-.4)); SFX.spinup(); VO.say('jin', 'あいつ、輸送車を持っていきやがった！'); }
+        if (!D.away) { D.away = true; R.awayYaw = Math.atan2(-(D.side), -(-.4)); SFX.spinup(); if (D.mina) { VO.say('jin', 'ミナ！！くそっ、待ちやがれ！'); setTimeout(() => VO.say('ren', '撃つな！ミナに当たる！'), 1400); } else VO.say('jin', 'あいつ、輸送車を持っていきやがった！'); }
         R.yaw += clamp(wrapA(R.awayYaw - R.yaw), -3 * dt, 3 * dt);
         R.spd = Math.min(32, R.spd + 30 * dt); R.x += -Math.sin(R.yaw) * R.spd * dt; R.z += -Math.cos(R.yaw) * R.spd * dt;
         R.y = Math.min(9, R.y + dt * 6); stepR(R, dt, 0, 0);
@@ -4534,9 +4540,9 @@ const CUT = (() => {
       // the truck hangs from the machine's arms
       s.g.position.set(R.x - Math.sin(R.yaw) * 3, R.y + 4.5, R.z - Math.cos(R.yaw) * 3); s.g.rotation.set(.25, R.yaw, Math.sin(t * 6) * .05); s.x = s.g.position.x; s.z = s.g.position.z;
       const rp = new THREE.Vector3(R.x, 0, R.z);
-      shot(rp.clone().add(new THREE.Vector3(-D.side * 20, 12, 24)), rp.clone().setY(5), dt, 1.6);
-      if (k > 1.4 && !D.c2) { D.c2 = true; caption('輸送車が奪われた！', 'LOST'); say('cmd', 'くそっ……1両奪われた！残りを守れ！'); }
-      if (k > 4.6) end();
+      shot(rp.clone().add(new THREE.Vector3(-D.side * 14, 9 + R.y * .6, 17)), rp.clone().setY(5 + R.y * .7), dt, 1.6);
+      if (k > 1.4 && !D.c2) { D.c2 = true; if (D.mina) caption('ミナが、車ごと連れ去られた……', 'LOST'); else { caption('輸送車が奪われた！', 'LOST'); say('cmd', 'くそっ……1両奪われた！残りを守れ！'); } }
+      if (k > (D.mina ? 5.6 : 4.6)) end();
     }
   }
   function update(dt) {
