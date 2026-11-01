@@ -376,7 +376,7 @@ if (!window.THREE) { $('#boot').textContent = '3D描画ライブラリを読み�
 /* ================= AUDIO (all synthesized) ================= */
 const AU = { ctx: null, out: null, nb: null, vol: 0.9 };
 function audioInit() {
-  if (AU.ctx) { if (AU.ctx.state === 'suspended') AU.ctx.resume(); return; }
+  if (AU.ctx) { if (AU.ctx.state !== 'running' && AU.ctx.state !== 'closed') AU.ctx.resume().catch(() => {}); return; }
   try {
     const C = window.AudioContext || window.webkitAudioContext; AU.ctx = new C();
     const comp = AU.ctx.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 4;
@@ -475,6 +475,11 @@ let vibOn = true;
 function buzz(p) { if (!vibOn) return; try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} }
 /* ================= MUSIC: original sci-fi battle score (step sequencer + reverb + delay) ================= */
 const BGM = (() => {
+  // voice accounting: phones choke when hundreds of oscillators overlap, so heavy layers skip notes when crowded
+  const LITE = !!(window.matchMedia && matchMedia('(pointer:coarse)').matches), CAP = LITE ? 110 : 260; let LIVE = 0;
+  const live = n => { LIVE++; n.onended = () => { LIVE--; }; return n; };
+  const osc = () => live(ctx.createOscillator()), bsrc = () => live(ctx.createBufferSource());
+  const crowded = (f = 1) => LIVE > CAP * f;
   let ctx = null, out = null, verb = null, dly = null, timer = null, nextT = 0, step = 0, track = null, g = null, I = 2;
   const n2f = m => 440 * Math.pow(2, (m - 69) / 12);
   function init() {
@@ -491,8 +496,8 @@ const BGM = (() => {
     return true;
   }
   const bus = (node, wet = .3, echo = 0) => { node.connect(g); if (wet) { const s = ctx.createGain(); s.gain.value = wet; node.connect(s); s.connect(verb); } if (echo) { const s = ctx.createGain(); s.gain.value = echo; node.connect(s); s.connect(dly); } };
-  function noise(t, type, f, q, amp, dur, wet = .2) { const s = ctx.createBufferSource(); s.buffer = AU.nb; const fl = ctx.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q; const e = ctx.createGain(); e.gain.setValueAtTime(amp, t); e.gain.exponentialRampToValueAtTime(.001, t + dur); s.connect(fl); fl.connect(e); bus(e, wet); s.start(t, Math.random()); s.stop(t + dur + .02); }
-  function tone(t, type, f, f2, amp, dur, wet = .15) { const o = ctx.createOscillator(); o.type = type; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur); const e = ctx.createGain(); e.gain.setValueAtTime(amp, t); e.gain.exponentialRampToValueAtTime(.001, t + dur); o.connect(e); bus(e, wet); o.start(t); o.stop(t + dur + .02); }
+  function noise(t, type, f, q, amp, dur, wet = .2) { const s = bsrc(); s.buffer = AU.nb; const fl = ctx.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q; const e = ctx.createGain(); e.gain.setValueAtTime(amp, t); e.gain.exponentialRampToValueAtTime(.001, t + dur); s.connect(fl); fl.connect(e); bus(e, wet); s.start(t, Math.random()); s.stop(t + dur + .02); }
+  function tone(t, type, f, f2, amp, dur, wet = .15) { const o = osc(); o.type = type; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur); const e = ctx.createGain(); e.gain.setValueAtTime(amp, t); e.gain.exponentialRampToValueAtTime(.001, t + dur); o.connect(e); bus(e, wet); o.start(t); o.stop(t + dur + .02); }
   const kick = (t, k = 1) => { tone(t, 'sine', 120, 38, 1.0 * k, .45, .05); noise(t, 'lowpass', 900, .7, .25 * k, .05, 0); };
   const snare = (t, k = 1) => { noise(t, 'bandpass', 1700, .7, .5 * k, .32, .55); tone(t, 'triangle', 190, 110, .25 * k, .12, .3); };
   const tom = (t, f, k = 1) => { tone(t, 'sine', f, f * .55, .55 * k, .5, .35); noise(t, 'lowpass', 400, .8, .12 * k, .15, .3); };
@@ -500,7 +505,7 @@ const BGM = (() => {
   const impact = (t, k = 1) => { tone(t, 'sine', 70, 24, 1.1 * k, 2.4, .5); noise(t, 'lowpass', 600, .5, .5 * k, 2.2, .7); noise(t, 'highpass', 3000, .3, .08 * k, 1.8, .8); };
   function synth(t, f, dur, o = {}) {
     const { type = 'sawtooth', amp = .1, cut = 1200, cutEnv = 2000, q = 4, att = .005, detune = 0, wet = .25, echo = 0, glide = 0 } = o;
-    const os = ctx.createOscillator(); os.type = type; os.frequency.setValueAtTime(glide ? f * glide : f, t); if (glide) os.frequency.exponentialRampToValueAtTime(f, t + .08); os.detune.value = detune;
+    const os = osc(); os.type = type; os.frequency.setValueAtTime(glide ? f * glide : f, t); if (glide) os.frequency.exponentialRampToValueAtTime(f, t + .08); os.detune.value = detune;
     const fl = ctx.createBiquadFilter(); fl.type = 'lowpass'; fl.Q.value = q; fl.frequency.setValueAtTime(cut + cutEnv, t); fl.frequency.exponentialRampToValueAtTime(Math.max(60, cut), t + Math.max(.05, dur * .8));
     const e = ctx.createGain(); e.gain.setValueAtTime(.0001, t); e.gain.exponentialRampToValueAtTime(amp, t + att); e.gain.exponentialRampToValueAtTime(.0001, t + dur);
     os.connect(fl); fl.connect(e); bus(e, wet, echo); os.start(t); os.stop(t + dur + .05);
@@ -508,7 +513,7 @@ const BGM = (() => {
   // slow-sweeping detuned pad: the "space" in the score
   function pad(t, notes, dur, amp = .03, cut = 700) {
     notes.forEach(m => [-11, 0, 11].forEach(d => {
-      const os = ctx.createOscillator(); os.type = 'sawtooth'; os.frequency.value = n2f(m); os.detune.value = d;
+      const os = osc(); os.type = 'sawtooth'; os.frequency.value = n2f(m); os.detune.value = d;
       const fl = ctx.createBiquadFilter(); fl.type = 'lowpass'; fl.Q.value = 3; fl.frequency.setValueAtTime(cut * .5, t); fl.frequency.linearRampToValueAtTime(cut * 1.8, t + dur * .55); fl.frequency.linearRampToValueAtTime(cut * .6, t + dur);
       const e = ctx.createGain(); e.gain.setValueAtTime(.0001, t); e.gain.linearRampToValueAtTime(amp, t + dur * .25); e.gain.linearRampToValueAtTime(.0001, t + dur);
       os.connect(fl); fl.connect(e); bus(e, .55); os.start(t); os.stop(t + dur + .05);
@@ -547,7 +552,7 @@ const BGM = (() => {
   // ---- rock band: plucked-string guitars through a tube-style amp, double-tracked L/R; bass; a real-sounding kit ----
   const KSB = {};
   function strBuf(m, dur) {        // Karplus-Strong plucked string, cached per note
-    const key = m + ':' + dur; if (KSB[key]) return KSB[key];
+    dur = 2.2; const key = m; if (KSB[key]) return KSB[key];
     const sr = ctx.sampleRate, N = Math.max(2, Math.round(sr / n2f(m))), len = Math.floor(sr * dur);
     const b = ctx.createBuffer(1, len, sr), d = b.getChannelData(0), ring = new Float32Array(N);
     let lp = 0; for (let i = 0; i < N; i++) { lp = lp * .55 + (Math.random() * 2 - 1) * .45; ring[i] = lp; }
@@ -578,7 +583,7 @@ const BGM = (() => {
     return m[id] = inp;
   }
   function pluck(t, m, dur, dst, gain, mute, rate = 1) {
-    const src = ctx.createBufferSource(); src.buffer = strBuf(m, Math.min(3, dur + .3)); src.playbackRate.value = rate;
+    const src = bsrc(); src.buffer = strBuf(m, Math.min(3, dur + .3)); src.playbackRate.value = rate;
     const e = ctx.createGain(), len = mute ? Math.min(dur, .13) : dur;
     e.gain.setValueAtTime(gain, t); if (mute) e.gain.exponentialRampToValueAtTime(gain * .08, t + len); else e.gain.setValueAtTime(gain, t + len * .85);
     e.gain.exponentialRampToValueAtTime(.0001, t + len + .06);
@@ -587,11 +592,11 @@ const BGM = (() => {
   }
   function power(t, r, dur, k = 1, mute = false) {     // root + fifth (+ octave when open), a guitar hard left and one hard right
     const notes = mute ? [r, r + 7] : [r, r + 7, r + 12];
-    [[-.75, 1.0015], [.75, .9985]].forEach(([pan, rate], si) => { const dst = amp('rhythm', pan); notes.forEach((n, i) => pluck(t + si * .006 + i * .004, n, dur, dst, (mute ? .5 : .42) * k, mute, rate)); });
+    (LITE || crowded() ? [[0, 1]] : [[-.75, 1.0015], [.75, .9985]]).forEach(([pan, rate], si) => { const dst = amp('rhythm', pan); notes.forEach((n, i) => pluck(t + si * .006 + i * .004, n, dur, dst, (mute ? .5 : .42) * k, mute, rate)); });
   }
   function lead(t, m, dur) {
-    const src = ctx.createBufferSource(); src.buffer = strBuf(m, Math.min(3, dur + .4));
-    const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 5.5; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(.012, t + Math.min(dur, .4)); lfo.connect(lg); lg.connect(src.playbackRate);
+    const src = bsrc(); src.buffer = strBuf(m, Math.min(3, dur + .4));
+    const lfo = osc(), lg = ctx.createGain(); lfo.frequency.value = 5.5; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(.012, t + Math.min(dur, .4)); lfo.connect(lg); lg.connect(src.playbackRate);
     const e = ctx.createGain(); e.gain.setValueAtTime(.5, t); e.gain.setValueAtTime(.45, t + dur * .85); e.gain.exponentialRampToValueAtTime(.0001, t + dur + .08);
     src.connect(e); e.connect(amp('lead', 0)); src.start(t); lfo.start(t); src.stop(t + dur + .12); lfo.stop(t + dur + .12);
   }
@@ -604,16 +609,17 @@ const BGM = (() => {
   function vox(t, m, dur, k = 1) {       // soaring lead "voice"
     const f = n2f(m), f0 = lastVox ? n2f(lastVox) : f; lastVox = m;
     [['sawtooth', -8, .036], ['sawtooth', 8, .036], ['triangle', 0, .03]].forEach(([ty, dt, a]) => {
-      const o = ctx.createOscillator(); o.type = ty; o.detune.value = dt;
+      const o = osc(); o.type = ty; o.detune.value = dt;
       o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f, t + .08);
-      const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 5.4; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(f * .008, t + Math.min(dur, .5)); lfo.connect(lg); lg.connect(o.frequency);
+      const lfo = osc(), lg = ctx.createGain(); lfo.frequency.value = 5.4; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(f * .008, t + Math.min(dur, .5)); lfo.connect(lg); lg.connect(o.frequency);
       const fl = ctx.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = 3000; fl.Q.value = 1;
       const e = ctx.createGain(); e.gain.setValueAtTime(.0001, t); e.gain.exponentialRampToValueAtTime(a * k, t + .04); e.gain.setValueAtTime(a * k * .85, t + dur * .8); e.gain.exponentialRampToValueAtTime(.0001, t + dur + .08);
       o.connect(fl); fl.connect(e); bus(e, .42, .25); o.start(t); lfo.start(t); o.stop(t + dur + .12); lfo.stop(t + dur + .12);
     });
   }
   function arp(t, m, dur, a = .03) {      // plucky trance arp with echo
-    const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = n2f(m);
+    if (crowded(.7)) return;
+    const o = osc(); o.type = 'sawtooth'; o.frequency.value = n2f(m);
     const fl = ctx.createBiquadFilter(); fl.type = 'lowpass'; fl.Q.value = 6; fl.frequency.setValueAtTime(3800, t); fl.frequency.exponentialRampToValueAtTime(500, t + dur);
     const e = ctx.createGain(); e.gain.setValueAtTime(.0001, t); e.gain.exponentialRampToValueAtTime(a, t + .004); e.gain.exponentialRampToValueAtTime(.0001, t + dur);
     o.connect(fl); fl.connect(e); bus(e, .3, .35); o.start(t); o.stop(t + dur + .05);
@@ -640,17 +646,19 @@ const BGM = (() => {
   const mil = (t, k = 1) => { noise(t, 'bandpass', 2800, 1.2, .3 * k, .09, .3); tone(t, 'triangle', 240, 200, .12 * k, .05, .2); };   // tight snare with snares on
   const blast = (t, k = 1) => { tone(t, 'sine', 50, 24, .3 * k, 2.2, .9); noise(t, 'lowpass', 500, .5, .22 * k, 2.4, .95); };
   function brass(t, notes, dur, a = .03, swell = .25) {
-    notes.forEach(m => [-9, 0, 9].forEach(d => {
-      const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = n2f(m); o.detune.value = d;
+    if (crowded(.85)) return;
+    notes.forEach(m => (LITE ? [0] : [-9, 0, 9]).forEach(d => {
+      const o = osc(); o.type = 'sawtooth'; o.frequency.value = n2f(m); o.detune.value = d;
       const fl = ctx.createBiquadFilter(); fl.type = 'lowpass'; fl.Q.value = 1.4; fl.frequency.setValueAtTime(250, t); fl.frequency.linearRampToValueAtTime(1500, t + Math.min(dur * .6, swell + .15)); fl.frequency.linearRampToValueAtTime(800, t + dur);
       const e = ctx.createGain(); e.gain.setValueAtTime(.0001, t); e.gain.linearRampToValueAtTime(a, t + swell); e.gain.setValueAtTime(a, t + dur * .8); e.gain.linearRampToValueAtTime(.0001, t + dur);
       o.connect(fl); fl.connect(e); bus(e, .55); o.start(t); o.stop(t + dur + .05);
     }));
   }
   function choir(t, notes, dur, a = .02) {      // "aah" voices: saw through vowel formants with slow vibrato
-    notes.forEach(m => [-12, 0, 12].forEach(d => {
-      const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = n2f(m); o.detune.value = d + rand(-4, 4);
-      const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 4.6 + Math.random(); lg.gain.value = n2f(m) * .006; lfo.connect(lg); lg.connect(o.frequency);
+    if (crowded(.8)) return;
+    notes.forEach(m => (LITE ? [0] : [-12, 0, 12]).forEach(d => {
+      const o = osc(); o.type = 'sawtooth'; o.frequency.value = n2f(m); o.detune.value = d + rand(-4, 4);
+      const lfo = osc(), lg = ctx.createGain(); lfo.frequency.value = 4.6 + Math.random(); lg.gain.value = n2f(m) * .006; lfo.connect(lg); lg.connect(o.frequency);
       const f1 = ctx.createBiquadFilter(); f1.type = 'bandpass'; f1.frequency.value = 760; f1.Q.value = 6;
       const f2 = ctx.createBiquadFilter(); f2.type = 'bandpass'; f2.frequency.value = 1180; f2.Q.value = 7;
       const e = ctx.createGain(); e.gain.setValueAtTime(.0001, t); e.gain.linearRampToValueAtTime(a, t + dur * .3); e.gain.setValueAtTime(a, t + dur * .75); e.gain.linearRampToValueAtTime(.0001, t + dur);
@@ -658,7 +666,7 @@ const BGM = (() => {
     }));
   }
   function siren(t, dur) {
-    const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(260, t);
+    const o = osc(); o.type = 'sawtooth'; o.frequency.setValueAtTime(260, t);
     for (let k = 0; k < dur; k += 3) { o.frequency.linearRampToValueAtTime(820, t + k + 1.5); o.frequency.linearRampToValueAtTime(300, t + k + 3); }
     const fl = ctx.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = 1400;
     const e = ctx.createGain(); e.gain.setValueAtTime(.0001, t); e.gain.linearRampToValueAtTime(.025, t + 1); e.gain.setValueAtTime(.025, t + dur - 1); e.gain.linearRampToValueAtTime(.0001, t + dur);
@@ -700,10 +708,11 @@ const BGM = (() => {
   // ---- full band extras: metallic cymbals, picked bass, rock organ, twin-guitar harmonies, gang shouts, pick slides, feedback ----
   const MET = [2, 3, 4.16, 5.43, 6.79, 8.21];
   function metal(t, base, dur, a, hpF = 7000) {      // 6 detuned squares = cymbal metal
+    if (LITE || crowded(.7)) { noise(t, 'highpass', hpF + 1500, .7, a * .9, dur, .2); return; }
     const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = hpF;
     const bp = ctx.createBiquadFilter(); bp.type = 'peaking'; bp.frequency.value = 10000; bp.gain.value = 6;
     const e = ctx.createGain(); e.gain.setValueAtTime(.0001, t); e.gain.exponentialRampToValueAtTime(a, t + .002); e.gain.exponentialRampToValueAtTime(.0001, t + dur);
-    MET.forEach(r => { const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = base * r; o.connect(hp); o.start(t); o.stop(t + dur + .02); });
+    MET.forEach(r => { const o = osc(); o.type = 'square'; o.frequency.value = base * r; o.connect(hp); o.start(t); o.stop(t + dur + .02); });
     hp.connect(bp); bp.connect(e); bus(e, .25);
   }
   const hatM = (t, open = false, k = 1) => { metal(t, 330, open ? .3 : .045, (open ? .05 : .04) * k); noise(t, 'highpass', 9000, .7, (open ? .02 : .012) * k, open ? .25 : .03, .05); };
@@ -722,18 +731,20 @@ const BGM = (() => {
   }
   function pickBass(t, m, dur) { pluck(t, m, dur, bassAmp(), .9, false); }
   function organ(t, notes, dur, a = .012) {         // drawbar organ with a spinning-speaker shimmer
+    if (LITE || crowded(.6)) return;
     const e = ctx.createGain(); e.gain.setValueAtTime(.0001, t); e.gain.linearRampToValueAtTime(a, t + .05); e.gain.setValueAtTime(a, t + dur * .9); e.gain.linearRampToValueAtTime(.0001, t + dur);
-    const trem = ctx.createOscillator(), tg = ctx.createGain(); trem.frequency.value = 6.4; tg.gain.value = a * .35; trem.connect(tg); tg.connect(e.gain);
+    const trem = osc(), tg = ctx.createGain(); trem.frequency.value = 6.4; tg.gain.value = a * .35; trem.connect(tg); tg.connect(e.gain);
     const sh = ctx.createWaveShaper(), c = new Float32Array(512); for (let i = 0; i < 512; i++) { const x = i / 256 - 1; c[i] = Math.tanh(x * 2.2); } sh.curve = c;
-    notes.forEach(m => [[.5, .6], [1, 1], [2, .7], [3, .45], [4, .3]].forEach(([h, v]) => { const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = n2f(m) * h; const gg = ctx.createGain(); gg.gain.value = v; o.connect(gg); gg.connect(sh); o.start(t); o.stop(t + dur + .05); }));
+    notes.forEach(m => [[.5, .6], [1, 1], [2, .7], [3, .45], [4, .3]].forEach(([h, v]) => { const o = osc(); o.type = 'sine'; o.frequency.value = n2f(m) * h; const gg = ctx.createGain(); gg.gain.value = v; o.connect(gg); gg.connect(sh); o.start(t); o.stop(t + dur + .05); }));
     sh.connect(e); bus(e, .35); trem.start(t); trem.stop(t + dur + .05);
   }
   const SCALE = [0, 2, 3, 5, 7, 8, 10];
   function third(m, key) { const pc = ((m - key) % 12 + 12) % 12; let d = SCALE.findIndex(x => x >= pc); if (d < 0) d = 0; const up = SCALE[(d + 2) % 7] + (d + 2 >= 7 ? 12 : 0) - SCALE[d]; return m + up; }
   function twin(t, m, dur, key) { lead(t, m, dur); lead(t + .008, third(m, key), dur); }
   function shout(t, k = 1) {         // gang vocal "HEY!" — four throats, vowel e->i formant glide
-    for (let v = 0; v < 4; v++) {
-      const f0 = rand(140, 230), o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(f0 * 1.08, t); o.frequency.exponentialRampToValueAtTime(f0 * .9, t + .28);
+    if (crowded(.9)) return;
+    for (let v = 0; v < (LITE ? 2 : 4); v++) {
+      const f0 = rand(140, 230), o = osc(); o.type = 'sawtooth'; o.frequency.setValueAtTime(f0 * 1.08, t); o.frequency.exponentialRampToValueAtTime(f0 * .9, t + .28);
       const f1 = ctx.createBiquadFilter(); f1.type = 'bandpass'; f1.Q.value = 5; f1.frequency.setValueAtTime(560, t); f1.frequency.linearRampToValueAtTime(330, t + .25);
       const f2 = ctx.createBiquadFilter(); f2.type = 'bandpass'; f2.Q.value = 6; f2.frequency.setValueAtTime(1850, t); f2.frequency.linearRampToValueAtTime(2300, t + .25);
       const e = ctx.createGain(); const d = rand(0, .02); e.gain.setValueAtTime(.0001, t + d); e.gain.exponentialRampToValueAtTime(.09 * k, t + d + .03); e.gain.exponentialRampToValueAtTime(.0001, t + d + .3);
@@ -741,8 +752,8 @@ const BGM = (() => {
     }
     noise(t, 'bandpass', 3000, 1, .08 * k, .06, .3);    // the breathy "h"
   }
-  function pickSlide(t, dur) { const s = ctx.createBufferSource(); s.buffer = AU.nb; const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 3; f.frequency.setValueAtTime(3200, t); f.frequency.exponentialRampToValueAtTime(260, t + dur); const e = ctx.createGain(); e.gain.setValueAtTime(.0001, t); e.gain.exponentialRampToValueAtTime(.5, t + .03); e.gain.exponentialRampToValueAtTime(.0001, t + dur); s.connect(f); f.connect(e); e.connect(amp('rhythm', 0)); s.start(t); s.stop(t + dur + .05); }
-  function feedback(t, m, dur) { const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = n2f(m); const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 5; lg.gain.value = n2f(m) * .01; lfo.connect(lg); lg.connect(o.frequency); const e = ctx.createGain(); e.gain.setValueAtTime(.0001, t); e.gain.exponentialRampToValueAtTime(.12, t + dur * .7); e.gain.exponentialRampToValueAtTime(.0001, t + dur); o.connect(e); e.connect(amp('lead', 0)); o.start(t); lfo.start(t); o.stop(t + dur + .05); lfo.stop(t + dur + .05); }
+  function pickSlide(t, dur) { const s = bsrc(); s.buffer = AU.nb; const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 3; f.frequency.setValueAtTime(3200, t); f.frequency.exponentialRampToValueAtTime(260, t + dur); const e = ctx.createGain(); e.gain.setValueAtTime(.0001, t); e.gain.exponentialRampToValueAtTime(.5, t + .03); e.gain.exponentialRampToValueAtTime(.0001, t + dur); s.connect(f); f.connect(e); e.connect(amp('rhythm', 0)); s.start(t); s.stop(t + dur + .05); }
+  function feedback(t, m, dur) { const o = osc(); o.type = 'sine'; o.frequency.value = n2f(m); const lfo = osc(), lg = ctx.createGain(); lfo.frequency.value = 5; lg.gain.value = n2f(m) * .01; lfo.connect(lg); lg.connect(o.frequency); const e = ctx.createGain(); e.gain.setValueAtTime(.0001, t); e.gain.exponentialRampToValueAtTime(.12, t + dur * .7); e.gain.exponentialRampToValueAtTime(.0001, t + dur); o.connect(e); e.connect(amp('lead', 0)); o.start(t); lfo.start(t); o.stop(t + dur + .05); lfo.stop(t + dur + .05); }
   function band(s, bar, W, sd, t, r, tri, tr) {
     const sec = W.name, chor = sec === 'chorus' || sec === 'final', nxt = where(bar + 1).name;
     if (sec === 'intro' && W.i === 2 && s === 0) feedback(t, 79 + tr, sd * 16);
@@ -810,10 +821,11 @@ const BGM = (() => {
   }
   // ---- CRISIS: racing low-string ostinato on a semitone, heartbeat kick, ticking clock, dissonant brass, tremolo violins, rising key every phrase ----
   function trem(t, m, dur, a = .012) {      // tremolo violins: fast 32nd re-bows
-    const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = n2f(m);
+    if (crowded(.8)) return;
+    const o = osc(); o.type = 'sawtooth'; o.frequency.value = n2f(m);
     const fl = ctx.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = 2600;
     const e = ctx.createGain(); e.gain.setValueAtTime(.0001, t); e.gain.linearRampToValueAtTime(a, t + dur * .3); e.gain.setValueAtTime(a, t + dur * .8); e.gain.linearRampToValueAtTime(.0001, t + dur);
-    const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.type = 'square'; lfo.frequency.value = 13; lg.gain.value = a * .8; lfo.connect(lg); lg.connect(e.gain);
+    const lfo = osc(), lg = ctx.createGain(); lfo.type = 'square'; lfo.frequency.value = 13; lg.gain.value = a * .8; lfo.connect(lg); lg.connect(e.gain);
     o.connect(fl); fl.connect(e); bus(e, .5); o.start(t); lfo.start(t); o.stop(t + dur + .05); lfo.stop(t + dur + .05);
   }
   function danger(s16, t, sd) {
@@ -868,7 +880,7 @@ const BGM = (() => {
     } },
     lose: { bpm: 56, vol: .8, fn(s16, t, sd) { const s = s16 % 16; if (s === 0) { pad(t, [50, 53, 57], sd * 16, .04, 380); synth(t, n2f(26), sd * 15, { amp: .1, cut: 70, cutEnv: 90, q: 2, att: 1, wet: .3 }); } } },
   };
-  function sched() { if (!track || !ctx) return; const sd = 60 / track.bpm / 4; while (nextT < ctx.currentTime + .15) { try { track.fn(step, nextT, sd); } catch (e) { if (!sched.err) { sched.err = 1; console.error('[BGM]', e); } } step++; nextT += sd; } }
+  function sched() { if (!track || !ctx || ctx.state !== 'running') return; const sd = 60 / track.bpm / 4; if (nextT < ctx.currentTime - .05) { const miss = Math.ceil((ctx.currentTime + .03 - nextT) / sd); step += miss; nextT += miss * sd; } let guard = 0; while (nextT < ctx.currentTime + .15 && guard++ < 6) { try { track.fn(step, nextT, sd); } catch (e) { if (!sched.err) { sched.err = 1; console.error('[BGM]', e); } } step++; nextT += sd; } }
   function play(name, o = {}) {
     if (!init()) return;
     if (o.intensity != null) I = o.intensity;
@@ -881,6 +893,7 @@ const BGM = (() => {
     step = 0; nextT = t + .06;
     if (o.resume !== false && track.saved && t - track.saved.at < 90) step = Math.ceil(track.saved.step / 16) * 16;
     if (!timer) timer = setInterval(sched, 25);
+    if (!play.warm) { play.warm = 1; const notes = []; for (let m = 29; m <= 96; m++) notes.push(m); const w = () => { const m = notes.shift(); if (m == null) return; try { strBuf(m, 2.2); } catch (e) {} setTimeout(w, 30); }; setTimeout(w, 400); }
   }
   return { play, set(i) { I = i; }, impact() { if (init() && g) impact(ctx.currentTime + .02, 1); } };
 })();
@@ -5769,7 +5782,8 @@ new ResizeObserver(resize).observe(mon); addEventListener('resize', resize); res
 let last = performance.now(), T = 0;
 // leaving the app (LINE, home button, a call) must not leave buttons held down or the clock jumping
 function releaseInputs() { for (const k in keys) keys[k] = false; btn.l = btn.r = btn.sub = btn.jump = false; S.holding = false; lvDrag = false; document.querySelectorAll('.act').forEach(b => b.classList.remove('act')); }
-document.addEventListener('visibilitychange', () => { releaseInputs(); last = performance.now(); if (!document.hidden && AU.ctx && AU.ctx.state === 'suspended') AU.ctx.resume().catch(() => {}); });
+document.addEventListener('visibilitychange', () => { releaseInputs(); last = performance.now(); if (!document.hidden && AU.ctx && AU.ctx.state !== 'running' && AU.ctx.state !== 'closed') AU.ctx.resume().catch(() => {}); });
+setInterval(() => { if (!document.hidden && AU.ctx && AU.ctx.state === 'interrupted') AU.ctx.resume().catch(() => {}); }, 2000);
 addEventListener('pagehide', releaseInputs);
 // phones can drop the 3D context under memory pressure: recover instead of leaving a black screen
 glc.addEventListener('webglcontextlost', e => { e.preventDefault(); try { say('画面を復旧しています…', 'a', 3); } catch (_) {} }, false);
