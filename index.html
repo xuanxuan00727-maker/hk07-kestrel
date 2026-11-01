@@ -3896,7 +3896,7 @@ function fireMain() {
   if (P.reload > 0 || P.mainCd > 0) { SFX.empty(); return; }
   if (P.main <= 0) { SFX.empty(); startReload(); return; }
   P.main--; P.mainCd = 1.2; P.heat += 15; P.fired++;
-  P.kickV += 1.7; P.trauma = Math.min(1, P.trauma + .7); P.spd *= .78; P.bobV -= 1.2; P.flash = S.view === 'fp' ? 1 : .35; P.brl = 1.5;
+  P.kickV += .9; P.trauma = Math.min(1, P.trauma + .25); P.spd *= .85; P.bobV -= .55; P.flash = S.view === 'fp' ? 1 : .35; P.brl = 1.5;
   SFX.cannon(); buzz(110);
   const start = muzzle(ME.mMain), { o, d } = aimRay(0.002), hit = rayHit(o, d, 320);
   const lk = lockAlive(P.lock) ? P.lock : null;
@@ -3918,7 +3918,7 @@ function fireMG(dt) {
   if (!(keys.f || btn.sub) || P.over || P.sub <= 0 || P.dead || S.phase !== 'op') return;
   if (P.mgCd > 0) return;
   P.mgCd = 1 / 11; P.sub--; P.mgN++; P.heat += 1.9;
-  P.trauma = Math.min(1, P.trauma + .06); P.kickV += .07; P.mgSpin = 1; SFX.mg(); if (P.mgN % 4 === 0) buzz(10);
+  P.trauma = Math.min(.35, P.trauma + .012); P.kickV += .025; P.mgSpin = 1; SFX.mg(); if (P.mgN % 4 === 0) buzz(10);
   const lk = lockAlive(P.lock) ? P.lock : null;
   const { o, d } = aimRay(0.012), h = lk ? { e: lk.e || null, s: lk.s || null, t: lockPos(lk, LKV).distanceTo(o) } : rayHit(o, d, 600), hitE = h.e;
   const end = lk ? lockPos(lk, new THREE.Vector3()).add(new THREE.Vector3(rand(-1, 1), rand(-1, 1), rand(-1, 1))) : o.clone().addScaledVector(d, h.t);
@@ -4665,7 +4665,7 @@ function frame(now) {
   } else if (S.phase === 'hatch' || S.phase === 'cam') {
     CK.update(dt, T); updateMech(dt); followSun(); updateGantry(dt, T); updateParts(dt); updateCamera(T, dt); renderer.render(scene, camera);
   }
-  { const sh = P.trauma * P.trauma; mon.style.transform = sh > .01 ? `translate(${(Math.random() - .5) * sh * 7}px,${(Math.random() - .5) * sh * 7}px)` : ''; }
+  { const sh = P.trauma * P.trauma; mon.style.transform = sh > .01 ? `translate(${(Math.random() - .5) * sh * 4}px,${(Math.random() - .5) * sh * 4}px)` : ''; }
   drawHUD(dt, T); drawGauges(dt, T); if (PNL) PNL.update(dt, T);
   engineUpdate(P.spd, P.thr, P.servo || 0, !P.dead, P.thrust || 0);
   requestAnimationFrame(frame);
