@@ -543,61 +543,80 @@ const BGM = (() => {
       }
     }
   }
-  // ---- hard rock: distorted power chords, bass, real kit, a screaming lead ----
-  const GCH = new WeakMap();
-  function amp(kind) {      // guitar amp chain per playing track: drive -> mids -> cabinet roll-off
-    const key = g; let m = GCH.get(key); if (!m) { m = {}; GCH.set(key, m); }
-    if (m[kind]) return m[kind];
-    const inp = ctx.createGain(), sh = ctx.createWaveShaper(), N = 2048, c = new Float32Array(N), drive = kind === 'lead' ? 14 : 10;
-    for (let i = 0; i < N; i++) { const x = i / N * 2 - 1; c[i] = Math.tanh(x * drive) * .85; }
-    sh.curve = c; sh.oversample = '2x';
-    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = kind === 'lead' ? 180 : 85;
-    const mid = ctx.createBiquadFilter(); mid.type = 'peaking'; mid.frequency.value = kind === 'lead' ? 1400 : 750; mid.Q.value = .9; mid.gain.value = 5;
-    const cab = ctx.createBiquadFilter(); cab.type = 'lowpass'; cab.frequency.value = kind === 'lead' ? 4200 : 3300; cab.Q.value = .7;
-    const og = ctx.createGain(); og.gain.value = kind === 'lead' ? .075 : .12;
-    inp.connect(hp); hp.connect(sh); sh.connect(mid); mid.connect(cab); cab.connect(og); bus(og, kind === 'lead' ? .4 : .14, kind === 'lead' ? .3 : 0);
-    return m[kind] = inp;
+  // ---- rock band: plucked-string guitars through a tube-style amp, double-tracked L/R; bass; a real-sounding kit ----
+  const KSB = {};
+  function strBuf(m, dur) {        // Karplus-Strong plucked string, cached per note
+    const key = m + ':' + dur; if (KSB[key]) return KSB[key];
+    const sr = ctx.sampleRate, N = Math.max(2, Math.round(sr / n2f(m))), len = Math.floor(sr * dur);
+    const b = ctx.createBuffer(1, len, sr), d = b.getChannelData(0), ring = new Float32Array(N);
+    let lp = 0; for (let i = 0; i < N; i++) { lp = lp * .55 + (Math.random() * 2 - 1) * .45; ring[i] = lp; }
+    let p = 0; const fb = m < 50 ? .9985 : .997;
+    for (let i = 0; i < len; i++) { const v = ring[p], nx = ring[(p + 1) % N]; ring[p] = fb * .5 * (v + nx); d[i] = v; p = (p + 1) % N; }
+    return KSB[key] = b;
   }
-  function power(t, r, dur, k = 1, mute = false) {     // root + fifth + octave, double-tracked
-    const dst = amp('rhythm');
-    [0, 7, 12].forEach(iv => [-7, 7].forEach(dt => {
-      const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = n2f(r + iv); o.detune.value = dt;
-      const e = ctx.createGain(), a = (mute ? .16 : .26) * k, len = mute ? Math.min(dur, .11) : dur;
-      e.gain.setValueAtTime(.0001, t); e.gain.exponentialRampToValueAtTime(a, t + .004); e.gain.exponentialRampToValueAtTime(a * (mute ? .2 : .6), t + len * .7); e.gain.exponentialRampToValueAtTime(.0001, t + len);
-      if (mute) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 700; o.connect(f); f.connect(e); } else o.connect(e);
-      e.connect(dst); o.start(t); o.stop(t + len + .05);
-    }));
+  const GCH = new WeakMap();
+  function amp(kind, pan = 0) {
+    const key = g; let m = GCH.get(key); if (!m) { m = {}; GCH.set(key, m); }
+    const id = kind + pan; if (m[id]) return m[id];
+    const lead = kind === 'lead';
+    const inp = ctx.createGain(); inp.gain.value = lead ? 9 : 7;
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = lead ? 220 : 110;
+    const pre = ctx.createBiquadFilter(); pre.type = 'peaking'; pre.frequency.value = 900; pre.Q.value = .7; pre.gain.value = 6;
+    const sh = ctx.createWaveShaper(), N = 4096, c = new Float32Array(N);
+    for (let i = 0; i < N; i++) { const x = i / N * 2 - 1; c[i] = (Math.tanh(x * 3 + .15) - Math.tanh(.15)) * .9; }
+    sh.curve = c; sh.oversample = '4x';
+    const scoop = ctx.createBiquadFilter(); scoop.type = 'peaking'; scoop.frequency.value = 650; scoop.Q.value = .8; scoop.gain.value = lead ? 0 : -3;
+    const fizz = ctx.createBiquadFilter(); fizz.type = 'peaking'; fizz.frequency.value = 3200; fizz.Q.value = 1.2; fizz.gain.value = -6;
+    const cab1 = ctx.createBiquadFilter(); cab1.type = 'lowpass'; cab1.frequency.value = lead ? 4800 : 4300; cab1.Q.value = .6;
+    const cab2 = ctx.createBiquadFilter(); cab2.type = 'lowpass'; cab2.frequency.value = lead ? 5400 : 5000; cab2.Q.value = .5;
+    const body = ctx.createBiquadFilter(); body.type = 'peaking'; body.frequency.value = 140; body.Q.value = .8; body.gain.value = lead ? 0 : 3;
+    const og = ctx.createGain(); og.gain.value = lead ? .12 : .17;
+    const pn = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+    inp.connect(hp); hp.connect(pre); pre.connect(sh); sh.connect(scoop); scoop.connect(fizz); fizz.connect(cab1); cab1.connect(cab2); cab2.connect(body); body.connect(og);
+    if (pn) { pn.pan.value = pan; og.connect(pn); bus(pn, lead ? .35 : .12, lead ? .28 : 0); } else bus(og, lead ? .35 : .12, lead ? .28 : 0);
+    return m[id] = inp;
+  }
+  function pluck(t, m, dur, dst, gain, mute, rate = 1) {
+    const src = ctx.createBufferSource(); src.buffer = strBuf(m, Math.min(3, dur + .3)); src.playbackRate.value = rate;
+    const e = ctx.createGain(), len = mute ? Math.min(dur, .13) : dur;
+    e.gain.setValueAtTime(gain, t); if (mute) e.gain.exponentialRampToValueAtTime(gain * .08, t + len); else e.gain.setValueAtTime(gain, t + len * .85);
+    e.gain.exponentialRampToValueAtTime(.0001, t + len + .06);
+    let node = src; if (mute) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 900; src.connect(f); node = f; }
+    node.connect(e); e.connect(dst); src.start(t); src.stop(t + len + .1);
+  }
+  function power(t, r, dur, k = 1, mute = false) {     // root + fifth (+ octave when open), a guitar hard left and one hard right
+    const notes = mute ? [r, r + 7] : [r, r + 7, r + 12];
+    [[-.75, 1.0015], [.75, .9985]].forEach(([pan, rate], si) => { const dst = amp('rhythm', pan); notes.forEach((n, i) => pluck(t + si * .006 + i * .004, n, dur, dst, (mute ? .5 : .42) * k, mute, rate)); });
   }
   function lead(t, m, dur) {
-    const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(n2f(m) * .985, t); o.frequency.exponentialRampToValueAtTime(n2f(m), t + .05);
-    const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 5.8; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(n2f(m) * .012, t + Math.min(dur, .35)); lfo.connect(lg); lg.connect(o.frequency);
-    const e = ctx.createGain(); e.gain.setValueAtTime(.0001, t); e.gain.exponentialRampToValueAtTime(.3, t + .015); e.gain.setValueAtTime(.3, t + dur * .8); e.gain.exponentialRampToValueAtTime(.0001, t + dur);
-    o.connect(e); e.connect(amp('lead')); o.start(t); lfo.start(t); o.stop(t + dur + .05); lfo.stop(t + dur + .05);
+    const src = ctx.createBufferSource(); src.buffer = strBuf(m, Math.min(3, dur + .4));
+    const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 5.5; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(.012, t + Math.min(dur, .4)); lfo.connect(lg); lg.connect(src.playbackRate);
+    const e = ctx.createGain(); e.gain.setValueAtTime(.5, t); e.gain.setValueAtTime(.45, t + dur * .85); e.gain.exponentialRampToValueAtTime(.0001, t + dur + .08);
+    src.connect(e); e.connect(amp('lead', 0)); src.start(t); lfo.start(t); src.stop(t + dur + .12); lfo.stop(t + dur + .12);
   }
-  const rkick = (t, k = 1) => { tone(t, 'sine', 150, 42, 1.05 * k, .32, .04); noise(t, 'lowpass', 2500, .7, .22 * k, .025, 0); };
-  const rsnare = (t, k = 1) => { noise(t, 'bandpass', 1900, .6, .62 * k, .24, .45); noise(t, 'highpass', 5000, .5, .18 * k, .14, .3); tone(t, 'triangle', 210, 150, .3 * k, .09, .25); };
-  const hat = (t, open = false, k = 1) => noise(t, 'highpass', 7500, .7, (open ? .09 : .065) * k, open ? .28 : .035, .08);
-  const crash = (t, k = 1) => { noise(t, 'highpass', 4200, .4, .16 * k, 1.8, .45); noise(t, 'bandpass', 9000, 1, .06 * k, 1.2, .4); };
-  const RIFF = ['O', 0, 'm', 0, 'm', 'm', 'O', 0, 'm', 0, 'm', 'm', 'O', 0, 'm', 'm'];
+  const rkick = (t, k = 1) => { tone(t, 'sine', 110, 50, .7 * k, .26, .02); tone(t, 'triangle', 220, 60, .25 * k, .05, 0); noise(t, 'highpass', 3000, .7, .08 * k, .012, 0); };
+  const rsnare = (t, k = 1) => { tone(t, 'triangle', 185, 165, .32 * k, .1, .25); noise(t, 'bandpass', 2400, .8, .42 * k, .17, .4); noise(t, 'highpass', 6000, .6, .07 * k, .09, .3); };
+  const hat = (t, open = false, k = 1) => noise(t, 'highpass', 8500, .8, (open ? .045 : .028) * k, open ? .22 : .03, .05);
+  const crash = (t, k = 1) => noise(t, 'highpass', 5000, .5, .07 * k, 1.6, .4);
+  const RIFF = { 0: ['O', 4], 4: ['m', 1], 6: ['m', 1], 8: ['m', 1], 10: ['O', 2], 12: ['m', 1], 14: ['m', 1] };
   const VERSE = [40, 36, 38, 35], CHORUS = [40, 43, 38, 36];                       // E C D B  /  E G D C
   const SOLO = [[[0, 71, 4], [4, 74, 4], [8, 76, 6], [14, 74, 2]], [[0, 74, 4], [4, 71, 4], [8, 67, 8]], [[0, 69, 4], [4, 71, 2], [6, 74, 2], [8, 78, 8]], [[0, 76, 6], [6, 74, 2], [8, 72, 4], [12, 71, 4]]];
   function rock(s16, t, sd, withLead) {
     const s = s16 % 16, bar = Math.floor(s16 / 16), intro = bar < 2, chorus = !intro && Math.floor((bar - 2) / 4) % 2 === 1, r = (chorus ? CHORUS : VERSE)[bar % 4];
     const fill = bar % 4 === 3 && s >= 12;
-    // drums
     if (I >= 1 && !intro) {
-      if ((chorus ? [0, 2, 8, 10, 11] : [0, 3, 8, 10]).includes(s)) rkick(t);
+      if ((chorus ? [0, 6, 8, 10] : [0, 7, 8]).includes(s)) rkick(t);
       if (!fill && (s === 4 || s === 12)) rsnare(t);
-      if (fill) { rsnare(t, .55 + (s - 12) * .15); if (s === 15) rkick(t, .8); }
-      if (s % 2 === 0) hat(t, chorus && s === 14, s % 4 === 0 ? 1 : .7);
-      if (s === 0 && (bar % 4 === 0 || bar === 2)) crash(t);
-    } else if (intro && s % 4 === 0) { hat(t, false, .8); if (bar === 1 && s >= 8) rsnare(t, .5 + s / 40); }
-    // rhythm guitar
-    if (chorus) { if (s === 0 || s === 8) power(t, r + 12, sd * 7.5, 1.05); else if (s % 2 === 1 && I >= 2) power(t, r + 12, sd, .6, true); }
-    else { const p = RIFF[s]; if (p === 'O') power(t, r + 12, sd * 2, 1); else if (p === 'm') power(t, r + 12, sd, .9, true); }
-    // bass locks to the kick and roots
-    if (!intro && s % 2 === 0) synth(t, n2f(r + (s === 6 || s === 14 ? 12 : 0)), sd * 1.7, { type: 'sawtooth', amp: .13, cut: 280, cutEnv: 700, q: 2, att: .004, wet: 0 });
-    // lead over the chorus
+      if (fill && s % 2 === 0) rsnare(t, .5 + (s - 12) * .12);
+      if (s % 2 === 0 && !fill) hat(t, chorus && s === 14, s % 4 === 0 ? 1 : .7);
+      if (s === 0 && (bar % 8 === 2 || (chorus && bar % 4 === 2))) crash(t);
+    } else if (intro && bar === 1 && s % 4 === 0) rsnare(t, .25 + s / 40);
+    // rhythm guitars
+    if (intro) { if (s === 0) power(t, r + 12, sd * 15, .9); }
+    else if (chorus) { if (s === 0) power(t, r + 12, sd * 7.6, 1); else if (s === 8) power(t, r + 12, sd * 5.6, 1); else if (s === 14 && I >= 2) power(t, r + 12, sd, .8, true); }
+    else { const p = RIFF[s]; if (p) power(t, r + 12, sd * p[1], p[0] === 'O' ? 1 : .85, p[0] === 'm'); }
+    // bass doubles the roots in eighths
+    if (!intro && s % 2 === 0) synth(t, n2f(r), sd * 1.8, { type: 'sawtooth', amp: .075, cut: 260, cutEnv: 500, q: 1, att: .006, wet: 0 });
     if (withLead && chorus && I >= 2) for (const [st, m, len] of SOLO[bar % 4]) if (st === s) lead(t, m, sd * len * .97);
   }
   const TRACKS = {
@@ -608,8 +627,8 @@ const BGM = (() => {
       if (s === 6 || s === 14) synth(t, n2f(c.ch[(bar + s) % 3] + 36), sd * 2, { type: 'sine', amp: .03, cut: 5000, cutEnv: 0, q: 1, wet: .6, echo: .6 });
       if (s === 8 && bar % 2 === 1) tone(t, 'sine', 1600, 400, .02, 1.2, .7);
     } },
-    movie: { bpm: 140, vol: .95, fn(s16, t, sd) { rock(s16, t, sd, true); } },
-    battle: { bpm: 152, vol: .85, fn(s16, t, sd) { rock(s16, t, sd, true); } },
+    movie: { bpm: 132, vol: .8, fn(s16, t, sd) { rock(s16, t, sd, true); } },
+    battle: { bpm: 140, vol: .7, fn(s16, t, sd) { rock(s16, t, sd, true); } },
     orch: { bpm: 124, vol: .8, fn(s16, t, sd) { battle(s16, t, sd, true); } },
     cockpit: { bpm: 64, vol: .6, fn(s16, t, sd) {
       const s = s16 % 16, bar = Math.floor(s16 / 16), c = PROG[Math.floor(bar / 2) % 4];
