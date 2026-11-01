@@ -4391,7 +4391,7 @@ const CUT = (() => {
   function end() {
     on = false; S.phase = 'op'; S.view = saveView || S.view; caption('');
     cine.hidden = true; document.body.classList.remove('cine'); skipB.style.display = '';
-    $('#controls').hidden = false; $('#obj').style.visibility = ''; P.knock = false; P.fallX = P.fallZ = 0; P.vy = 0; P.y = Math.max(0, P.y); P.spd = 0;
+    $('#controls').hidden = false; $('#obj').style.visibility = ''; P.thrust = 0; P.knock = false; P.fallX = P.fallZ = 0; P.vy = 0; P.y = Math.max(0, P.y); P.spd = 0;
     if (d && d.wall) { const w = d.wall; setTimeout(() => scene.remove(w), 9000); }
     if (d && d.boss) { d.boss.cutHold = false; d.boss.alert = true; d.boss.cd = 1.5; }
     camera.near = .5; camera.updateProjectionMatrix(); window.dispatchEvent(new Event('resize'));
@@ -4517,6 +4517,48 @@ const CUT = (() => {
     if (R.y > .3) { R.legs.forEach((l, i) => { l.thigh.rotation.x = i ? .5 : .25; l.knee.rotation.x = i ? -1 : -.6; }); G.init = false; }
     else { gaitStep(G, dt, R.x, R.z, R.yaw, vx, vz, () => sTone({ f: 70, f2: 40, dur: .2, gain: .25 })); solveLegs(G); }
   }
+  // Ch53: 07 boosts after the kidnapper, can't close the gap, and is rammed out of the sky by another machine
+  function chase(dt, k, R) {
+    const D = d;
+    if (!D.ch) { D.ch = { t0: k, ir: null, hit: false, land: -1, vx: 0, vz: 0, sg: 1 }; VO.ai('ブースト全開。追跡します！', 'high'); SFX.spinup(); sNoise({ dur: 2.5, f: 300, f2: 1600, gain: .4, a: .3 }); P.knock = false; P.fallX = P.fallZ = 0; }
+    const C = D.ch, ck = k - C.t0, pp = new THREE.Vector3(P.x, P.y, P.z);
+    const moveIR = () => { const ir = C.ir; if (!ir) return; if (!C.hit) C.dir.set(P.x - ir.x, 0, P.z - ir.z).normalize(); ir.x += C.dir.x * (C.hit ? 40 : 58) * dt; ir.z += C.dir.z * (C.hit ? 40 : 58) * dt; ir.y = Math.max(4, ir.y + (C.hit ? 6 : 0) * dt); ir.yaw = Math.atan2(-C.dir.x, -C.dir.z); stepR(ir, dt, 0, 0); if (Math.random() < .6) addPart({ pos: new THREE.Vector3(ir.x, ir.y + 4, ir.z), color: 0xffb070, add: true, s0: 1.1, s1: .3, life: .3 }); };
+    if (!C.hit) {
+      const dx = R.x - P.x, dz = R.z - P.z, dl = Math.hypot(dx, dz) || 1;
+      P.yaw = Math.atan2(-dx, -dz); P.thrust = 1; P.spd = 0; P.vy = 0;
+      const sp = Math.min(22, 8 + ck * 14); P.x += dx / dl * sp * dt; P.z += dz / dl * sp * dt; P.y = Math.min(13, P.y + dt * 9);
+      if (Math.random() < .5) addPart({ pos: new THREE.Vector3(P.x, P.y + 1, P.z), color: 0xffb070, add: true, s0: 1.2, s1: 3, life: .25, vel: new THREE.Vector3(0, -14, 0) });
+      const back = new THREE.Vector3(-dx / dl, 0, -dz / dl);
+      shot(pp.clone().addScaledVector(back, 27).add(new THREE.Vector3(back.z * 10, 9, -back.x * 10)), new THREE.Vector3((R.x + P.x) / 2, (R.y + P.y) / 2 + 5, (R.z + P.z) / 2), dt, 2.5);
+      if (ck > .5 && !C.v1) { C.v1 = true; VO.say('mina', '07……！'); }
+      if (ck > 1.1 && !C.ir) {
+        C.sg = Math.random() < .5 ? 1 : -1; const perp = new THREE.Vector3(-dz / dl * C.sg, 0, dx / dl * C.sg);
+        const ir = makeEnemy(); ir.gait = makeGait(ir.g, ir.legs, { hipX: [1.5, -1.5], hipY: 4.2, l1: 1.9, l2: 1.8, ankle: .5, lift: .7, sway: .2 });
+        Object.assign(ir, { x: P.x + perp.x * 48 + dx / dl * 14, z: P.z + perp.z * 48 + dz / dl * 14, y: P.y - 1, yaw: 0, spd: 0 });
+        C.ir = ir; C.dir = new THREE.Vector3(P.x + dx / dl * 7 - ir.x, 0, P.z + dz / dl * 7 - ir.z).normalize();
+        VO.say('ren', '07、横だ！！'); sNoise({ dur: .8, f: 400, f2: 3000, gain: .5 });
+      }
+      moveIR();
+      if (C.ir && (Math.hypot(C.ir.x - P.x, C.ir.z - P.z) < 7.5 || ck > 4)) {
+        C.hit = true; P.knock = true; P.thrust = 0; C.vx = C.dir.x * 20 + dx / dl * 5; C.vz = C.dir.z * 20 + dz / dl * 5; P.vy = 3;
+        explosion(new THREE.Vector3(P.x, P.y + 6, P.z), 3); sTone({ f: 80, f2: 28, dur: .9, gain: 1 }); sNoise({ dur: .7, f: 1500, f2: 200, gain: .8 });
+        P.trauma = 1; P.glitch = .7; buzz([300, 60, 250]); VO.ai('被弾！ 姿勢制御、不能……！', 'high'); C.sg = C.dir.x * (-dz / dl) + C.dir.z * (dx / dl) > 0 ? 1 : -1;
+      }
+    } else {
+      moveIR();
+      if (C.land < 0) {
+        P.x += C.vx * dt; P.z += C.vz * dt; P.vy -= 24 * dt; P.y += P.vy * dt; P.yaw += 2.5 * dt * C.sg; knockPose(dt, .35, 1.25 * C.sg, 5);
+        if (Math.random() < .5) addPart({ pos: pp.clone().add(new THREE.Vector3(0, 6, 0)), color: 0x2f2b26, op: .6, s0: 1, s1: 4, life: 1.5, vel: new THREE.Vector3(0, 2, 0) });
+        if (P.y <= 0) { P.y = 0; C.land = t; crash(new THREE.Vector3(P.x, 1, P.z), 18); P.trauma = 1; P.glitch = .5; setTimeout(() => VO.say('jin', '07！！大丈夫か！？'), 500); }
+      } else {
+        C.vx *= Math.exp(-4 * dt); C.vz *= Math.exp(-4 * dt); P.x += C.vx * dt; P.z += C.vz * dt;
+        if (t - C.land > 1 && !C.v2) { C.v2 = true; caption('ミナが、車ごと連れ去られた……', 'LOST'); VO.ai('……追跡、失敗。目標、ロスト。'); }
+      }
+      const side = new THREE.Vector3(-Math.sin(P.yaw + Math.PI / 2), 0, -Math.cos(P.yaw + Math.PI / 2));
+      shot(pp.clone().addScaledVector(side, 17).add(new THREE.Vector3(0, C.land < 0 ? 4 : 5, 0)), pp.clone().add(new THREE.Vector3(0, C.land < 0 ? 3 : 2, 0)), dt, 2.2);
+      if (C.land > 0 && t - C.land > 3.4) { if (C.ir) scene.remove(C.ir.g); C.ir = null; end(); }
+    }
+  }
   function upGrab(dt) {
     const D = d, s = D.s, R = D.R, tp = new THREE.Vector3(s.x, 0, s.z);
     if (!D.held) {
@@ -4533,16 +4575,17 @@ const CUT = (() => {
       else {
         if (!D.away) { D.away = true; R.awayYaw = Math.atan2(-(D.side), -(-.4)); SFX.spinup(); if (D.mina) { VO.say('jin', 'ミナ！！くそっ、待ちやがれ！'); setTimeout(() => VO.say('ren', '撃つな！ミナに当たる！'), 1400); } else VO.say('jin', 'あいつ、輸送車を持っていきやがった！'); }
         R.yaw += clamp(wrapA(R.awayYaw - R.yaw), -3 * dt, 3 * dt);
-        R.spd = Math.min(32, R.spd + 30 * dt); R.x += -Math.sin(R.yaw) * R.spd * dt; R.z += -Math.cos(R.yaw) * R.spd * dt;
-        R.y = Math.min(9, R.y + dt * 6); stepR(R, dt, 0, 0);
+        R.spd = Math.min(D.mina ? 36 : 32, R.spd + 30 * dt); R.x += -Math.sin(R.yaw) * R.spd * dt; R.z += -Math.cos(R.yaw) * R.spd * dt;
+        R.y = Math.min(D.mina ? 16 : 9, R.y + dt * 6); stepR(R, dt, 0, 0);
         if (Math.random() < .6) addPart({ pos: new THREE.Vector3(R.x, R.y + 3, R.z), color: 0xffb070, add: true, s0: 1, s1: 2.5, life: .25, vel: new THREE.Vector3(0, -12, 0) });
       }
       // the truck hangs from the machine's arms
       s.g.position.set(R.x - Math.sin(R.yaw) * 3, R.y + 4.5, R.z - Math.cos(R.yaw) * 3); s.g.rotation.set(.25, R.yaw, Math.sin(t * 6) * .05); s.x = s.g.position.x; s.z = s.g.position.z;
+      if (D.mina && k > 1.7) { chase(dt, k, R); return; }
       const rp = new THREE.Vector3(R.x, 0, R.z);
       shot(rp.clone().add(new THREE.Vector3(-D.side * 14, 9 + R.y * .6, 17)), rp.clone().setY(5 + R.y * .7), dt, 1.6);
-      if (k > 1.4 && !D.c2) { D.c2 = true; if (D.mina) caption('ミナが、車ごと連れ去られた……', 'LOST'); else { caption('輸送車が奪われた！', 'LOST'); say('cmd', 'くそっ……1両奪われた！残りを守れ！'); } }
-      if (k > (D.mina ? 5.6 : 4.6)) end();
+      if (k > 1.4 && !D.c2) { D.c2 = true; if (D.mina) caption('ミナを乗せた車が連れ去られる！', 'ALERT'); else { caption('輸送車が奪われた！', 'LOST'); say('cmd', 'くそっ……1両奪われた！残りを守れ！'); } }
+      if (k > (D.mina ? 14 : 4.6)) end();
     }
   }
   function update(dt) {
