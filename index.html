@@ -543,6 +543,63 @@ const BGM = (() => {
       }
     }
   }
+  // ---- hard rock: distorted power chords, bass, real kit, a screaming lead ----
+  const GCH = new WeakMap();
+  function amp(kind) {      // guitar amp chain per playing track: drive -> mids -> cabinet roll-off
+    const key = g; let m = GCH.get(key); if (!m) { m = {}; GCH.set(key, m); }
+    if (m[kind]) return m[kind];
+    const inp = ctx.createGain(), sh = ctx.createWaveShaper(), N = 2048, c = new Float32Array(N), drive = kind === 'lead' ? 14 : 10;
+    for (let i = 0; i < N; i++) { const x = i / N * 2 - 1; c[i] = Math.tanh(x * drive) * .85; }
+    sh.curve = c; sh.oversample = '2x';
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = kind === 'lead' ? 180 : 85;
+    const mid = ctx.createBiquadFilter(); mid.type = 'peaking'; mid.frequency.value = kind === 'lead' ? 1400 : 750; mid.Q.value = .9; mid.gain.value = 5;
+    const cab = ctx.createBiquadFilter(); cab.type = 'lowpass'; cab.frequency.value = kind === 'lead' ? 4200 : 3300; cab.Q.value = .7;
+    const og = ctx.createGain(); og.gain.value = kind === 'lead' ? .075 : .12;
+    inp.connect(hp); hp.connect(sh); sh.connect(mid); mid.connect(cab); cab.connect(og); bus(og, kind === 'lead' ? .4 : .14, kind === 'lead' ? .3 : 0);
+    return m[kind] = inp;
+  }
+  function power(t, r, dur, k = 1, mute = false) {     // root + fifth + octave, double-tracked
+    const dst = amp('rhythm');
+    [0, 7, 12].forEach(iv => [-7, 7].forEach(dt => {
+      const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = n2f(r + iv); o.detune.value = dt;
+      const e = ctx.createGain(), a = (mute ? .16 : .26) * k, len = mute ? Math.min(dur, .11) : dur;
+      e.gain.setValueAtTime(.0001, t); e.gain.exponentialRampToValueAtTime(a, t + .004); e.gain.exponentialRampToValueAtTime(a * (mute ? .2 : .6), t + len * .7); e.gain.exponentialRampToValueAtTime(.0001, t + len);
+      if (mute) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 700; o.connect(f); f.connect(e); } else o.connect(e);
+      e.connect(dst); o.start(t); o.stop(t + len + .05);
+    }));
+  }
+  function lead(t, m, dur) {
+    const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(n2f(m) * .985, t); o.frequency.exponentialRampToValueAtTime(n2f(m), t + .05);
+    const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 5.8; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(n2f(m) * .012, t + Math.min(dur, .35)); lfo.connect(lg); lg.connect(o.frequency);
+    const e = ctx.createGain(); e.gain.setValueAtTime(.0001, t); e.gain.exponentialRampToValueAtTime(.3, t + .015); e.gain.setValueAtTime(.3, t + dur * .8); e.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(e); e.connect(amp('lead')); o.start(t); lfo.start(t); o.stop(t + dur + .05); lfo.stop(t + dur + .05);
+  }
+  const rkick = (t, k = 1) => { tone(t, 'sine', 150, 42, 1.05 * k, .32, .04); noise(t, 'lowpass', 2500, .7, .22 * k, .025, 0); };
+  const rsnare = (t, k = 1) => { noise(t, 'bandpass', 1900, .6, .62 * k, .24, .45); noise(t, 'highpass', 5000, .5, .18 * k, .14, .3); tone(t, 'triangle', 210, 150, .3 * k, .09, .25); };
+  const hat = (t, open = false, k = 1) => noise(t, 'highpass', 7500, .7, (open ? .09 : .065) * k, open ? .28 : .035, .08);
+  const crash = (t, k = 1) => { noise(t, 'highpass', 4200, .4, .16 * k, 1.8, .45); noise(t, 'bandpass', 9000, 1, .06 * k, 1.2, .4); };
+  const RIFF = ['O', 0, 'm', 0, 'm', 'm', 'O', 0, 'm', 0, 'm', 'm', 'O', 0, 'm', 'm'];
+  const VERSE = [40, 36, 38, 35], CHORUS = [40, 43, 38, 36];                       // E C D B  /  E G D C
+  const SOLO = [[[0, 71, 4], [4, 74, 4], [8, 76, 6], [14, 74, 2]], [[0, 74, 4], [4, 71, 4], [8, 67, 8]], [[0, 69, 4], [4, 71, 2], [6, 74, 2], [8, 78, 8]], [[0, 76, 6], [6, 74, 2], [8, 72, 4], [12, 71, 4]]];
+  function rock(s16, t, sd, withLead) {
+    const s = s16 % 16, bar = Math.floor(s16 / 16), intro = bar < 2, chorus = !intro && Math.floor((bar - 2) / 4) % 2 === 1, r = (chorus ? CHORUS : VERSE)[bar % 4];
+    const fill = bar % 4 === 3 && s >= 12;
+    // drums
+    if (I >= 1 && !intro) {
+      if ((chorus ? [0, 2, 8, 10, 11] : [0, 3, 8, 10]).includes(s)) rkick(t);
+      if (!fill && (s === 4 || s === 12)) rsnare(t);
+      if (fill) { rsnare(t, .55 + (s - 12) * .15); if (s === 15) rkick(t, .8); }
+      if (s % 2 === 0) hat(t, chorus && s === 14, s % 4 === 0 ? 1 : .7);
+      if (s === 0 && (bar % 4 === 0 || bar === 2)) crash(t);
+    } else if (intro && s % 4 === 0) { hat(t, false, .8); if (bar === 1 && s >= 8) rsnare(t, .5 + s / 40); }
+    // rhythm guitar
+    if (chorus) { if (s === 0 || s === 8) power(t, r + 12, sd * 7.5, 1.05); else if (s % 2 === 1 && I >= 2) power(t, r + 12, sd, .6, true); }
+    else { const p = RIFF[s]; if (p === 'O') power(t, r + 12, sd * 2, 1); else if (p === 'm') power(t, r + 12, sd, .9, true); }
+    // bass locks to the kick and roots
+    if (!intro && s % 2 === 0) synth(t, n2f(r + (s === 6 || s === 14 ? 12 : 0)), sd * 1.7, { type: 'sawtooth', amp: .13, cut: 280, cutEnv: 700, q: 2, att: .004, wet: 0 });
+    // lead over the chorus
+    if (withLead && chorus && I >= 2) for (const [st, m, len] of SOLO[bar % 4]) if (st === s) lead(t, m, sd * len * .97);
+  }
   const TRACKS = {
     title: { bpm: 76, vol: .9, fn(s16, t, sd) {
       const s = s16 % 16, bar = Math.floor(s16 / 16), c = PROG[bar % 4];
@@ -551,8 +608,9 @@ const BGM = (() => {
       if (s === 6 || s === 14) synth(t, n2f(c.ch[(bar + s) % 3] + 36), sd * 2, { type: 'sine', amp: .03, cut: 5000, cutEnv: 0, q: 1, wet: .6, echo: .6 });
       if (s === 8 && bar % 2 === 1) tone(t, 'sine', 1600, 400, .02, 1.2, .7);
     } },
-    movie: { bpm: 112, vol: 1, fn(s16, t, sd) { battle(s16, t, sd, false); } },
-    battle: { bpm: 124, vol: .8, fn(s16, t, sd) { battle(s16, t, sd, true); } },
+    movie: { bpm: 140, vol: .95, fn(s16, t, sd) { rock(s16, t, sd, true); } },
+    battle: { bpm: 152, vol: .85, fn(s16, t, sd) { rock(s16, t, sd, true); } },
+    orch: { bpm: 124, vol: .8, fn(s16, t, sd) { battle(s16, t, sd, true); } },
     cockpit: { bpm: 64, vol: .6, fn(s16, t, sd) {
       const s = s16 % 16, bar = Math.floor(s16 / 16), c = PROG[Math.floor(bar / 2) % 4];
       if (s === 0 && bar % 2 === 0) { pad(t, c.ch, sd * 32 * 1.03, .028, 420); synth(t, n2f(c.r - 12), sd * 31, { amp: .09, cut: 70, cutEnv: 100, q: 2, att: 1.2, wet: .2 }); }
@@ -658,7 +716,7 @@ function resetPlayer() {
   if (S.viewSave) { S.view = S.viewSave; S.viewSave = null; }
   Object.assign(P, { x: 0, z: 0, yaw: 0, spd: 0, turn: 0, thr: 0, ty: 0, tp: 0, tyT: 0, tpT: 0, armor: 100, heat: 0, over: false,
     main: 6, mainRes: 24, reload: 0, sub: 400, mgCd: 0, mainCd: 0, mgN: 0, phase: 0, stepN: 0, side: 1,
-    gy: 0, bobY: 0, bobV: 0, kick: 0, kickV: 0, trauma: 0, glitch: 0, flash: 0, dead: false, hits: [], servo: 0, bumpCd: 0, fired: 0, hitsLanded: 0,
+    gy: 0, fallX: 0, fallZ: 0, knock: false, kbx: 0, kbz: 0, tumble: 0, bobY: 0, bobV: 0, kick: 0, kickV: 0, trauma: 0, glitch: 0, flash: 0, dead: false, hits: [], servo: 0, bumpCd: 0, fired: 0, hitsLanded: 0,
     brl: 0, mgSpin: 0, vel: new THREE.Vector3(), pitchS: 0, cat: 0, onDeck: true, crouch: .22, acc: 0, lastSpd: 0, lean: 0, y: 0, vy: 0, thrust: 0, fuel: 100, fuelCd: 0, jetT: 0, fuelWarn: false, aimO: new THREE.Vector3(0, 7.9, 0), aimD: new THREE.Vector3(0, 0, -1) });
   if (window.__dropPlace) window.__dropPlace();
 }
@@ -1551,11 +1609,12 @@ function updateMech(dt) {
   P.lean = -clamp(P.spd * .01 + P.acc * .03, -.12, .16);
   r.position.set(P.x + Math.cos(P.yaw) * G.sway, P.y + P.bobY * .55 - P.crouch, P.z - Math.sin(P.yaw) * G.sway);
   r.rotation.set(P.lean, P.yaw, -G.sway * .05);
+  if (P.fallX || P.fallZ) { r.rotation.x += P.fallX || 0; r.rotation.z += P.fallZ || 0; }
   const fly = S.mode === 'space' && !P.onDeck;
   if (fly) { r.position.set(P.x, P.y, P.z); r.rotation.set(P.pitchS, P.yaw, -P.turn * .35); P.crouch = 0; }
   r.updateMatrixWorld(true);
   if (fly) { flightPose(ME.legs, T); G.airborne = true; }
-  else if (P.y - gy > .3) {
+  else if (P.y - gy > .3 || P.knock) {
     G.airborne = true;
     const k = Math.min(1, dt * 5);
     ME.legs.forEach((l, i) => { l.thigh.rotation.z = 0; l.foot.rotation.z = 0; l.thigh.rotation.x += ((i ? .45 : .2) - l.thigh.rotation.x) * k; l.knee.rotation.x += ((i ? -.9 : -.5) - l.knee.rotation.x) * k; l.foot.rotation.x = -(l.thigh.rotation.x + l.knee.rotation.x) * .6; });
@@ -3064,14 +3123,16 @@ function updateEnemies(dt) {
       want = Math.atan2(-(e.wx - e.x), -(e.wz - e.z)); spd = battle ? 4 : 3;
     }
     if (e.saved) { spd = 0; want = e.yaw; }
+    if (e.cutHold) { spd = e.cutSpd || 0; want = e.cutYaw ?? e.yaw; }
     const dYaw = wrapA(want - e.yaw);
     e.yaw += clamp(dYaw, -.5 * dt, .5 * dt);
     e.spd += clamp(spd * (Math.abs(dYaw) > 1 ? .3 : 1) - e.spd, -2 * dt, 2 * dt);
     e.x += -Math.sin(e.yaw) * e.spd * dt; e.z += -Math.cos(e.yaw) * e.spd * dt;
+    if (e.boss && e.kind && !e.cutHold) bossMoves(e, dt);
     for (const o of obstacles) { const ox = e.x - o.x, oz = e.z - o.z, d = Math.hypot(ox, oz), m = o.r + 4.5; if (d < m && d > .01) { e.x = o.x + ox / d * m; e.z = o.z + oz / d * m; e.wx = rand(-200, 200); e.wz = rand(-300, 0); } }
     {
       const G = e.gait, evx = -Math.sin(e.yaw) * e.spd, evz = -Math.cos(e.yaw) * e.spd;
-      e.g.position.set(e.x + Math.cos(e.yaw) * G.sway, -.18 - Math.min(1, Math.abs(e.spd) / 4.5) * .3, e.z - Math.sin(e.yaw) * G.sway);
+      e.g.position.set(e.x + Math.cos(e.yaw) * G.sway, (e.y || 0) - .18 - Math.min(1, Math.abs(e.spd) / 4.5) * .3, e.z - Math.sin(e.yaw) * G.sway);
       e.g.rotation.set(-e.spd * .016, e.yaw, -G.sway * .06);
       e.g.updateMatrixWorld(true);
       gaitStep(G, dt, e.x, e.z, e.yaw, evx, evz, () => { if (hd < 160) { const k = clamp(1 - hd / 160, 0, 1); SFX.step(.12 + k * .35); if (S.phase === 'op' && hd < 45) P.trauma = Math.min(1, P.trauma + .1 * k); } });
@@ -4030,7 +4091,7 @@ function spawnBoss(kind) {
   NEXT_BOSS = kind; if (land) spawnEnemy(0, -520, Math.PI, 0, -120); else spawnEnemy(0, -720, Math.PI, 0, -220, 80); NEXT_BOSS = null;
   const e = enemies[enemies.length - 1]; S.spawned--;
   const sc = kind === 'goliath' ? 2.3 : 1.55;
-  e.g.scale.setScalar(sc); e.cy = E_CY * sc; e.r = E_R * sc; e.boss = true; e.hp = e.max = kind === 'goliath' ? 1900 : 1300; e.spdK = kind === 'goliath' ? .7 : 1.9;
+  e.g.scale.setScalar(sc); e.cy = E_CY * sc; e.r = E_R * sc; e.boss = true; e.kind = kind; e.hp = e.max = kind === 'goliath' ? 1900 : 1300; e.spdK = kind === 'goliath' ? .7 : 1.9;
   e.name = kind === 'goliath' ? '〈ゴリアテ〉' : '〈ファントム〉';
   if (land) e.gait = makeGait(e.g, e.legs, { hipX: [1.5, -1.5], hipY: 4.2, l1: 1.9, l2: 1.8, ankle: .5, lift: .7 * sc, sway: .2 * sc, scale: sc });
   BGM.impact(); P.trauma = Math.max(P.trauma, .6);
@@ -4039,11 +4100,11 @@ function spawnBoss(kind) {
 
 /* --- the mission director --- */
 const MIS = (() => {
-  let m = null, t = 0, evI = 0, done = false, stage = 0, boss = null, bossSpawned = false, half = false, wp = 0, arrived = 0, lost = 0, base = null, reinT = 0, bigT = 0, ambT = 0;
+  let grabbed = false, m = null, t = 0, evI = 0, done = false, stage = 0, boss = null, bossSpawned = false, half = false, wp = 0, arrived = 0, lost = 0, base = null, reinT = 0, bigT = 0, ambT = 0;
   const ui = $('#obj'), uiT = { v: 0 };
   function prepare() {
     m = STORY.m; if (typeof tut !== 'undefined') { tut.step = 0; tut.started = false; } ENEMY_TOTAL = Math.round(m.total * 2.6); FIRST_WAVE = Math.round(m.first * 2);   // bigger battles everywhere
-    clearMissionObjects(); t = 0; evI = 0; done = false; stage = 0; boss = null; bossSpawned = false; half = false; wp = 0; arrived = 0; lost = 0; base = null; reinT = 20; bigT = 60; ambT = 16;
+    clearMissionObjects(); t = 0; evI = 0; done = false; grabbed = false; stage = 0; boss = null; bossSpawned = false; half = false; wp = 0; arrived = 0; lost = 0; base = null; reinT = 20; bigT = 60; ambT = 16;
   }
   function setup() {
     const o = m.obj;
@@ -4135,7 +4196,7 @@ const MIS = (() => {
       if (left === 0) { if (structs.some(s => s.alive && !s.friendly)) { stage++; if (m.stage) say(m.stage[0], m.stage[1]); } else win(); }
       const core = structs.find(s => s.stage > 0 && s.alive && s.kind === 'core'); if (core && !half && core.hp < core.max / 2 && m.half) { half = true; say(m.half[0], m.half[1]); }
     } else if (o.type === 'boss') {
-      if (!bossSpawned && t >= o.at) { bossSpawned = true; boss = spawnBoss(o.boss); if (o.rescue) { boss.rescue = true; boss.name = '〈被験体M〉'; } }
+      if (!bossSpawned && t >= o.at) { bossSpawned = true; boss = spawnBoss(o.boss); if (o.rescue) { boss.rescue = true; boss.name = m.act >= 14 ? '〈被験体S〉' : '〈被験体M〉'; } CUT.boss(boss); }
       if (boss && boss.saved) { boss.savedT = (boss.savedT || 0) + dt; if (boss.savedT > 3) win(); }
       if (boss && !half && boss.hp < boss.max / 2 && m.half) { half = true; say(m.half[0], m.half[1]); }
       if (boss && !boss.alive) win();
@@ -4153,6 +4214,7 @@ const MIS = (() => {
         }
       }
     } else if (o.type === 'escort') {
+      if (!grabbed && t > 26) { const tr = structs.filter(q => q.kind === 'truck' && q.alive && !q.home); if (tr.length >= 2) { grabbed = true; CUT.grab(tr[(Math.random() * tr.length) | 0], () => { lost++; }); } else if (t > 60) grabbed = true; }
       if (arrived >= 1 && structs.every(s => s.kind !== 'truck' || !s.alive || s.home)) win();
       else if (lost >= o.n) fail('輸送車が全滅した');
     } else if (o.type === 'waypoints') {
@@ -4300,6 +4362,238 @@ function beginMission(i) {
   if (S.phase === 'title') MOV.ignite(STORY.m.mode); else resetSortie();
 }
 
+/* ================= CUTSCENES: boss entrances and story moments ================= */
+const CUT = (() => {
+  let on = false, t = 0, kind = '', d = null, done = null, saveView = null, mgT = 0;
+  const cine = $('#cine'), cap = $('#cap'), skipB = $('#movieSkip');
+  const CP = new THREE.Vector3(), CL = new THREE.Vector3(), LK = new THREE.Vector3(), V = new THREE.Vector3();
+  const ez = k => k * k * (3 - 2 * k), seg = (a, b) => clamp((t - a) / (b - a), 0, 1);
+  const concrete = std(0x8d877a, .9, .05), rebar = std(0x5a4f44, .6, .5);
+  function caption(text, tag) { cap.classList.remove('on'); clearTimeout(caption.t); if (text) caption.t = setTimeout(() => { cap.innerHTML = (tag ? `<small>${tag}</small>` : '') + text; cap.classList.add('on'); }, 150); }
+  function begin(k, data, cb) {
+    if (on || S.phase !== 'op' || P.dead) return false;
+    on = true; t = 0; kind = k; d = data; done = cb; mgT = 0; S.phase = 'cut';
+    saveView = S.view; S.view = 'tp';
+    cine.hidden = false; document.body.classList.add('cine'); skipB.style.display = 'none';
+    $('#controls').hidden = true; $('#hint').hidden = true; $('#obj').style.visibility = 'hidden';
+    for (const q in keys) keys[q] = false; btn.l = btn.r = btn.sub = btn.jump = false;
+    P.thr = 0; P.kbx = P.kbz = 0; P.tumble = 0;
+    camera.near = .1; camera.updateProjectionMatrix(); CP.copy(camera.position);
+    window.dispatchEvent(new Event('resize'));
+    return true;
+  }
+  function end() {
+    on = false; S.phase = 'op'; S.view = saveView || S.view; caption('');
+    cine.hidden = true; document.body.classList.remove('cine'); skipB.style.display = '';
+    $('#controls').hidden = false; $('#obj').style.visibility = ''; P.knock = false; P.fallX = P.fallZ = 0; P.vy = 0; P.y = Math.max(0, P.y); P.spd = 0;
+    if (d && d.wall) { const w = d.wall; setTimeout(() => scene.remove(w), 9000); }
+    if (d && d.boss) { d.boss.cutHold = false; d.boss.alert = true; d.boss.cd = 1.5; }
+    camera.near = .5; camera.updateProjectionMatrix(); window.dispatchEvent(new Event('resize'));
+    const f = done; done = null; if (f) f();
+  }
+  const fwd = () => V.set(-Math.sin(P.yaw), 0, -Math.cos(P.yaw)).clone();
+  const right = () => new THREE.Vector3(Math.cos(P.yaw), 0, -Math.sin(P.yaw));
+  function shot(cp, cl, dt, k = 3) { CP.lerp(cp, Math.min(1, dt * k)); camera.position.copy(CP); LK.lerp(cl, Math.min(1, dt * k * 1.4)); camera.lookAt(LK); }
+  function shake(dt) { const s = P.trauma * P.trauma; if (s > .001) { camera.position.x += rand(-1, 1) * s * .9; camera.position.y += rand(-1, 1) * s * .6; } P.trauma = Math.max(0, P.trauma - dt * .9); }
+  function gatling(dt) {
+    mgT -= dt; if (mgT > 0) return; mgT = .06;
+    ME.root.updateMatrixWorld(true); const from = ME.mSub.getWorldPosition(new THREE.Vector3());
+    const to = from.clone().add(fwd().multiplyScalar(140)).add(new THREE.Vector3(rand(-3, 3), rand(-2, 2), rand(-3, 3)));
+    const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints([from, to]), trMat); scene.add(l); tracers.push({ l, t: .05 });
+    addPart({ pos: from, color: 0xffd080, add: true, s0: .9, s1: 2, life: .06 });
+    if (Math.random() < .5) addPart({ pos: to.setY(.5), color: 0x9a8a6c, op: .5, s0: 1, s1: 3, life: .6, vel: new THREE.Vector3(0, 2, 0) });
+    sNoise({ dur: .05, type: 'bandpass', f: 1500, q: .8, gain: .25 });
+  }
+  function wallFor(at, yaw) {
+    const w = new THREE.Group(); w.position.copy(at); w.rotation.y = yaw; scene.add(w);
+    part(cb(18, 11, 2.4, .2), concrete, 0, 5.5, 0, w); part(cb(18.6, .9, 2.8, .2), concrete, 0, 11.2, 0, w);
+    for (let i = -3; i <= 3; i++) cylY(.12, .12, 11, rebar, i * 2.6, 5.5, 1.25, w, 6);
+    w.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    return w;
+  }
+  function crash(at, n = 26) {
+    for (let i = 0; i < n; i++) addPart({ geo: boxGeo, rot: true, pos: at.clone().add(new THREE.Vector3(rand(-3, 3), rand(0, 6), rand(-3, 3))), color: Math.random() < .7 ? 0x8d877a : 0x5a4f44, s0: rand(.4, 1.3), life: rand(1.5, 2.6), grav: 26, spin: rand(3, 9), vel: new THREE.Vector3(rand(-9, 9), rand(4, 14), rand(-9, 9)) });
+    for (let i = 0; i < 10; i++) addPart({ pos: at.clone().add(new THREE.Vector3(rand(-4, 4), rand(0, 5), rand(-4, 4))), color: 0x9a8f7c, op: .6, s0: 2.5, s1: 9, life: 2.4, vel: new THREE.Vector3(rand(-2, 2), rand(1, 3), rand(-2, 2)) });
+    sTone({ f: 70, f2: 28, dur: .9, gain: .9 }); sNoise({ dur: .9, f: 900, f2: 120, gain: .8 }); buzz([180, 50, 120]);
+  }
+  function knockPose(dt, fx, fz, rate = 3) { P.fallX += (fx - (P.fallX || 0)) * Math.min(1, dt * rate); P.fallZ += (fz - (P.fallZ || 0)) * Math.min(1, dt * rate); }
+  function sparks(at) { for (let i = 0; i < 4; i++) addPart({ pos: at.clone(), color: Math.random() < .7 ? 0xfff0b0 : 0x9fd8ff, add: true, s0: .15, s1: .02, life: .5, grav: 18, vel: new THREE.Vector3(rand(-1, 1), rand(.5, 1.5), rand(-1, 1)).multiplyScalar(8) }); }
+  function reveal(e) {
+    BGM.impact(); P.trauma = Math.max(P.trauma, .5);
+    boomLight.position.set(e.x, (e.cy || E_CY) + 4, e.z); boomLight.intensity = 6;
+    sTone({ f: 90, f2: 40, dur: 1.6, type: 'sawtooth', gain: .25 }); sNoise({ dur: 1.4, f: 600, f2: 150, gain: .5 });
+    caption(`${e.name || 'ボス'} 出現`, 'WARNING ─ 大型反応');
+    VO.ai('警告。大型機を確認。……来ます！', 'high');
+  }
+
+  // --- boss entrance 1: heavy artillery machine. Shelled mid-burst, thrown into a wall, gets up, the giant walks out of the smoke
+  function bossShell(e) {
+    const f = fwd(), b = f.clone().negate(), r = right();
+    const wallAt = new THREE.Vector3(P.x, 0, P.z).addScaledVector(b, 19);
+    if (S.phase !== 'op' || P.dead) return;
+    if (!begin('shell', { boss: e, f, b, r, x0: P.x, z0: P.z, wall: wallFor(wallAt, P.yaw), wallAt, vb: 0, hit: false, imp: false, rv: false })) return;
+    e.cutHold = true; e.cutSpd = 0; e.alert = false; e.cd = 9;
+    e.x = P.x + f.x * 95; e.z = P.z + f.z * 95; e.yaw = Math.atan2(-(P.x - e.x), -(P.z - e.z)); e.cutYaw = e.yaw; e.gait.init = false;
+  }
+  function upShell(dt) {
+    const D = d, e = D.boss, base = new THREE.Vector3(P.x, 0, P.z);
+    if (t < 1.6) { P.spd = 0; gatling(dt); P.flash = .3; shot(base.clone().addScaledVector(D.r, 13).addScaledVector(D.b, 3).setY(7), base.clone().addScaledVector(D.f, 18).setY(6), dt); }
+    if (t > .9 && !D.wh) { D.wh = true; sTone({ f: 2200, f2: 300, dur: .7, type: 'sine', gain: .12 }); }
+    if (t > 1.6 && !D.imp) { D.imp = true; explosion(base.clone().addScaledVector(D.f, 4).addScaledVector(D.r, 3).setY(2), 4.5); P.knock = true; D.vb = 26; P.vy = 7; P.trauma = 1; P.glitch = .6; buzz([250, 80, 200]); VO.ai('被弾！', 'high'); }
+    if (D.imp && !D.hit) {
+      P.x += D.b.x * D.vb * dt; P.z += D.b.z * D.vb * dt; P.vy -= 20 * dt; P.y = Math.max(0, P.y + P.vy * dt); knockPose(dt, .6, .1, 6);
+      if (Math.hypot(P.x - D.x0, P.z - D.z0) > 12.8) { D.hit = true; D.vb = 0; crash(D.wallAt.clone().setY(4)); P.trauma = 1; D.wall.children[0].scale.y = .45; D.wall.children[0].position.y = 2.6; D.wall.children[1].visible = false; D.wall.rotation.x = .12; }
+    }
+    if (D.imp) shot(base.clone().addScaledVector(D.r, 15).addScaledVector(D.f, 6).setY(6), base.clone().setY(4), dt, 2.5);
+    if (D.hit && t < 4.2) { P.vy -= 20 * dt; P.y = Math.max(0, P.y + P.vy * dt); knockPose(dt, .8, .15, 4); if (Math.random() < dt * 6) sparks(base.clone().setY(3)); }
+    if (t > 3 && !D.v1) { D.v1 = true; VO.ai('機体、損傷軽微。……立ち上がります！'); }
+    if (t >= 4.2) { const k = ez(seg(4.2, 5.4)); P.fallX = .8 * (1 - k); P.fallZ = .15 * (1 - k); P.crouch = 1.1 - .8 * k; if (k >= 1) P.knock = false; }
+    if (t > 5) {
+      if (!D.rv) { D.rv = true; e.cutSpd = 4; reveal(e); }
+      shot(base.clone().addScaledVector(D.b, 12).addScaledVector(D.r, 5).setY(9), new THREE.Vector3(e.x, (e.cy || E_CY) + 2, e.z), dt, 1.8);
+    }
+    if (t > 8.6) end();
+  }
+
+  // --- boss entrance 2: fast assault machine. Walking, it rams in from the side and sends you tumbling
+  function bossRam(e) {
+    const f = fwd(), r = right(), side = Math.random() < .5 ? 1 : -1;
+    if (!begin('ram', { boss: e, f, r, side, imp: false, land: false, rv: false, dir: null })) return;
+    e.cutHold = true; e.cutSpd = 0; e.alert = false; e.cd = 9;
+    e.x = P.x + r.x * side * 120 + f.x * 25; e.z = P.z + r.z * side * 120 + f.z * 25; e.y = 3; e.gait.init = false;
+  }
+  function upRam(dt) {
+    const D = d, e = D.boss, base = new THREE.Vector3(P.x, 0, P.z);
+    if (!D.imp) {
+      P.spd = 5; P.x += D.f.x * 5 * dt; P.z += D.f.z * 5 * dt;
+      shot(base.clone().addScaledVector(D.f, 15).addScaledVector(D.r, -7 * D.side).setY(6), base.clone().setY(6), dt);
+      if (t > .9) {
+        if (!D.dir) { D.dir = new THREE.Vector3(P.x - e.x, 0, P.z - e.z).normalize(); sNoise({ dur: 1, f: 300, f2: 3000, gain: .5 }); sTone({ f: 200, f2: 900, dur: .9, type: 'sawtooth', gain: .08 }); }
+        e.x += D.dir.x * 75 * dt; e.z += D.dir.z * 75 * dt; e.yaw = Math.atan2(-D.dir.x, -D.dir.z); e.cutYaw = e.yaw;
+        addPart({ pos: new THREE.Vector3(e.x, 5, e.z), color: 0x9fd8ff, add: true, s0: 1.4, s1: .2, life: .35 });
+        if (Math.hypot(P.x - e.x, P.z - e.z) < 8) {
+          D.imp = true; D.it = t; P.knock = true; P.spd = 0; D.kv = D.dir.clone().multiplyScalar(26); P.vy = 9; P.trauma = 1; P.glitch = .5;
+          explosion(new THREE.Vector3(P.x, 6, P.z), 2.5); sTone({ f: 80, f2: 30, dur: .8, gain: 1 }); sNoise({ dur: .6, f: 1500, f2: 200, gain: .8 }); buzz([300, 60, 200]); VO.ai('衝突！', 'high');
+        }
+      }
+    } else {
+      if (!D.land) {
+        P.x += D.kv.x * dt; P.z += D.kv.z * dt; P.vy -= 22 * dt; P.y += P.vy * dt; P.yaw += 5 * dt * D.side; knockPose(dt, .3, 1.25 * D.side, 5);
+        if (P.y <= 0) { D.land = true; P.y = 0; crash(new THREE.Vector3(P.x, 1, P.z), 12); P.trauma = 1; }
+      } else if (t < 3.9) { D.kv.multiplyScalar(Math.exp(-4 * dt)); P.x += D.kv.x * dt; P.z += D.kv.z * dt; if (Math.random() < dt * 8) addPart({ pos: new THREE.Vector3(P.x, .5, P.z), color: 0x9a8a6c, op: .5, s0: 1.5, s1: 5, life: 1.2, vel: new THREE.Vector3(0, 1.5, 0) }); }
+      // boss overshoots, brakes and turns back
+      if (!D.stop) { const sp = Math.max(0, 75 - (t - D.it) * 60); e.x += D.dir.x * sp * dt; e.z += D.dir.z * sp * dt; if (sp <= 0) { D.stop = true; } }
+      else { const w = Math.atan2(-(P.x - e.x), -(P.z - e.z)); e.yaw += clamp(wrapA(w - e.yaw), -2 * dt, 2 * dt); e.cutYaw = e.yaw; e.y = Math.max(0, (e.y || 0) - dt * 2); }
+      shot(base.clone().addScaledVector(D.r, 14 * D.side).addScaledVector(D.f, 8).setY(7), base.clone().setY(3), dt, 2.5);
+      if (t > 3.9) { const k = ez(seg(3.9, 5.1)); P.fallX = .3 * (1 - k); P.fallZ = 1.25 * D.side * (1 - k); P.crouch = 1.1 - .8 * k; if (k >= 1) P.knock = false; }
+      if (t > 4.6) {
+        if (!D.rv) { D.rv = true; const dv = new THREE.Vector3(e.x - P.x, 0, e.z - P.z), dl = dv.length() || 1; if (dl < 44) { e.x = P.x + dv.x / dl * 44; e.z = P.z + dv.z / dl * 44; e.gait.init = false; } e.y = 0; reveal(e); P.yaw = Math.atan2(-(e.x - P.x), -(e.z - P.z)); }
+        const bb = new THREE.Vector3(P.x - e.x, 0, P.z - e.z).normalize();
+        const eb = new THREE.Vector3(e.x, 0, e.z); shot(eb.clone().add(new THREE.Vector3(bb.x * 16 - bb.z * 7, 4.5, bb.z * 16 + bb.x * 7)), new THREE.Vector3(e.x, (e.cy || E_CY) + 1.5, e.z), dt, 2.2);
+      }
+      if (t > 8) { e.y = 0; end(); }
+    }
+    if (t > 5 && !D.imp) end();   // safety: never hang if the boss misses
+  }
+
+  // --- story: an enemy machine snatches an escort truck and runs off with it
+  function grab(s, onLost) {
+    if (!s || !s.g) { if (onLost) onLost(); return; }
+    const side = s.x < 0 ? -1 : 1, rd = makeEnemy();
+    rd.gait = makeGait(rd.g, rd.legs, { hipX: [1.5, -1.5], hipY: 4.2, l1: 1.9, l2: 1.8, ankle: .5, lift: .7, sway: .2 });
+    const R = { ...rd, x: s.x + side * 46, z: s.z - 14, y: 0, yaw: 0, spd: 0 };
+    R.yaw = Math.atan2(-(s.x - R.x), -(s.z - R.z));
+    if (!begin('grab', { s, R, side, held: false }, () => { scene.remove(R.g); if (s.alive) { s.alive = false; s.grabbed = true; scene.remove(s.g); if (onLost) onLost(); } })) scene.remove(R.g);
+  }
+  function stepR(R, dt, vx, vz) {
+    const G = R.gait; R.g.position.set(R.x + Math.cos(R.yaw) * G.sway, R.y - .18 - Math.min(1, Math.abs(R.spd) / 4.5) * .3, R.z - Math.sin(R.yaw) * G.sway);
+    R.g.rotation.set(-R.spd * .012, R.yaw, -G.sway * .06); R.g.updateMatrixWorld(true);
+    if (R.y > .3) { R.legs.forEach((l, i) => { l.thigh.rotation.x = i ? .5 : .25; l.knee.rotation.x = i ? -1 : -.6; }); G.init = false; }
+    else { gaitStep(G, dt, R.x, R.z, R.yaw, vx, vz, () => sTone({ f: 70, f2: 40, dur: .2, gain: .25 })); solveLegs(G); }
+  }
+  function upGrab(dt) {
+    const D = d, s = D.s, R = D.R, tp = new THREE.Vector3(s.x, 0, s.z);
+    if (!D.held) {
+      const dx = s.x - R.x, dz = s.z - R.z, dist = Math.hypot(dx, dz);
+      R.yaw = Math.atan2(-dx, -dz); R.spd = Math.min(14, dist * 2);
+      if (dist > 5.5) { R.x += dx / dist * R.spd * dt; R.z += dz / dist * R.spd * dt; }
+      stepR(R, dt, dist > 5.5 ? dx / dist * R.spd : 0, dist > 5.5 ? dz / dist * R.spd : 0);
+      shot(tp.clone().add(new THREE.Vector3(-D.side * 22, 11, 26)), tp.clone().setY(3).add(new THREE.Vector3(D.side * 6, 0, 0)), dt, 2);
+      if (t > .6 && !D.c1) { D.c1 = true; say('cmd', '輸送車に敵機が接近している！'); }
+      if (dist <= 5.5 || t > 3.2) { D.held = true; D.ht = t; SFX.clunk(); sTone({ f: 140, f2: 60, dur: .4, type: 'square', gain: .2 }); P.trauma = .3; caption('輸送車が掴まれた！', 'ALERT'); }
+    } else {
+      const k = t - D.ht;
+      if (k < .7) { R.spd = 0; stepR(R, dt, 0, 0); }
+      else {
+        if (!D.away) { D.away = true; R.awayYaw = Math.atan2(-(D.side), -(-.4)); SFX.spinup(); VO.say('jin', 'あいつ、輸送車を持っていきやがった！'); }
+        R.yaw += clamp(wrapA(R.awayYaw - R.yaw), -3 * dt, 3 * dt);
+        R.spd = Math.min(32, R.spd + 30 * dt); R.x += -Math.sin(R.yaw) * R.spd * dt; R.z += -Math.cos(R.yaw) * R.spd * dt;
+        R.y = Math.min(9, R.y + dt * 6); stepR(R, dt, 0, 0);
+        if (Math.random() < .6) addPart({ pos: new THREE.Vector3(R.x, R.y + 3, R.z), color: 0xffb070, add: true, s0: 1, s1: 2.5, life: .25, vel: new THREE.Vector3(0, -12, 0) });
+      }
+      // the truck hangs from the machine's arms
+      s.g.position.set(R.x - Math.sin(R.yaw) * 3, R.y + 4.5, R.z - Math.cos(R.yaw) * 3); s.g.rotation.set(.25, R.yaw, Math.sin(t * 6) * .05); s.x = s.g.position.x; s.z = s.g.position.z;
+      const rp = new THREE.Vector3(R.x, 0, R.z);
+      shot(rp.clone().add(new THREE.Vector3(-D.side * 20, 12, 24)), rp.clone().setY(5), dt, 1.6);
+      if (k > 1.4 && !D.c2) { D.c2 = true; caption('輸送車が奪われた！', 'LOST'); say('cmd', 'くそっ……1両奪われた！残りを守れ！'); }
+      if (k > 4.6) end();
+    }
+  }
+  function update(dt) {
+    if (!on) return;
+    t += dt;
+    if (kind === 'shell') upShell(dt); else if (kind === 'ram') upRam(dt); else if (kind === 'grab') upGrab(dt); else end();
+    if (on) shake(dt);
+  }
+  function boss(e) { if (!e || S.phase !== 'op') return; (e.kind === 'phantom' ? bossRam : bossShell)(e); }
+  return { boss, grab, update, get on() { return on; } };
+})();
+
+/* ---------- boss fighting styles: the giant shells and stomps, the wraith charges and rams ---------- */
+function knockPlayer(dx, dz, power, roll = .4) {
+  const l = Math.hypot(dx, dz) || 1; P.kbx = dx / l * power; P.kbz = dz / l * power; P.tumble = .9; P.tumbleDir = Math.random() < .5 ? -1 : 1; P.tumbleK = roll; P.trauma = 1;
+}
+function bossMoves(e, dt) {
+  if (S.phase !== 'op' || e.saved || P.dead) return;
+  const dp = Math.hypot(P.x - e.x, P.z - e.z);
+  if (e.kind === 'goliath') {
+    e.barT = (e.barT ?? 7) - dt;
+    if (e.barT <= 0 && dp < 330) {
+      e.barT = rand(10, 14); say('砲撃警報！ 赤い印から離れろ', 'r', 2.2); SFX.alarm();
+      for (let i = 0; i < 4; i++) { const sx = (e.cy || E_CY) * 1.2; addPart({ pos: new THREE.Vector3(e.x + rand(-3, 3), sx + 3, e.z + rand(-3, 3)), color: 0xffb060, add: true, s0: 3, s1: 8, life: .25 }); }
+      sTone({ f: 60, f2: 25, dur: 1, gain: .6 });
+      for (let i = 0; i < 5; i++) {
+        const p = new THREE.Vector3(P.x + rand(-13, 13) - Math.sin(P.yaw) * P.spd * 1.4, .4, P.z + rand(-13, 13) - Math.cos(P.yaw) * P.spd * 1.4);
+        for (let k = 0; k < 6; k++) addPart({ pos: p.clone().add(new THREE.Vector3(Math.cos(k) * 4, 0, Math.sin(k) * 4)), color: 0xff3020, add: true, s0: 1.6, s1: 1.2, life: 1.7 });
+        setTimeout(() => {
+          if (S.phase !== 'op') return; explosion(p.clone().setY(1.5), 4);
+          const d = Math.hypot(P.x - p.x, P.z - p.z); if (d < 9 && !P.dead) { playerHit(p, 1.8); knockPlayer(P.x - p.x, P.z - p.z, 15); }
+        }, 1700 + i * 200);
+      }
+    }
+    e.stT = (e.stT ?? 3) - dt;
+    if (e.stT <= 0 && dp < 34) {
+      e.stT = 7; P.trauma = 1;
+      for (let i = 0; i < 24; i++) { const q = i / 24 * TAU; addPart({ pos: new THREE.Vector3(e.x + Math.cos(q) * 5, .6, e.z + Math.sin(q) * 5), color: 0x9a8a6c, op: .6, s0: 2, s1: 8, life: 1.5, vel: new THREE.Vector3(Math.cos(q) * 24, 1, Math.sin(q) * 24) }); }
+      sTone({ f: 45, f2: 20, dur: 1.2, gain: 1 }); sNoise({ dur: 1, f: 300, f2: 60, gain: .8 }); say('踏みつけ衝撃波！', 'r', 1.6);
+      playerHit(new THREE.Vector3(e.x, 2, e.z), 1.5); knockPlayer(P.x - e.x, P.z - e.z, 20);
+    }
+  } else if (e.kind === 'phantom') {
+    if (e.dash > 0) {
+      e.dash -= dt; e.x += e.dashDir.x * 52 * dt; e.z += e.dashDir.z * 52 * dt; e.yaw = Math.atan2(-e.dashDir.x, -e.dashDir.z);
+      addPart({ pos: new THREE.Vector3(e.x, 5, e.z), color: 0x9fd8ff, add: true, s0: 1.3, s1: .2, life: .3 });
+      if (!e.hitP && Math.hypot(P.x - e.x, P.z - e.z) < 8.5) { e.hitP = true; playerHit(new THREE.Vector3(e.x, 5, e.z), 2.2); knockPlayer(e.dashDir.x, e.dashDir.z, 24, .7); explosion(new THREE.Vector3(P.x, 6, P.z), 2); say('体当たりを受けた！', 'r', 1.6); }
+      return;
+    }
+    e.chT = (e.chT ?? 5) - dt;
+    if (e.chT <= 0 && dp < 260 && dp > 30) {
+      e.chT = rand(7, 10); e.dash = Math.min(1.6, dp / 52 + .4); e.hitP = false;
+      e.dashDir = new THREE.Vector3(P.x - e.x, 0, P.z - e.z).normalize();
+      say('高速接近！ 突進してくるぞ', 'r', 1.8); sNoise({ dur: .9, f: 400, f2: 3000, gain: .45 });
+    }
+  }
+}
+
 /* ================= INPUT ================= */
 const keys = {}; const btn = { l: false, r: false, sub: false, jump: false };
 addEventListener('keydown', e => {
@@ -4430,6 +4724,8 @@ function updatePlayer(dt) {
   P.turn += clamp(turnIn * maxT - P.turn, -.75 * ST.turn * dt, .75 * ST.turn * dt);
   P.yaw += P.turn * dt;
   P.x += -Math.sin(P.yaw) * P.spd * dt; P.z += -Math.cos(P.yaw) * P.spd * dt;
+  if (P.kbx || P.kbz) { P.x += P.kbx * dt; P.z += P.kbz * dt; const kk = Math.exp(-3.2 * dt); P.kbx *= kk; P.kbz *= kk; if (Math.hypot(P.kbx, P.kbz) < .4) P.kbx = P.kbz = 0; P.spd *= .9; }
+  if (P.tumble > 0) { P.tumble = Math.max(0, P.tumble - dt); const q = Math.sin(P.tumble / .9 * Math.PI); P.fallZ = q * (P.tumbleK || .4) * (P.tumbleDir || 1); P.fallX = q * .2; if (P.tumble === 0) P.fallX = P.fallZ = 0; }
   // jump jets: a heavy machine needs a moment to spool up before it leaves the ground
   const boostIn = ctl && (keys.shift || keys.j || btn.jump);
   const wantT = boostIn && P.fuel > 1 && !P.over ? 1 : 0;
@@ -4543,6 +4839,7 @@ function updateShells(dt) {
   for (let i = tracers.length - 1; i >= 0; i--) { const t = tracers[i]; t.t -= dt; if (t.t <= 0) { scene.remove(t.l); t.l.geometry.dispose(); tracers.splice(i, 1); } }
 }
 function playerHit(from, k = 1) {
+  if (S.phase === 'cut') return;
   const dmg = rand(8, 13) * k * (STORY.on ? STORY.m.dmgK || 1 : 1) * ST.armor; P.armor = Math.max(0, P.armor - dmg);
   P.trauma = 1; P.glitch = .45; P.kickV -= 1.2; P.spd *= .6; SFX.hit(); buzz([90, 40, 140]); VO.event('hit', () => VO.ai('被弾。'), 5);
   if (P.armor < 40 && !P.legWarn) { P.legWarn = true; VO.ai('警告。装甲、危険域。脚部に損傷。', 'high'); }
@@ -5140,13 +5437,13 @@ function frameBody(now) {
   QA.acc += dt; QA.n++;
   if (QA.acc > 2.5) { const a = QA.acc / QA.n; let d = QA.dpr; if (a > 1 / 42) d = Math.max(QA.min, d - .25); else if (a < 1 / 56) d = Math.min(QA.max, d + .25); if (d !== QA.dpr) { QA.dpr = d; renderer.setPixelRatio(d); resize(); } QA.acc = 0; QA.n = 0; }
   if (S.holding) { S.holdT += dt; if (S.holdT >= 1.4) { S.holding = false; runStep(S.step); } }
-  const live = S.phase === 'op' || S.phase === 'end' || S.phase === 'launch' || S.phase === 'drop';
+  const live = S.phase === 'op' || S.phase === 'end' || S.phase === 'launch' || S.phase === 'drop' || S.phase === 'cut';
   if (!live) { P.bobV += (-60 * P.bobY - 9 * P.bobV) * dt; P.bobY += P.bobV * dt; P.trauma = Math.max(0, P.trauma - .9 * dt); }
   if (live) {
-    if (S.phase === 'drop') DROP.update(dt); else { updatePlayer(dt); DROP.update(dt); } updateMech(dt); followSun();
+    if (S.phase === 'cut') CUT.update(dt); else if (S.phase === 'drop') DROP.update(dt); else { updatePlayer(dt); DROP.update(dt); } updateMech(dt); followSun();
     if (S.phase === 'op' && allDestroyedWins() && S.spawned >= ENEMY_TOTAL && !enemies.some(e => e.alive && !e.ally)) endGame(true);
     MIS.update(dt, T);
-    if (S.phase === 'op' && !P.dead) { S.cmdT -= dt; if (S.cmdT <= 0) { S.cmdT = rand(30, 46); const CL = CMD_LINES[S.mode]; VO.radio('司令部', CL[Math.random() * CL.length | 0], 0, .7); } } updateGantry(dt, T); updateEnemies(dt); updateAllies(dt); updateShells(dt); updateParts(dt); updateCamera(T, dt);
+    if (S.phase === 'op' && !P.dead) { S.cmdT -= dt; if (S.cmdT <= 0) { S.cmdT = rand(30, 46); const CL = CMD_LINES[S.mode]; VO.radio('司令部', CL[Math.random() * CL.length | 0], 0, .7); } } updateGantry(dt, T); updateEnemies(dt); updateAllies(dt); updateShells(dt); updateParts(dt); if (S.phase !== 'cut') updateCamera(T, dt);
     if (CK.combatOn) CK.update(dt, T);
     lodPass(); updatePistons(); renderer.render(scene, camera); CK.renderCombat(); drawLever();
   } else if (S.phase === 'title' || S.phase === 'movie' || S.phase === 'ignite') {
