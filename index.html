@@ -4636,7 +4636,7 @@ const CUT = (() => {
     return true;
   }
   function end() {
-    on = false; S.phase = 'op'; S.view = saveView || S.view; caption('');
+    on = false; S.phase = 'op'; S.view = saveView || S.view; P.ty = P.tp = 0; caption('');
     cine.hidden = true; document.body.classList.remove('cine'); skipB.style.display = '';
     $('#controls').hidden = false; $('#obj').style.visibility = ''; P.thrust = 0; P.reach = 0; P.knock = false; P.fallX = P.fallZ = 0; P.vy = 0; P.y = Math.max(0, P.y); P.spd = 0;
     if (d && d.wall) { const w = d.wall; setTimeout(() => scene.remove(w), 9000); }
@@ -4646,7 +4646,14 @@ const CUT = (() => {
   }
   const fwd = () => V.set(-Math.sin(P.yaw), 0, -Math.cos(P.yaw)).clone();
   const right = () => new THREE.Vector3(Math.cos(P.yaw), 0, -Math.sin(P.yaw));
-  function shot(cp, cl, dt, k = 3) { CP.lerp(cp, Math.min(1, dt * k)); camera.position.copy(CP); LK.lerp(cl, Math.min(1, dt * k * 1.4)); camera.lookAt(LK); }
+  function povAt(dt, tg) {   // cockpit shot: turn the torso and the pilot's eyes toward tg
+    if (!on) return;
+    S.view = 'fp'; const dx = tg.x - P.x, dz = tg.z - P.z;
+    P.ty = clamp(wrapA(Math.atan2(-dx, -dz) - P.yaw), -1.2, 1.2); P.tp = clamp(Math.atan2(tg.y - ((ME.eyeH || EYE) + P.y), Math.hypot(dx, dz)), -.6, 1.2);
+    updateCamera(T, dt); camera.rotation.x += (P.fallX || 0) * .7; camera.rotation.z += (P.fallZ || 0) * .7;
+    CP.copy(camera.position); LK.copy(tg);
+  }
+  function shot(cp, cl, dt, k = 3) { if (S.view === 'fp') { S.view = 'tp'; CP.copy(cp); LK.copy(cl); } CP.lerp(cp, Math.min(1, dt * k)); camera.position.copy(CP); LK.lerp(cl, Math.min(1, dt * k * 1.4)); camera.lookAt(LK); }
   function shake(dt) { const s = P.trauma * P.trauma; if (s > .001) { camera.position.x += rand(-1, 1) * s * .9; camera.position.y += rand(-1, 1) * s * .6; } P.trauma = Math.max(0, P.trauma - dt * .9); }
   function gatling(dt) {
     mgT -= dt; if (mgT > 0) return; mgT = .06;
@@ -4705,6 +4712,9 @@ const CUT = (() => {
       if (!D.rv) { D.rv = true; e.cutSpd = 4; reveal(e); }
       shot(base.clone().addScaledVector(D.b, 12).addScaledVector(D.r, 5).setY(9), new THREE.Vector3(e.x, (e.cy || E_CY) + 2, e.z), dt, 1.8);
     }
+    if (t < 1.6) povAt(dt, base.clone().addScaledVector(D.f, 60).setY(6));
+    else if (D.hit && t > 2.7 && t < 4.2) povAt(dt, base.clone().addScaledVector(D.f, 18).setY(34));
+    else if (t > 5.1 && t < 6.7) povAt(dt, new THREE.Vector3(e.x, (e.cy || E_CY) + 2, e.z));
     if (t > 8.6) end();
   }
 
@@ -4745,6 +4755,12 @@ const CUT = (() => {
         const eb = new THREE.Vector3(e.x, 0, e.z); shot(eb.clone().add(new THREE.Vector3(bb.x * 16 - bb.z * 7, 4.5, bb.z * 16 + bb.x * 7)), new THREE.Vector3(e.x, (e.cy || E_CY) + 1.5, e.z), dt, 2.2);
       }
       if (t > 8) { e.y = 0; end(); }
+    }
+    if (on) {
+      if (!D.imp && t < .9) povAt(dt, base.clone().addScaledVector(D.f, 60).setY(6));
+      else if (!D.imp && t < 1.3) povAt(dt, new THREE.Vector3(e.x, (e.cy || E_CY) + 1, e.z));
+      else if (D.land && t > 2.9 && t < 3.9) povAt(dt, base.clone().addScaledVector(D.f, 10).setY(32));
+      else if (D.rv && t > 4.7 && t < 6.3) povAt(dt, new THREE.Vector3(e.x, (e.cy || E_CY) + 1, e.z));
     }
     if (t > 5 && !D.imp) end();   // safety: never hang if the boss misses
   }
@@ -4827,6 +4843,13 @@ const CUT = (() => {
       // look past the fallen machine at the truck shrinking into the sky
       shot(pp.clone().addScaledVector(side, C.land < 0 ? 16 : 10).add(new THREE.Vector3(0, C.land < 0 ? 4 : 2.5, 0)), C.land < 0 ? pp.clone().add(new THREE.Vector3(0, 3, 0)) : tp.clone(), dt, 2);
       if (C.land > 0 && t - C.land > 3.6) { if (C.sh) scene.remove(C.sh.g); C.sh = null; P.reach = 0; end(); }
+    }
+    if (on) {
+      const tpos = new THREE.Vector3(D.s.g.position.x, D.s.g.position.y, D.s.g.position.z);
+      if (C.ph === 'run' && ck < .9) povAt(dt, tpos);
+      else if (C.ph === 'boost' && dl < 26 && !C.sh) povAt(dt, tpos);
+      else if (C.ph === 'fall' && C.land < 0 && t - C.hitT < .7) povAt(dt, new THREE.Vector3(P.x - ux * 10, P.y + 40, P.z - uz * 10));
+      else if (C.ph === 'fall' && C.land > 0 && t - C.land > .5 && t - C.land < 2.8) povAt(dt, tpos);
     }
   }
   function upGrab(dt) {
