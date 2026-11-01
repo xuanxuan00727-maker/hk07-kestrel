@@ -3698,7 +3698,7 @@ const MOV = (() => {
   }
   $('#startLand').addEventListener('click', () => { STORY.on = false; ignite('land'); });
   $('#garBtn').addEventListener('click', () => GARUI.open());
-  $('#storyBtn').addEventListener('click', () => { audioInit(); SFX.click(); BGM.play('title'); $('#title').hidden = true; if (!tutDone()) STORYUI.openBrief(-1); else STORYUI.chapters(); });
+  $('#storyBtn').addEventListener('click', () => { audioInit(); SFX.click(); BGM.play('title'); $('#title').hidden = true; if (!tutDone() && !UNLOCK_ALL) STORYUI.openBrief(-1); else STORYUI.chapters(); });
   $('#movieSkip').addEventListener('click', () => { SFX.click(); end(); });
   return { update, end, white, ignite };
 })();
@@ -4326,11 +4326,12 @@ function resetSortie() {
 }
 
 /* --- story UI: chapter select, briefing / debriefing --- */
+const UNLOCK_ALL = true;   // temporary: every chapter is open for testing
 const STORYUI = (() => {
   const chap = $('#chap'), brief = $('#brief');
   let lines = [], li = 0, after = null;
   function chapters() {
-    const un = loadProg(); const list = chap.querySelector('.cl'); list.innerHTML = '';
+    const un = UNLOCK_ALL ? MISSIONS.length : loadProg(); const list = chap.querySelector('.cl'); list.innerHTML = '';
     { const b = document.createElement('button'); b.className = 'cc'; b.innerHTML = `<span>TRAINING・チュートリアル</span><b>基礎訓練</b><small>${tutDone() ? '修了済み　何度でも受けられます' : '最初にここから！操作を覚えよう'}</small>`; b.addEventListener('click', () => { audioInit(); SFX.click(); chap.hidden = true; openBrief(-1); }); list.appendChild(b); }
     MISSIONS.forEach((m, i) => {
       const b = document.createElement('button'); b.className = 'cc' + (i < un ? '' : ' lock'); b.disabled = i >= un;
