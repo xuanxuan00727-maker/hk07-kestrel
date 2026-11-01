@@ -1684,7 +1684,7 @@ function makeEnemy(kind) {
   [-1, 1].forEach(s => { cylY(.26, .34, .55, mSteel, s * .55, .15, 2.1, tur, 12); cylY(.2, .2, .04, eEye, s * .55, -.13, 2.1, tur, 12); });
   const ant = cylY(.03, .05, 2.4, eDark, -.6, 3.3, .9, tur, 6); ant.rotation.x = .35;
   cylY(.02, .04, 1.6, eDark, -.3, 3.0, 1.0, tur, 6).rotation.x = .5;
-  g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  g.traverse(o => { if (o.isMesh) { if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere(); o.castShadow = o.geometry.boundingSphere.radius > .75; o.receiveShadow = true; } });
   return { g, tur, legs, muzzle };
 }
 /* ---------- 3D cockpit interior: hatch + a long, busy machinery start-up ---------- */
@@ -2898,7 +2898,7 @@ function updateAllies(dt) {
 }
 
 const BATTLE = () => S.phase === 'movie' || S.phase === 'op' || S.phase === 'end';
-let ENEMY_TOTAL = 40, FIRST_WAVE = 14;
+let ENEMY_TOTAL = 70, FIRST_WAVE = 20;
 const eliteMat = std(0x3b3048, .45, .6); const UPV = new THREE.Vector3(0, 1, 0);
 function spawnEnemy(x, z, yaw, wx, wz, y = 0) {
   const t = makeEnemy(NEXT_BOSS);
@@ -2908,10 +2908,10 @@ function spawnEnemy(x, z, yaw, wx, wz, y = 0) {
   if (STORY.on && STORY.m.elite) { const e = enemies[enemies.length - 1]; e.hp = 170; e.spdK = 1.5; e.elite = true; e.g.traverse(o => { if (o.isMesh && o.material === eMat) o.material = eliteMat; }); }
 }
 function enemyCap() {
-  if (!STORY.on) return 12;
+  if (!STORY.on) return 20;
   if (STORY.m.tutorial) return 0;
-  let c = STORY.m.obj.type === 'defend' ? 18 : 12;
-  if (STORY.m.env === 'town') c = Math.max(c, 24); else if (STORY.m.env === 'forest') c = Math.max(c, 16);
+  let c = STORY.m.obj.type === 'defend' ? 26 : 20;
+  if (STORY.m.env === 'town') c = Math.max(c, 32); else if (STORY.m.env === 'forest') c = Math.max(c, 24);
   return c;
 }
 function spawnWave(n) {
@@ -3574,7 +3574,7 @@ const MIS = (() => {
   let m = null, t = 0, evI = 0, done = false, stage = 0, boss = null, bossSpawned = false, half = false, wp = 0, arrived = 0, lost = 0, base = null, reinT = 0, bigT = 0, ambT = 0;
   const ui = $('#obj'), uiT = { v: 0 };
   function prepare() {
-    m = STORY.m; if (typeof tut !== 'undefined') { tut.step = 0; tut.started = false; } ENEMY_TOTAL = Math.round(m.total * 1.6); FIRST_WAVE = Math.round(m.first * 1.4);   // bigger battles everywhere
+    m = STORY.m; if (typeof tut !== 'undefined') { tut.step = 0; tut.started = false; } ENEMY_TOTAL = Math.round(m.total * 2.6); FIRST_WAVE = Math.round(m.first * 2);   // bigger battles everywhere
     clearMissionObjects(); t = 0; evI = 0; done = false; stage = 0; boss = null; bossSpawned = false; half = false; wp = 0; arrived = 0; lost = 0; base = null; reinT = 20; bigT = 60; ambT = 16;
   }
   function setup() {
@@ -3747,7 +3747,7 @@ const MIS = (() => {
 function resetBattlefield() {
   TERRAIN.set(STORY.on && STORY.m.env ? STORY.m.env : 'desert');
   WRECK.clear();
-  if (STORY.on) MIS.prepare(); else { ENEMY_TOTAL = 40; FIRST_WAVE = 14; clearMissionObjects(); MIS.hide(); }
+  if (STORY.on) MIS.prepare(); else { ENEMY_TOTAL = 70; FIRST_WAVE = 20; clearMissionObjects(); MIS.hide(); }
   for (const e of enemies) scene.remove(e.g); enemies.length = 0; spawnEnemies();
   for (const a of allies) scene.remove(a.root); allies.length = 0; spawnAllies();
   for (const sh of shells) scene.remove(sh.m); shells.length = 0;
