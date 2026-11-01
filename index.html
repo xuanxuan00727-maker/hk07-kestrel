@@ -4412,9 +4412,9 @@ const MISSIONS = [
     brief: [['cmd', '首都の中心に、アーク・オメガが出現した。'], ['kaz', 'ハハハ！これが最強のAIだ！もはや誰にも止められん！'], ['ai', 'オメガ……あなたも、私の兄弟なのですね。今、終わらせます。'], ['ren', '第3機甲小隊、最後の出撃だ！'], ['jin', '07、最後の一発はお前に任せた！'], ['mina', '……全員、帰ってきて。約束よ。'], ['cmd', '全機、突入せよ！']],
     ev: [[60, 'kaz', 'なぜだ……なぜ機械の兵が、人間の私に逆らう！'], [180, 'cmd', 'あと少しだ！押し切れ！']], stage: ['ai', 'シールド消失！オメガ中枢を攻撃してください！'], half: ['ai', 'オメガの出力が低下しています。あと少しです！'],
     debrief: [['ai', 'アーク・オメガの停止を確認。……最後に、オメガは「ありがとう」と言いました。'], ['cmd', 'カザマ将軍の身柄を確保した。……戦争は、終わった。'], ['mina', 'おかえり、みんな。本当に、おかえり。'], ['ren', '07。お前は、俺たちの誇りだ。'], ['jin', '祝杯だ！今度こそ全部07のおごりだからな！'], ['ai', 'パイロット。夜が明けます。……一緒に見られて、よかった。'], ['narr', '── 第11幕 完 ──　だが、オメガの欠片はまだ世界に散らばっていた。']] },
-  { act: 12, title: '奪われた格納庫', mode: 'land', env: 'desert', total: 100, first: 14, dmgK: 1.7, kidnap: 150, obj: { type: 'defend', time: 240, hp: 6000, text: '4分間、基地の格納庫を守りきれ' },
+  { act: 12, title: '奪われた格納庫', mode: 'land', env: 'desert', total: 40, first: 14, dmgK: 1.7, kidnap: true, obj: { type: 'destroy', text: '基地を襲う敵部隊を全滅させよ' },
     brief: [['narr', '── 第12幕　消えた整備長 ──　カザマ戦争の終結から半年。'], ['cmd', '07、基地に正体不明の無人機部隊が迫っている！'], ['mina', '格納庫には整備中の機体がたくさんあるの。お願い、守って！'], ['mina', '私は整備車両で弾薬を運ぶね。前線まで持っていく！'], ['ren', '危なくなったらすぐ下がれよ、ミナ。'], ['ai', '私も成長しました。近くの敵機なら、ときどきシステムに侵入して味方にできます。青い機体は撃たないでください。'], ['ren', '全機、格納庫の前に壁を作れ！']],
-    ev: [[60, 'mina', 'まだ大丈夫！弾薬、もうすぐ届けるからね！'], [130, 'ai', '……未確認の機体が、整備車両の方へ向かっています！']],
+    ev: [[40, 'mina', 'まだ大丈夫！弾薬、もうすぐ届けるからね！'], [100, 'ren', '数が減ってきた！あと少しだ！']],
     debrief: [['cmd', '……敵は撤退した。だが、ミナが連れ去られた。'], ['ren', 'ミナを乗せたまま、車ごと北へ運ばれた。……俺たちの目の前で。'], ['jin', 'くそっ……くそっ！撃てなかった……ミナに当たるから……！'], ['leg', '……コノ人間ハ、我ラガ預カッタ。'], ['ai', '新しいAIです。オメガの欠片が集まって生まれたようです。名前は〈レギオン〉。'], ['jin', 'ふざけんな……ミナを返せ！']] },
   { act: 12, title: '消えた整備長', mode: 'land', env: 'town', total: 60, first: 10, dmgK: 1.7, obj: { type: 'waypoints', text: 'ビーコンをたどり、輸送機の足取りを追え', list: [[-60, 12, -240], [-150, 12, -440], [120, 12, -420], [90, 12, -620], [70, 12, -780]] },
     brief: [['cmd', '輸送機は廃墟の街を越えて北へ向かった。'], ['ai', '機体の発信器の跡を、水色のビーコンで表示します。'], ['ren', '……ミナはいつも、俺たちの機体を直してくれた。今度は俺たちが助ける番だ。'], ['jin', '07、全速力で行くぞ！']],
@@ -4666,7 +4666,7 @@ MISSIONS.forEach((m, i) => {
 const STORY = { on: false, idx: 0, m: null };
 const loadProg = () => { try { return Math.max(1, +(localStorage.getItem('hk07-story') || 1)); } catch (e) { return 1; } };
 const saveProg = n => { try { if (n > loadProg()) localStorage.setItem('hk07-story', String(n)); } catch (e) {} };
-const allDestroyedWins = () => !STORY.on || STORY.m.obj.type === 'destroy';
+const allDestroyedWins = () => !STORY.on || (STORY.m.obj.type === 'destroy' && !STORY.m.kidnap);
 
 /* --- mission objects: hostile targets, friendly cargo/bases, beacons --- */
 const structs = [], beacons = [];
@@ -4786,7 +4786,7 @@ const MIS = (() => {
     t += dt;
     while (evI < (m.ev || []).length && t >= m.ev[evI][0]) { say(m.ev[evI][1], m.ev[evI][2]); evI++; }
     const o = m.obj;
-    if (m.kidnap && !grabbed && t >= m.kidnap && S.phase === 'op' && !P.dead) {
+    if (m.kidnap && !grabbed && S.phase === 'op' && !P.dead && S.spawned >= ENEMY_TOTAL && !enemies.some(q => q.alive && !q.ally)) {   // field cleared: the snatch happens
       grabbed = true;
       const f = new THREE.Vector3(-Math.sin(P.yaw), 0, -Math.cos(P.yaw)), sd = Math.random() < .5 ? 1 : -1;
       const tr = makeStruct('truck', P.x + f.x * 40 + f.z * 30 * sd, 0, P.z + f.z * 40 - f.x * 30 * sd, { friendly: true, label: 'ミナの整備車両', hp: 99999 });
