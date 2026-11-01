@@ -75,7 +75,10 @@ body.cine #monitor{border-radius:0;box-shadow:none}
 #obj .ot{color:var(--amber);letter-spacing:.06em}#obj .od{color:#e9f3ea}#obj .op{color:var(--phos)}
 #obj .ob{height:6px;margin-top:4px;background:rgba(255,74,58,.2);border:1px solid rgba(255,74,58,.6)}#obj .ob i{display:block;height:100%;background:#ff4a3a}
 #chap,#brief{position:absolute;inset:0;z-index:8;display:grid;place-items:center;padding:16px;background:rgba(3,5,4,.82)}
-.ch-in{width:min(760px,100%);max-height:100%;overflow:auto;display:flex;flex-direction:column;gap:10px}
+.ch-in{width:min(760px,100%);max-height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;display:flex;flex-direction:column;gap:10px}
+#chap button,#garage button,#brief button,#end button{touch-action:pan-y}
+#garage{touch-action:pan-y;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+#chap{place-items:start center}
 .ch-h{font-size:18px;font-weight:700;letter-spacing:.12em;color:#eef0e4}
 .cl{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
 .cc{display:flex;flex-direction:column;gap:3px;text-align:left;padding:10px 12px;border-radius:6px;border:1px solid #2f3a2c;background:linear-gradient(#2a2e24,#1b1e17);color:var(--ink)}
@@ -1093,6 +1096,8 @@ const FRAMES = {
   grave: { name: 'HK-12 グレイヴ', sub: '砲撃型', desc: '肩に長砲身カノンを載せた火力重視の機体。センサーマストで遠くの敵も逃さない。', unlock: 13, need: '第12章クリアで入手', mod: { armor: .9, main: 1.35, spd: .95, fuel: 1, heat: 1.1 } },
   atlas: { name: 'HK-X アトラス', sub: '最終試作型', desc: '全部隊の戦訓から組み上げた試作機。全面増加装甲、肩部カノン、増設推進器。最強の機体。', unlock: 23, need: '第22章クリアで入手', mod: { armor: .5, main: 1.5, spd: 1.2, fuel: .6, heat: .65 } },
   titan: { name: 'HK-XX タイタン', sub: '決戦型', desc: 'オリジン戦のために造られた、部隊の全技術の結晶。アトラスをさらに上回る、真の最強機体。', unlock: 33, need: '第32章クリアで入手', mod: { armor: .45, main: 1.65, spd: 1.25, fuel: .55, heat: .6 } },
+  goliath: { name: '鹵獲機〈ゴリアテ〉', sub: '超重量級・ボス機体', desc: '鹵獲したゴリアテを再生した巨人機。動きは鈍く跳べないが、一歩ごとに地面が揺れる装甲と火力は別格。コックピットは赤い非常灯の鉄の箱。', full: true, boss: true, need: '6か所すべて最大（フルチューン）で解放', mod: { armor: .32, main: 2.2, spd: .72, fuel: 1.2, heat: .85, turn: .6, accel: .6, jet: .72, stomp: 2.2 } },
+  phantom: { name: '鹵獲機〈ファントム〉', sub: '超高速型・ボス機体', desc: '鹵獲したファントムを再生した高速機。地面を滑るように走り、高く長く跳ぶ。装甲は薄め。コックピットは紫と水色の光が走る。', full: true, boss: true, need: '6か所すべて最大（フルチューン）で解放', mod: { armor: .85, main: 1.35, spd: 1.85, fuel: .4, heat: .65, turn: 2.0, accel: 2.0, jet: 1.45, stomp: .35 } },
 };
 const UPG = [
   { k: 'armor', name: '装甲板', desc: '受けるダメージ −8%' },
@@ -1119,12 +1124,12 @@ const GAR = (() => {
 })();
 const saveGar = () => { try { localStorage.setItem('hk07-garage', JSON.stringify(GAR)); } catch (e) {} };
 const gProg = () => { try { return Math.max(1, +(localStorage.getItem('hk07-story') || 1)); } catch (e) { return 1; } };
-const frameOwned = k => gProg() >= FRAMES[k].unlock;
+const frameOwned = k => FRAMES[k].full ? UPG.every(u => GAR.lv[u.k] >= UPG_MAX) : gProg() >= FRAMES[k].unlock;
 let ST = {}, SQ = {};
 function calcStats() {
   const f = FRAMES[frameOwned(GAR.frame) ? GAR.frame : 'kestrel'].mod, L = GAR.lv;
   const full = UPG.every(u => L[u.k] >= UPG_MAX), FB = full ? 1.5 : 1;   // full tune: every part maxed multiplies firepower again
-  ST = { full, armor: f.armor * (1 - .08 * L.armor) * (full ? .8 : 1), main: f.main * (1 + .4 * L.main) * FB, mg: (1 + .5 * L.mg) * FB, spd: f.spd * (1 + .06 * L.legs), fuel: f.fuel * (1 - .1 * L.boost), cool: (1 / f.heat) * (1 + .15 * L.cool) };
+  ST = { turn: f.turn || 1, accel: f.accel || 1, jet: f.jet || 1, stomp: f.stomp || 1, full, armor: f.armor * (1 - .08 * L.armor) * (full ? .8 : 1), main: f.main * (1 + .4 * L.main) * FB, mg: (1 + .5 * L.mg) * FB, spd: f.spd * (1 + .06 * L.legs), fuel: f.fuel * (1 - .1 * L.boost), cool: (1 / f.heat) * (1 + .15 * L.cool) };
   const n = UPG.reduce((s, u) => s + L[u.k], 0);
   SQ = { lv: n, hp: Math.round(480 * (1 + .04 * n)), dmg: (1 + .06 * n) * (full ? 1.5 : 1), rate: 1 + .02 * n, aim: Math.max(.45, 1 - .018 * n) };
 }
@@ -1137,7 +1142,7 @@ function heroPal() {
 }
 const mHole = std(0x0b0b0b, .9, .1);
 function applyKit(k, frame, pal) {
-  if (frame === 'kestrel') return;
+  if (frame === 'kestrel' || (FRAMES[frame] && FRAMES[frame].boss)) return;
   const heavy = frame === 'bastion' || frame === 'atlas' || frame === 'titan', fast = frame === 'harrier' || frame === 'atlas' || frame === 'titan';
   const b = k.body, pk = k.pack, head = k.ants[0].parent, add = [];
   if (heavy) {
@@ -1188,7 +1193,7 @@ const GARUI = (() => {
     }
     pv.environment = scene.environment;
     if (pmech) pv.remove(pmech.root);
-    const pal = heroPal(); pmech = buildKestrel(pal, '07', false); applyKit(pmech, GAR.frame, pal);
+    const pal = heroPal(); if (FRAMES[GAR.frame].boss) pmech = buildBossHero(GAR.frame); else { pmech = buildKestrel(pal, '07', false); applyKit(pmech, GAR.frame, pal); }
     scene.remove(pmech.root); pv.add(pmech.root);
   }
   function loop(t) {
@@ -1250,8 +1255,25 @@ function newFrameNote(prevProg) {
   return got.map(f => `<br><b class="newf">新型機 ${f.name}（${f.sub}）が格納庫に届きました</b>`).join('');
 }
 
+let BOSS_READY = false;
+function buildBossHero(kind) {
+  const sc = kind === 'goliath' ? 2.1 : 1.45, t = makeEnemy();
+  const A = kind === 'goliath' ? std(0x4f4236, .62, .45) : std(0x2b2f3d, .4, .65), A2 = kind === 'goliath' ? std(0x3a3029, .7, .4) : std(0x3a3550, .45, .6);
+  const vis = new THREE.MeshStandardMaterial({ color: 0x300000, emissive: kind === 'goliath' ? 0xff3a14 : 0x9a6bff, emissiveIntensity: 1.4, roughness: .1 });
+  t.g.traverse(o => { if (!o.isMesh) return; if (o.material === eMat) o.material = A; else if (o.material === eMat2) o.material = A2; else if (o.material === eEye) o.material = vis; o.castShadow = o.receiveShadow = true; });
+  t.g.scale.setScalar(sc);
+  const eye = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexW(), color: kind === 'goliath' ? 0xff6a40 : 0xb08cff, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: .35 })); eye.scale.set(2.2, 1, 1); eye.position.set(0, 1.2, -2.15); t.tur.add(eye);
+  const mSub = new THREE.Object3D(); mSub.position.set(-2.1, .8, -3.3); t.tur.add(mSub);
+  const flames = [], nozzles = [];
+  [-1, 1].forEach(s => { const n = new THREE.Object3D(); n.position.set(s * 1.0, 3.4, 1.6); t.g.add(n); nozzles.push(n); const f = new THREE.Mesh(new THREE.ConeGeometry(.45, 2.4, 12, 1, true), flameMat); f.rotation.x = Math.PI; f.position.set(s * 1.0, 2.2, 1.6); f.visible = false; t.g.add(f); flames.push(f); });
+  const ants = t.tur.children.filter(o => o.isMesh && o.geometry && o.geometry.type === 'CylinderGeometry' && o.position.y > 3);
+  const k = { root: t.g, legs: t.legs, torso: t.tur, pitch: t.tur, body: t.tur, barrel: new THREE.Object3D(), mg: new THREE.Object3D(), mMain: t.muzzle, mSub, flames, nozzles, pack: t.tur, visor: vis, eye, ants: ants.length ? ants : [new THREE.Object3D()], eyeH: (4.7 + 1.2) * sc, boss: kind };
+  k.gait = makeGait(t.g, t.legs, { hipX: [1.5, -1.5], hipY: 4.2, l1: 1.9, l2: 1.8, ankle: .5, lift: .7 * sc, sway: .2 * sc * (kind === 'goliath' ? 1.4 : .7), scale: sc });
+  return k;
+}
 function makeHero() {
   calcStats();
+  if (BOSS_READY && S.mode !== 'space' && FRAMES[GAR.frame] && FRAMES[GAR.frame].boss && frameOwned(GAR.frame)) return buildBossHero(GAR.frame);
   const sp = S.mode === 'space', pal = sp ? PAL_S : heroPal(), k = buildKestrel(pal, '07', true); if (sp) addSpaceKit(k, PAL_S); else applyKit(k, frameOwned(GAR.frame) ? GAR.frame : 'kestrel', pal);
   if (false) { const h = new THREE.Group(); h.position.set(0, 2.42, -1.66); k.body.add(h); part(cb(1.3, 1.36, .16, .05), pal.graph, 0, -.68, 0, h); part(new THREE.BoxGeometry(.9, .06, .05), pal.accent, 0, -1.2, -.09, h); part(new THREE.BoxGeometry(1.1, 1.1, .04), std(0x0b0c0a, .9, .1), 0, 1.72, -1.55, k.body); k.hatch = h; }
   k.gait = makeGait(k.root, k.legs, { hipX: [1.75, -1.75], hipY: HIP, l1: 2.8, l2: 2.7, ankle: .5, lift: 1.0, sway: .32 }); return k;
@@ -1460,7 +1482,7 @@ function updateAlliesSpace(dt, T) {
 const JV = new THREE.Vector3();
 function onPlayerPlant(i, k) {
   if (P.armor < 40 && i === 1) k *= 1.35;
-  P.bobV -= 2.3 * k; P.trauma = Math.min(1, P.trauma + .2 * k); SFX.step(k); buzz(Math.round(18 + 30 * k)); N.hyd.v -= 1.2 * k; P.stepN++;
+  P.bobV -= 2.3 * k * Math.sqrt(ST.stomp); P.trauma = Math.min(1, P.trauma + .2 * k * ST.stomp); SFX.step(Math.min(1, k * Math.sqrt(ST.stomp))); buzz(Math.round(18 + 30 * k)); N.hyd.v -= 1.2 * k; P.stepN++;
   const f = ME.gait.feet[i].pos; addPart({ pos: new THREE.Vector3(f.x, .4, f.z), color: 0x9a8a6c, op: .45 * k, s0: 1, s1: 4.5, life: 1.3, vel: new THREE.Vector3(rand(-1, 1), 1, rand(-1, 1)) });
 }
 function updateMech(dt) {
@@ -1861,6 +1883,17 @@ const CK = (() => {
   const glass = new THREE.Mesh(new THREE.PlaneGeometry(.9, .6), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(hc), color: 0x9fffd0, transparent: true, opacity: .0, blending: THREE.AdditiveBlending, depthWrite: false }));
   glass.position.set(0, 1.1, -.62); g.add(glass);
 
+  const THEMES = {
+    std: { wall: 0x3b3e34, frame: 0x26272a, pad: 0x1c1d19, door: 0x4d5240, doorIn: 0x34372c, panel: 0x34372f, edge: 0x40ff90, work: 0xd8f0ff, red: 0xff2a14, lamp: [0xffa030, 0x40ff7a, 0x40ff7a] },
+    goliath: { wall: 0x3e2a22, frame: 0x24150f, pad: 0x170e0b, door: 0x5a3426, doorIn: 0x3a2018, panel: 0x3a2620, edge: 0xff3a1a, work: 0xff7a50, red: 0xff1a08, lamp: [0xff3a14, 0xff8a20, 0xff3a14] },
+    phantom: { wall: 0x1c1f33, frame: 0x14152a, pad: 0x0e0f1c, door: 0x262a48, doorIn: 0x1a1c33, panel: 0x22253c, edge: 0x9a6bff, work: 0x7a9cff, red: 0x8a4cff, lamp: [0x40e8ff, 0x9a6bff, 0x40e8ff] },
+  };
+  function theme() {
+    const k = FRAMES[GAR.frame] && FRAMES[GAR.frame].boss && frameOwned(GAR.frame) ? GAR.frame : 'std', T2 = THEMES[k];
+    wall.color.setHex(T2.wall); frameM.color.setHex(T2.frame); padM.color.setHex(T2.pad); doorM.color.setHex(T2.door); doorIn.color.setHex(T2.doorIn); panelM.color.setHex(T2.panel); red.color.setHex(T2.red); work.color.setHex(T2.work);
+    if (typeof CM !== 'undefined' && CM.edgeM) CM.edgeM.emissive.setHex(T2.edge);
+    lampMats.forEach((m, i) => m.emissive.setHex(T2.lamp[i % 3]));
+  }
   const red = new THREE.PointLight(0xff2a14, 0, 7, 2); red.position.set(0, 1.0, -.5); g.add(red);
   const work = new THREE.PointLight(0xd8f0ff, 0, 7, 2); work.position.set(0, .8, -.2); g.add(work);
 
@@ -2282,8 +2315,8 @@ const CK = (() => {
     camera.near = n; camera.updateProjectionMatrix();
   }
   function hide() { combat(false); g.visible = false; st.sky = 1; st.env = 1; st.black = 0; apply(0); }
-  function reset() { combat(false); tweens.length = 0; Object.assign(st, ST0); lamps = false; sideOn = 0; speed = 1; vent = 0; X2.weldOn = false; drawScreen(null); g.visible = true; apply(0); }
-  function show() { g.visible = true; apply(0); }
+  function reset() { combat(false); theme(); tweens.length = 0; Object.assign(st, ST0); lamps = false; sideOn = 0; speed = 1; vent = 0; X2.weldOn = false; drawScreen(null); g.visible = true; apply(0); }
+  function show() { theme(); g.visible = true; apply(0); }
   return { update, close, instant, hide, fast, show, reset, combat, renderCombat, get combatOn() { return CM.on; } };
 })();
 CK.hide(); camera.near = .5; camera.updateProjectionMatrix();
@@ -3399,6 +3432,7 @@ function clearMissionObjects() {
   for (const b of beacons) scene.remove(b.g); beacons.length = 0;
 }
 const bossMat = std(0x3a2638, .45, .6);
+BOSS_READY = true;
 function spawnBoss(kind) {
   const land = S.mode === 'land';
   if (land) spawnEnemy(0, -520, Math.PI, 0, -120); else spawnEnemy(0, -720, Math.PI, 0, -220, 80);
@@ -3796,10 +3830,10 @@ function updatePlayer(dt) {
   const turnIn = ctl ? ((keys.a || btn.l) ? 1 : 0) - ((keys.d || btn.r) ? 1 : 0) : 0;
   const maxSpd = 10 * ST.spd * (P.armor < 40 ? .7 : 1) * (P.over ? .6 : 1);
   const target = ctl ? P.thr * maxSpd : 0;
-  const accel = (Math.abs(target) > Math.abs(P.spd) && Math.sign(target || 1) === Math.sign(P.spd || target || 1)) ? 2.1 : 3.0;
+  const accel = ((Math.abs(target) > Math.abs(P.spd) && Math.sign(target || 1) === Math.sign(P.spd || target || 1)) ? 2.1 : 3.0) * ST.accel;
   { const ac = accel * (P.y > .3 ? .15 : 1); P.spd += clamp(target - P.spd, -ac * dt, ac * dt); }
-  const maxT = 0.42 * (1 - .35 * Math.abs(P.spd) / 14);
-  P.turn += clamp(turnIn * maxT - P.turn, -.75 * dt, .75 * dt);
+  const maxT = 0.42 * ST.turn * (1 - .35 * Math.abs(P.spd) / (14 * ST.spd));
+  P.turn += clamp(turnIn * maxT - P.turn, -.75 * ST.turn * dt, .75 * ST.turn * dt);
   P.yaw += P.turn * dt;
   P.x += -Math.sin(P.yaw) * P.spd * dt; P.z += -Math.cos(P.yaw) * P.spd * dt;
   // jump jets: a heavy machine needs a moment to spool up before it leaves the ground
@@ -3810,7 +3844,7 @@ function updatePlayer(dt) {
   else { P.fuelCd -= dt; if (P.fuelCd <= 0 && P.y <= 0) P.fuel = Math.min(100, P.fuel + 24 * dt); }
   if (P.fuel <= 1 && boostIn && !P.fuelWarn) { P.fuelWarn = true; say('BOOST 残量なし', 'r', 1.2); SFX.alarm(); VO.event('fuel', () => VO.ai('ブースター、燃料切れ。'), 8); }
   if (P.fuel > 20) P.fuelWarn = false;
-  P.vy = Math.min(13, P.vy + (P.thrust * 28 - 16) * dt);
+  P.vy = Math.min(13 * ST.jet, P.vy + (P.thrust * 28 * ST.jet - 16) * dt);
   if (P.y > .3 && P.thrust > .1 && P.thr >= 0) P.spd = Math.min(maxSpd * 1.35, P.spd + 5 * P.thrust * dt);
   P.y += P.vy * dt;
   if (P.y <= 0) {
@@ -3869,14 +3903,14 @@ function updateCamera(T, dt = .016) {
   if (S.view === 'fp' || S.phase === 'hatch') {
     tpInit = false;
     const swy = ME.gait.sway, roll = -swy * .05 - P.turn * (S.mode === 'space' ? .3 : .05);
-    camera.position.set(P.x + Math.cos(P.yaw) * swy, EYE + P.y + P.bobY * .55 - P.crouch, P.z - Math.sin(P.yaw) * swy);
+    camera.position.set(P.x + Math.cos(P.yaw) * swy, (ME.eyeH || EYE) + P.y + P.bobY * .55 - P.crouch, P.z - Math.sin(P.yaw) * swy);
     if (S.mode === 'space' && !P.onDeck) { const ps = P.pitchS, ey = EYE - .2; camera.position.set(P.x + Math.sin(P.yaw) * Math.sin(ps) * ey, P.y + Math.cos(ps) * ey, P.z + Math.cos(P.yaw) * Math.sin(ps) * ey); }
     P.aimO.copy(camera.position); P.aimD.copy(dir);
     camera.position.y += sh * .3 * n(0);
     camera.rotation.set(ap + P.lean * .7 + P.kick * .35 + sh * .04 * n(2) + P.bobY * .02, ay + sh * .028 * n(1), roll + sh * .03 * n(3));
   } else {
     // chase camera: sits behind and above the torso, trails a little so the machine feels heavy
-    const pivot = CV2.set(P.x, EYE + .7 + P.y + P.bobY * .3 - P.crouch, P.z);
+    const pivot = CV2.set(P.x, (ME.eyeH || EYE) + .7 + P.y + P.bobY * .3 - P.crouch, P.z);
     const want = new THREE.Vector3(pivot.x + Math.sin(ay) * 20, pivot.y + 4.5 - Math.sin(ap) * 12, pivot.z + Math.cos(ay) * 20);
     want.y = Math.max(2.2, want.y);
     if (!tpInit) { tpPos.copy(want); tpInit = true; } else tpPos.lerp(want, 1 - Math.exp(-6 * dt));
