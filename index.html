@@ -4984,13 +4984,13 @@ function fireMain() {
 }
 function startReload() {
   if (P.reload > 0 || P.mainRes <= 0 || P.main >= 6 || P.dead) { if (P.mainRes <= 0 && P.main <= 0) say('主砲弾 残弾なし', 'r', 1.5); VO.event('ammo', () => VO.ai('主砲、残弾なし。'), 8); return; }
-  P.reload = 4; SFX.reload(); lamp('rld', 'warn'); say('RELOADING', 'a', 1.2); VO.event('rld', () => VO.ai('装填。'), 7);
+  P.reload = 2.2; SFX.reload(); lamp('rld', 'warn'); say('RELOADING', 'a', 1.2); VO.event('rld', () => VO.ai('装填。'), 7);
 }
 function fireMG(dt) {
   P.mgCd -= dt;
   if (!(keys.f || btn.sub) || P.over || P.sub <= 0 || P.dead || S.phase !== 'op') return;
   if (P.mgCd > 0) return;
-  P.mgCd = 1 / 11; P.sub--; P.mgN++; P.heat += 1.9;
+  P.mgCd = 1 / 11; P.mgN++; /* unlimited belt */ P.heat += 1.9;
   P.trauma = Math.min(.35, P.trauma + .012); P.kickV += .025; P.mgSpin = 1; SFX.mg(); if (P.mgN % 4 === 0) buzz(10);
   const lk = lockAlive(P.lock) ? P.lock : null;
   const { o, d } = aimRay(0.012), h = lk ? { e: lk.e || null, s: lk.s || null, t: lockPos(lk, LKV).distanceTo(o) } : rayHit(o, d, 600), hitE = h.e;
@@ -5085,7 +5085,7 @@ function updatePlayer(dt) {
   P.glitch = Math.max(0, P.glitch - dt); P.flash = Math.max(0, P.flash - dt * 6);
   // weapons & heat
   P.mainCd -= dt;
-  if (P.reload > 0) { P.reload -= dt; if (P.reload <= 0) { const n = Math.min(6 - P.main, P.mainRes); P.main += n; P.mainRes -= n; P.reload = 0; lamp('rld', ''); say('主砲 装填完了', 'g', 1.2); } }
+  if (P.reload > 0) { P.reload -= dt; if (P.reload <= 0) { P.main = 6; /* unlimited reserve */ P.reload = 0; lamp('rld', ''); say('主砲 装填完了', 'g', 1.2); } }
   updateLock(); fireMG(dt);
   P.heat = Math.max(0, P.heat - (P.over ? 13 : 8) * ST.cool * dt);
   if (!P.over && P.heat >= 100) { P.over = true; P.heat = 100; SFX.alarm(); say('OVERHEAT', 'r', 2); lamp('heat', 'err'); VO.event('heat', () => VO.ai('オーバーヒート。冷却中。'), 6); }
@@ -5307,8 +5307,8 @@ function drawHUD(dt, T) {
   const rx = W - 18;
   txt('MAIN 120mm', rx, ly, GD, fs * .8, 'right');
   for (let i = 0; i < 6; i++) { const x = rx - (6 - i) * (fs * .9); hx.strokeStyle = G; if (i < P.main) { hx.fillStyle = G; hx.fillRect(x, ly + fs * .9, fs * .6, fs * 1.1); } else hx.strokeRect(x, ly + fs * .9, fs * .6, fs * 1.1); }
-  txt(P.reload > 0 ? 'RELOADING' : `RES ${String(P.mainRes).padStart(2, '0')}`, rx, ly + fs * 2.8, P.reload > 0 ? AMB : G, fs * .85, 'right');
-  txt('SUB 7.62mm', rx, ly + fs * 4.4, GD, fs * .8, 'right'); txt(String(P.sub).padStart(4, '0'), rx, ly + fs * 5.6, P.sub < 60 ? AMB : G, fs * 1.2, 'right');
+  txt(P.reload > 0 ? 'RELOADING' : 'RES ∞', rx, ly + fs * 2.8, P.reload > 0 ? AMB : G, fs * .85, 'right');
+  txt('SUB 7.62mm', rx, ly + fs * 4.4, GD, fs * .8, 'right'); txt('∞', rx, ly + fs * 5.6, G, fs * 1.2, 'right');
   const hw = fs * 7; txt('HEAT', rx - hw - 6, ly + fs * 7.2, GD, fs * .8, 'right');
   hx.strokeStyle = GD; hx.strokeRect(rx - hw, ly + fs * 6.8, hw, fs * .8);
   hx.fillStyle = P.over ? (Math.floor(T * 6) % 2 ? RED : AMB) : P.heat > 70 ? AMB : G; hx.fillRect(rx - hw + 1, ly + fs * 6.8 + 1, (hw - 2) * P.heat / 100, fs * .8 - 2);
