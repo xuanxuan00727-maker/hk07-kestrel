@@ -1542,8 +1542,8 @@ function updateMech(dt) {
 function burnMech(on) { ME.root.traverse(o => { if (o.isMesh && o.userData.mat) o.material = on ? burnt : o.userData.mat; }); }
 
 /* ---------- enemy walkers: hunched raiders with a sensor dome ---------- */
-const eMat = std(0x7e5238, .72, .3), eMat2 = std(0x5e4130, .78, .28);
-const eDark = std(0x2a2622, .58, .6);
+const eMat = std(0x5b5f52, .55, .35), eMat2 = std(0x8a7350, .6, .3), eRed = std(0xb02a1c, .45, .25);
+const eDark = std(0x26241f, .55, .55);
 const eEye = new THREE.MeshStandardMaterial({ color: 0x300000, emissive: 0xff2a14, emissiveIntensity: 1.4, roughness: .1 });
 const burnt = new THREE.MeshStandardMaterial({ color: 0x1b1916, roughness: .95, metalness: .2 });
 const ELEG = { armor: eMat, armor2: eMat2, dark: eDark, steel: mSteel, chrome: mChrome, vent: mVent };
@@ -1645,26 +1645,45 @@ function makeBossModel(kind) {
 let NEXT_BOSS = null;
 function makeEnemy(kind) {
   if (kind) return makeBossModel(kind);
+  // RAIDER: a hunched predator — wedge torso, armoured cowl with a single burning eye, autocannon and missile pod
   const g = new THREE.Group(); scene.add(g);
   const hipY = 4.2;
-  part(cb(2.4, .9, 1.8, .15), eDark, 0, hipY, 0, g);
-  [-1, 1].forEach(s => cylX(.48, .55, eDark, s * 1.25, hipY, 0, g));
+  part(cb(2.3, .85, 1.7, .15), eDark, 0, hipY, 0, g);
+  [-1, 1].forEach(s => cylX(.46, .5, eMat2, s * 1.2, hipY, 0, g));
   const legs = [makeLeg(g, 1.5, hipY, 1.9, 1.8, .95, ELEG), makeLeg(g, -1.5, hipY, 1.9, 1.8, .95, ELEG)];
+  legs.forEach((l, i) => {
+    const s = i ? -1 : 1;
+    part(prism([[-.4, 0], [.4, 0], [.18, .9], [0, 1.25], [-.18, .9]], .22, .04), eMat, 0, -.05, -.78, l.knee, -.45);
+    part(new THREE.BoxGeometry(.1, .8, .04), eRed, s * .5, -.95, -.72, l.knee);
+  });
   const tur = new THREE.Group(); tur.position.y = hipY + .5; g.add(tur);
-  cylY(.7, .85, .6, eDark, 0, 0, 0, tur, 14);
-  part(prism([[-1.4, 0], [1.4, 0], [1.8, 1.2], [1.1, 2.1], [-1.1, 2.1], [-1.8, 1.2]], 3.0, .18), eMat, 0, .2, .2, tur);
-  part(cb(2.6, .35, 2.2, .1), eMat2, 0, 2.4, .3, tur);
-  const dome = part(new THREE.SphereGeometry(.85, 20, 12, 0, TAU, 0, Math.PI / 2), eDark, 0, 1.2, -1.15, tur, -Math.PI / 2);
-  cyl(.42, .42, .16, mChrome, 0, 1.2, -2.0, tur, 20); cyl(.32, .32, .18, eEye, 0, 1.2, -2.03, tur, 20);
-  part(cb(2.2, 1.6, 1.0, .14), eDark, 0, 1.1, 1.85, tur);
-  [-1, 1].forEach(s => cylY(.32, .32, 1.6, eMat2, s * .6, 1.1, 2.5, tur, 12));
-  part(cb(1.0, 1.3, 1.2, .14), eDark, 2.05, .9, 0, tur);
-  part(cb(.85, .85, 2.6, .12), eMat, 2.2, .3, -1.4, tur);
-  cyl(.2, .24, 3.2, mSteel, 2.2, .3, -3.9, tur, 12);
-  part(cb(.5, .4, .6, .05), eDark, 2.2, .3, -5.6, tur);
-  const muzzle = new THREE.Object3D(); muzzle.position.set(2.2, .3, -5.9); tur.add(muzzle);
-  part(prism([[-.2, -1.4], [.2, -1.4], [.2, 1.2], [-.2, 1.5]], 2.4, .06), eMat2, -2.1, .8, -.7, tur, 0, -.2, 0);
-  const ant = cylY(.03, .05, 2.4, eDark, -.7, 3.4, .9, tur, 6); ant.rotation.x = .2;
+  cylY(.7, .82, .55, eDark, 0, 0, 0, tur, 14);
+  const body = new THREE.Group(); body.rotation.x = .1; tur.add(body);                       // hunched forward
+  part(prism([[-1.0, 0], [1.0, 0], [1.95, 1.15], [1.6, 1.75], [-1.6, 1.75], [-1.95, 1.15]], 2.6, .14), eMat, 0, .15, .35, body);
+  [-1, 1].forEach(s => { part(cb(1.0, .7, .2, .05), eDark, s * .55, .85, -1.05, body, -.2, -s * .4, s * .3); part(new THREE.BoxGeometry(.9, .06, .05), eRed, s * .58, .55, -1.2, body, 0, -s * .4, s * .3); });   // V chest plates
+  [-1, 1].forEach(s => { part(new THREE.BoxGeometry(.1, .9, .06), eRed, s * 1.25, 1.1, -1.12, body, .1); part(cb(.65, .2, 2.2, .05), eDark, s * 1.3, 2.0, .2, body, 0, 0, -s * .3); });
+  // cowl with a cyclopean eye
+  const head = new THREE.Group(); head.position.set(0, 1.55, -1.25); body.add(head);
+  part(prism([[-.55, 0], [.55, 0], [.42, .38], [0, .5], [-.42, .38]], 1.5, .06), eMat2, 0, -.05, 0, head, -.18);
+  part(new THREE.BoxGeometry(.86, .08, .05), eEye, 0, .14, -.78, head);
+  [-1, 1].forEach(s => { const f = part(prism([[0, 0], [.55, -.1], [.1, .35]], .08, .02), eDark, s * .5, .05, -.5, head, 0, s * .25, 0); f.scale.x = s; });
+  // right shoulder autocannon
+  part(cb(.95, .95, 1.9, .1), eDark, 2.1, .95, -.25, tur);
+  part(cb(1.05, .3, 1.5, .06), eMat, 2.1, 1.52, -.1, tur);
+  cyl(.17, .22, 3.4, mSteel, 2.1, .95, -2.6, tur, 12);
+  part(cb(.48, .4, .65, .05), eDark, 2.1, .95, -4.4, tur);
+  [-4.25, -4.55].forEach(z => part(new THREE.BoxGeometry(.52, .07, .1), mVent, 2.1, .95, z, tur));
+  const muzzle = new THREE.Object3D(); muzzle.position.set(2.1, .95, -4.8); tur.add(muzzle);
+  // left missile pod
+  const pod = new THREE.Group(); pod.position.set(-2.05, 1.3, -.15); pod.rotation.y = .12; tur.add(pod);
+  part(cb(1.15, 1.0, 1.35, .1), eMat2, 0, 0, 0, pod);
+  for (let r = 0; r < 2; r++) for (let c = 0; c < 3; c++) cyl(.12, .12, .05, mHole2, -.33 + c * .33, .2 - r * .38, -.68, pod, 10);
+  part(new THREE.BoxGeometry(1.17, .08, .05), eRed, 0, -.42, -.69, pod);
+  // thruster pack and antenna rake
+  part(cb(1.9, 1.35, .95, .12), eDark, 0, 1.0, 1.8, tur);
+  [-1, 1].forEach(s => { cylY(.26, .34, .55, mSteel, s * .55, .15, 2.1, tur, 12); cylY(.2, .2, .04, eEye, s * .55, -.13, 2.1, tur, 12); });
+  const ant = cylY(.03, .05, 2.4, eDark, -.6, 3.3, .9, tur, 6); ant.rotation.x = .35;
+  cylY(.02, .04, 1.6, eDark, -.3, 3.0, 1.0, tur, 6).rotation.x = .5;
   g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
   return { g, tur, legs, muzzle };
 }
