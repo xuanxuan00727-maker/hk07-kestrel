@@ -651,14 +651,14 @@ const CMD_LINES = {
 
 /* ================= STATE ================= */
 const S = { mode: 'land', cmdT: 20, view: 'fp', phase: 'title', step: 0, busy: false, power: 0, hyd: 0, os: 0, reactor: 0, holding: false, holdT: 0, hudA: 0, msg: [], camStatic: 0, endTimer: 0, t0: 0, kills: 0 };
-const P = {};
+const P = {}; const DECK_Y = 78;   // height of the transport's deck the machine rides on
 function resetPlayer() {
-  if (window.__dropCancel) window.__dropCancel();
   if (S.viewSave) { S.view = S.viewSave; S.viewSave = null; }
   Object.assign(P, { x: 0, z: 0, yaw: 0, spd: 0, turn: 0, thr: 0, ty: 0, tp: 0, tyT: 0, tpT: 0, armor: 100, heat: 0, over: false,
     main: 6, mainRes: 24, reload: 0, sub: 400, mgCd: 0, mainCd: 0, mgN: 0, phase: 0, stepN: 0, side: 1,
     gy: 0, bobY: 0, bobV: 0, kick: 0, kickV: 0, trauma: 0, glitch: 0, flash: 0, dead: false, hits: [], servo: 0, bumpCd: 0, fired: 0, hitsLanded: 0,
     brl: 0, mgSpin: 0, vel: new THREE.Vector3(), pitchS: 0, cat: 0, onDeck: true, crouch: .22, acc: 0, lastSpd: 0, lean: 0, y: 0, vy: 0, thrust: 0, fuel: 100, fuelCd: 0, jetT: 0, fuelWarn: false, aimO: new THREE.Vector3(0, 7.9, 0), aimD: new THREE.Vector3(0, 0, -1) });
+  if (window.__dropPlace) window.__dropPlace();
 }
 resetPlayer();
 
@@ -3264,7 +3264,7 @@ const STEPS = [
   { grp: 1, label: 'OS起動', sub: 'HULL-OS', msg: 'OSを起動してください', run: doOS },
   { grp: 1, label: '炉心点火', sub: '長押し', hold: true, msg: '炉心点火ボタンを長押ししてください', run: doReactor },
   { grp: 1, label: 'メインカメラ', sub: 'MAIN CAM', msg: 'メインカメラを接続してください', run: doCam },
-  { grp: 2, label: '拘束解除', sub: 'CLAMP RELEASE', msg: 'ガントリーの拘束を解除してください', run: doRelease },
+  { grp: 2, label: '拘束解除', sub: 'CLAMP RELEASE', msg: '輸送機の機体固定ロックを解除してください', run: doRelease },
   { grp: 2, label: '出撃', sub: 'LAUNCH', big: true, msg: '出撃ボタンを押してください', run: doLaunch },
 ];
 async function doHatch() {
@@ -3322,75 +3322,129 @@ async function doCam() {
   bootEl.style.opacity = 0; await wait(700);
   bootEl.hidden = true; CK.combat(true); camera.near = .5; camera.updateProjectionMatrix(); glc.classList.add('on'); SFX.relay(); sTone({ f: 60, f2: 900, dur: .35, type: 'sawtooth', gain: .05 });
   S.phase = 'launch'; document.body.classList.add('op'); $('#viewBtn').hidden = false;
-  say('MAIN CAMERA ONLINE', 'g', 2.4); VO.ai('メインカメラ、接続。'); setTimeout(() => VO.radio('司令部', 'HK-07、こちら司令部。拘束を解除し、出撃せよ。', 0, .8), 2600); BGM.play('movie', { intensity: 1, fade: 2 }); setTimeout(() => say('ガントリー拘束中', 'a', 2.4), 900);
+  say('MAIN CAMERA ONLINE', 'g', 2.4); VO.ai('メインカメラ、接続。'); setTimeout(() => VO.radio('司令部', 'HK-07、こちら司令部。拘束を解除し、出撃せよ。', 0, .8), 2600); BGM.play('movie', { intensity: 1, fade: 2 }); setTimeout(() => say('機体固定ロック中', 'a', 2.4), 900);
   window.dispatchEvent(new Event('resize'));
 }
 async function doRelease() {
-  VO.ai('ガントリー拘束、解除。'); SFX.relay(); SFX.hiss(2.2); GT.release = true; GT.alert = true; buzz([60, 80, 60]);
+  VO.ai('機体固定ロック、解除。'); SFX.relay(); SFX.hiss(2.2); GT.release = true; GT.alert = true; buzz([60, 80, 60]);
   for (let i = 0; i < 2; i++) sTone({ f: 140, f2: 70, dur: .35, type: 'sawtooth', gain: .15, at: .3 + i * .9 });
   await wait(1700); SFX.clunk(); P.trauma = .5; say('拘束解除', 'a', 1.6); await wait(400);
 }
 /* ---------- air-drop sortie: ride a heavy transport, the bay opens, walk to the nose, jump, slam into the ground ---------- */
 const DROP = (() => {
-  const H = 78, ZS = -3, DECK_Z = 8, EDGE_Z = -31;
-  let g = null, doors = [], flames = [], lamp = null, t = 0, on = false, st = 0, jumped = false, landed = -1, fwd = 0, local = DECK_Z, resolve = null, flying = false;
-  function build() {
-    g = new THREE.Group(); scene.add(g);
-    const hull = std(0x4b514c, .55, .5), dark = std(0x24272a, .6, .45), trim = std(0x9a8448, .5, .4), glass = new THREE.MeshStandardMaterial({ color: 0x0c1218, roughness: .1, metalness: .9 });
+  const H = DECK_Y, DECK_Z = 8, ZS = -DECK_Z, EDGE_Z = -31;
+  let g = null, doors = [], flames = [], lamp = null, t = 0, on = false, st = 0, jumped = false, landed = -1, fwd = 0, local = DECK_Z, resolve = null, flying = false, carry = false, door = 1, doorT = 1;
+  // one transport per battlefield: heavy jet (desert), twin-rotor lifter (town), camouflaged turboprop freighter (forest)
+  const VAR = {}; let kind = null, spins = [];
+  const envKind = () => { try { return TERRAIN.cur || 'desert'; } catch (e) { return 'desert'; } };
+  function build(k) {
+    const g = new THREE.Group(); scene.add(g); const v = { g, doors: [], flames: [], spins: [], lamp: null };
+    const PAL = { desert: [0x4b514c, 0x9a8448, 0x24272a], town: [0x3a4048, 0x5b7088, 0x1d2126], forest: [0x3f4b34, 0x7a6a42, 0x23281e] }[k] || [0x4b514c, 0x9a8448, 0x24272a];
+    const hull = std(PAL[0], .55, .5), dark = std(PAL[2], .6, .45), trim = std(PAL[1], .5, .4), glass = new THREE.MeshStandardMaterial({ color: 0x0c1218, roughness: .1, metalness: .9 });
     const red = new THREE.MeshBasicMaterial({ color: 0xff3020 }), grn = new THREE.MeshBasicMaterial({ color: 0x40ff60 });
-    part(cb(15, 9, 64, .9), hull, 0, -4.7, 2, g);                                   // fuselage
-    part(cb(11, 6.5, 12, 2.2), hull, 0, -5.4, -35, g);                              // nose
-    part(cb(7, 1.8, 4, .5), glass, 0, -2.6, -38.5, g, -.35);                        // flight deck glass
-    part(new THREE.BoxGeometry(12, .3, 52), dark, 0, .05, -6, g);                   // drop deck
+    const flame = (x, y, z, sx, sy, sz) => { const f = new THREE.Mesh(sphGeo, flameMat); f.position.set(x, y, z); f.scale.set(sx, sy, sz); f.userData.b = f.scale.clone(); g.add(f); v.flames.push(f); };
+    if (k === 'town') {
+      // twin-rotor heavy lifter: blunt fuselage, stub wings carrying two huge rotors
+      part(cb(15, 8.5, 54, 1.4), hull, 0, -4.5, 0, g);
+      part(cb(12, 7.5, 10, 3), hull, 0, -5, -31, g); part(cb(9, 3, 4, 1), glass, 0, -2.6, -34.5, g, -.45);
+      part(cb(52, 1.3, 8, .4), hull, 0, -3.4, 4, g);
+      [-1, 1].forEach(s => {
+        cylY(2.2, 2.7, 9, dark, s * 26, .6, 4, g, 16); cylY(.9, .9, 1.6, trim, s * 26, 5.6, 4, g, 12);
+        const rot = new THREE.Group(); rot.position.set(s * 26, 6.5, 4); g.add(rot);
+        for (let i = 0; i < 4; i++) part(new THREE.BoxGeometry(1.5, .2, 30), dark, 0, 0, 0, rot, 0, i * Math.PI / 4 * 2 + .3, 0);
+        v.spins.push({ o: rot, ax: 'y', sp: 11 * s });
+        flame(s * 26, -4.4, 4, 1.2, 2.4, 1.2);
+        part(new THREE.BoxGeometry(.6, .6, .6), s < 0 ? red : grn, s * 26, -3.6, -.4, g);
+      });
+      part(cb(4, 4.5, 18, .6), hull, 0, -2, 34, g); part(cb(1.1, 11, 7, .3), hull, 0, 5, 41, g); part(cb(16, .9, 5, .3), hull, 0, 2.5, 40, g);
+      const tr = new THREE.Group(); tr.position.set(1.2, 7, 41); g.add(tr); for (let i = 0; i < 2; i++) part(new THREE.BoxGeometry(.15, 7, .5), dark, 0, 0, 0, tr, i * Math.PI / 2, 0, 0); v.spins.push({ o: tr, ax: 'x', sp: 30 });
+    } else if (k === 'forest') {
+      // camouflaged turboprop freighter: long body, straight low wing with four propellers
+      part(cb(15, 9, 64, 1.2), hull, 0, -4.7, 2, g);
+      const camo = std(0x2a3324, .7, .3);
+      for (let i = 0; i < 9; i++) { const z = -26 + i * 6.5 + rand(-1, 1); [-1, 1].forEach(s => part(cb(.25, rand(2.5, 5), rand(3, 6), .1), camo, s * 7.55, -4.5 + rand(-2, 2), z, g)); }
+      part(cb(11, 7, 12, 3), hull, 0, -5.2, -35, g); part(cb(7.5, 2, 4, .5), glass, 0, -2.6, -38.5, g, -.35);
+      part(cb(84, 1.3, 11, .5), hull, 0, -7.4, 4, g);
+      [-30, -16, 16, 30].forEach(x => {
+        cyl(1.6, 1.9, 10, dark, x, -7.8, 1.5, g, 14);
+        const pr = new THREE.Group(); pr.position.set(x, -7.8, -4); g.add(pr);
+        cyl(.5, .7, 1.4, trim, 0, 0, 0, pr, 10);
+        for (let i = 0; i < 4; i++) { const b = part(new THREE.BoxGeometry(.6, 5, .2), dark, 0, 0, -.5, pr, 0, 0, i * Math.PI / 2); b.geometry.translate(0, 2.5, 0); }
+        v.spins.push({ o: pr, ax: 'z', sp: 26 * (x > 0 ? 1 : -1) });
+      });
+      [-1, 1].forEach(s => part(new THREE.BoxGeometry(.6, .6, .6), s < 0 ? red : grn, s * 42, -7.2, 4, g));
+      part(cb(1.3, 15, 13, .3), hull, 0, 5.5, 30, g); part(cb(30, 1.1, 7, .3), hull, 0, -2.6, 32, g);
+    } else {
+      // heavy jet transport
+      part(cb(15, 9, 64, .9), hull, 0, -4.7, 2, g);
+      part(cb(11, 6.5, 12, 2.2), hull, 0, -5.4, -35, g);
+      part(cb(7, 1.8, 4, .5), glass, 0, -2.6, -38.5, g, -.35);
+      part(cb(80, 1.3, 14, .5), hull, 0, -6.8, 6, g);
+      [-1, 1].forEach(s => { part(new THREE.BoxGeometry(.6, .6, .6), s < 0 ? red : grn, s * 40, -6.6, 6, g); part(cb(1.1, 12, 10, .3), hull, s * 5.5, 4, 29, g, 0, 0, s * .12); });
+      part(cb(32, 1.1, 7, .3), hull, 0, -3, 32, g);
+      [-27, -15, 15, 27].forEach(x => { cyl(2.3, 2.3, 8, dark, x, -9.2, 5, g, 18); cyl(1.6, 1.9, .8, hull, x, -9.2, 9.3, g, 18); flame(x, -9.2, 10.4, 1.5, 1.5, 3); });
+    }
+    // shared drop deck and clamshell bay
+    part(new THREE.BoxGeometry(12, .3, 52), dark, 0, .05, -6, g);
     for (let z = -30; z < 18; z += 6) part(new THREE.BoxGeometry(12.1, .32, .5), trim, 0, .06, z, g);
     [-1, 1].forEach(s => { part(new THREE.BoxGeometry(.4, .5, 52), trim, s * 6, .3, -6, g); for (let z = -28; z < 18; z += 8) part(new THREE.BoxGeometry(.3, .3, .3), red, s * 6, .65, z, g); });
-    part(cb(80, 1.3, 14, .5), hull, 0, -6.8, 6, g);                                 // wings
-    [-1, 1].forEach(s => { part(new THREE.BoxGeometry(.6, .6, .6), s < 0 ? red : grn, s * 40, -6.6, 6, g); part(cb(1.1, 12, 10, .3), hull, s * 5.5, 4, 29, g, 0, 0, s * .12); });
-    part(cb(32, 1.1, 7, .3), hull, 0, -3, 32, g);                                   // tailplane
-    [-27, -15, 15, 27].forEach(x => {
-      cyl(2.3, 2.3, 8, dark, x, -9.2, 5, g, 18); cyl(1.6, 1.9, .8, hull, x, -9.2, 9.3, g, 18);
-      const f = new THREE.Mesh(sphGeo, flameMat); f.position.set(x, -9.2, 10.4); f.scale.set(1.5, 1.5, 3); g.add(f); flames.push(f);
-    });
-    // clamshell bay over the machine, hinged on the deck edges
     [-1, 1].forEach(s => {
       const d = new THREE.Group(); d.position.set(s * 6.6, .2, DECK_Z); g.add(d);
       part(cb(.7, 13.5, 19, .2), hull, 0, 6.75, 0, d); part(cb(6.9, .7, 19, .2), hull, -s * 3.3, 13.5, 0, d);
       part(new THREE.BoxGeometry(.75, .4, 19.2), trim, 0, 3, 0, d); part(new THREE.BoxGeometry(6.6, .2, .4), red, -s * 3.3, 13.9, -9.4, d);
-      doors.push({ d, s });
+      v.doors.push({ d, s });
     });
-    lamp = part(new THREE.BoxGeometry(1.2, .6, .6), red, 0, 1, -2, g);
+    v.lamp = part(new THREE.BoxGeometry(1.2, .6, .6), red, 0, 1, -2, g);
     g.traverse(o => { if (o.isMesh && o.material !== flameMat && o.material.type !== 'MeshBasicMaterial') { o.castShadow = true; o.receiveShadow = true; } });
     g.visible = false;
+    return v;
   }
+  function use(k) {
+    if (!VAR[k]) VAR[k] = build(k);
+    Object.keys(VAR).forEach(n => { if (n !== k) VAR[n].g.visible = false; });
+    const v = VAR[k], pos = g ? g.position.clone() : null; kind = k; g = v.g; doors = v.doors; flames = v.flames; lamp = v.lamp; spins = v.spins;
+    if (pos) g.position.copy(pos);
+  }
+  // the machine rides on the transport from the title screen until it jumps
+  function place() {
+    use(envKind());
+    t = 0; st = 0; jumped = false; landed = -1; local = DECK_Z; on = false; flying = false; carry = true; door = doorT = 1;
+    const r = resolve; resolve = null; if (r) r();
+    g.visible = true; g.position.set(0, H, ZS); g.rotation.set(0, 0, 0);
+    Object.assign(P, { x: 0, z: ZS + DECK_Z, y: H, gy: H, vy: 0, spd: 0, thr: 0, yaw: 0, turn: 0, thrust: 0 }); if (ME && ME.gait) ME.gait.init = false;
+  }
+  function closeBay(instant) { doorT = 0; if (instant) door = 0; }
   function start() {
-    if (!g) build();
-    t = 0; st = 0; jumped = false; landed = -1; local = DECK_Z; on = true; flying = false;
-    g.visible = true; g.position.set(0, H, ZS); g.rotation.set(0, 0, 0); doors.forEach(o => o.d.rotation.z = 0);
-    Object.assign(P, { x: 0, z: ZS + DECK_Z, y: H, gy: H, vy: 0, spd: 0, thr: 0, yaw: 0, turn: 0, thrust: 0 }); ME.gait.init = false;
+    if (!g || !carry || kind !== envKind()) place();
+    t = 0; st = 0; jumped = false; landed = -1; local = DECK_Z; on = true; flying = false; doorT = 0;
     S.phase = 'drop';
     sNoise({ dur: 3, f: 200, f2: 120, gain: .35, a: .6 }); sTone({ f: 48, f2: 52, dur: 3, type: 'sawtooth', gain: .08 });
     return new Promise(r => resolve = r);
   }
   function rumble() { sNoise({ dur: 1.1, f: 180, f2: 140, gain: .28 }); }
   function update(dt) {
+    if (g && carry && !on && kind !== envKind()) { use(envKind()); g.visible = true; g.rotation.set(0, 0, 0); g.position.set(0, H, ZS); }
     if (!g || !g.visible) return;
     t += dt;
-    flames.forEach(f => { const k = .8 + Math.random() * .4; f.scale.set(1.5 * k, 1.5 * k, 3 * k); });
+    flames.forEach(f => { const k = .8 + Math.random() * .4; f.scale.copy(f.userData.b).multiplyScalar(k); });
+    spins.forEach(o => o.o.rotation[o.ax] += o.sp * dt);
     if (flying) { g.position.z -= 34 * dt; g.position.y += 5 * dt; g.rotation.x = Math.min(.12, g.rotation.x + dt * .05); if (g.position.z < -1400) g.visible = false; }
-    else g.position.y = H + Math.sin(t * 1.1) * .12;
+    else g.position.y = H + Math.sin(T * 1.1) * .12;
+    door += clamp(doorT - door, -dt * .55, dt * .55);
+    doors.forEach(o => o.d.rotation.z = -o.s * door * door * (3 - 2 * door) * 2.15);
+    if (carry && !on && (S.phase === 'op' || S.phase === 'end')) { carry = false; P.gy = 0; flying = true; }   // safety: never stay pinned in battle
+    if (carry && !on) { P.x = 0; P.z = g.position.z + DECK_Z; P.y = g.position.y + .2; P.gy = P.y; P.vy = 0; if (S.phase !== 'op') P.spd = 0; }
     if (!on) return;
     if (Math.floor(t / 1.0) !== Math.floor((t - dt) / 1.0)) rumble();
     lamp.material = (t * 2 % 1) < .5 ? lamp.material : lamp.material; lamp.visible = (t * 2.5 % 1) < .55;
-    // the bay opens
-    const k = clamp((t - .8) / 2.0, 0, 1), a = k * k * (3 - 2 * k) * 2.15;
-    doors.forEach(o => o.d.rotation.z = -o.s * a);
+    if (t > .8) doorT = 1;
     if (st === 0 && t > .7) { st = 1; SFX.hiss(2.4); SFX.clunk(); buzz([60, 40, 60]); VO.radio('輸送機', '降下ポイント上空に到達。ハッチ開放！', 0, .9); say('降下ハッチ開放', 'a', 2.2); P.trauma = Math.max(P.trauma, .35); }
     if (st === 1 && t > 3.4) { st = 2; VO.ai('降下位置へ移動します。'); say('前進 ─ 降下位置へ', 'g', 2); }
     if (!jumped) {
       if (st >= 2) { local -= 6.2 * dt; P.spd = 6.2; } else P.spd = 0;
       P.x = 0; P.z = g.position.z + local; P.y = g.position.y + .2; P.gy = P.y; P.vy = 0; P.yaw = 0;
       if (local <= EDGE_Z) {
-        jumped = true; P.gy = 0; P.vy = 7.5; fwd = 10; P.spd = 0; flying = true;
+        jumped = true; carry = false; P.gy = 0; P.vy = 7.5; fwd = 10; P.spd = 0; flying = true;
         VO.radio('輸送機', '07、降下！幸運を！', 0, .9); say('降下！', 'a', 1.8); SFX.spinup(); sNoise({ dur: 3.4, f: 400, f2: 2400, gain: .45, a: .4 });
       }
       return;
@@ -3409,18 +3463,17 @@ const DROP = (() => {
     if (st === 2 && t - landed > 1.3) { st = 3; VO.ai('メインシステム、戦闘モード起動。', 'high'); say('MAIN SYSTEM ─ COMBAT MODE', 'r', 2.8); sTone({ f: 440, f2: 880, dur: .25, type: 'square', gain: .05 }); sTone({ f: 880, f2: 1320, dur: .3, type: 'square', gain: .05, at: .22 }); }
     if (st === 3 && t - landed > 3.2) { st = 4; on = false; P.gy = 0; const r = resolve; resolve = null; if (r) r(); }
   }
-  function cancel() { on = false; if (g) g.visible = false; P.gy = 0; const r = resolve; resolve = null; if (r) r(); }
-  window.__dropCancel = cancel;
-  return { start, update, cancel, get on() { return on; } };
+  function cancel() { on = false; const r = resolve; resolve = null; if (r) r(); }
+  window.__dropPlace = place;
+  return { start, update, cancel, place, closeBay, get on() { return on; }, get carry() { return carry; } };
 })();
+DROP.place();
 async function doLaunch() {
   for (let i = 0; i < 3; i++) { sTone({ f: 520, dur: .35, type: 'sawtooth', gain: .06, at: i * .5 }); sTone({ f: 390, dur: .15, type: 'sawtooth', gain: .06, at: i * .5 + .35 }); }
   SFX.spinup(); buzz([100, 60, 200]); P.trauma = .6;
   say('出撃！', 'a', 2.2); VO.ai('HK-07、発進。', 'high'); BGM.play('battle', { intensity: 2, fade: .4 }); await wait(600);
   if (S.mode !== 'space') {
-    const bo = $('#blackout'); bo.style.transition = 'opacity .45s'; bo.style.opacity = 1; await wait(500);
-    $('#bootPanel').hidden = true; const dp = DROP.start(); bo.style.opacity = 0; setTimeout(() => { bo.style.transition = ''; }, 600);
-    await dp; if (S.phase !== 'drop') return;
+    $('#bootPanel').hidden = true; await DROP.start(); if (S.phase !== 'drop') return;
   }
   setTimeout(() => VO.radio('01', '07が来たぞ！全機、援護しろ！', 1, .9), 1200);
   S.phase = 'op'; S.t0 = performance.now();
@@ -3501,15 +3554,15 @@ const MOV = (() => {
     },
     { // 4: the launch lane at the base, klaxons
       at: 28, enter() { hit(1); white(.3); GT.alert = true; BGM.set(1); later(1600, () => VO.ai('HK-07、緊急発進シーケンスを開始します。')); caption(S.mode === 'space' ? '最後の一機 ─ HK-07、カタパルト発進準備' : '最後の一機 ─ HK-07、緊急発進準備', S.mode === 'space' ? 'CARRIER DECK' : 'LAUNCH GANTRY'); for (let i = 0; i < 6; i++) { sTone({ f: 520, dur: .4, type: 'sawtooth', gain: .035, at: i * .9 }); sTone({ f: 390, dur: .3, type: 'sawtooth', gain: .035, at: i * .9 + .45 }); } },
-      cam(k) { camera.position.set(L(10, 6.5, k), L(1.6, 2.6, k), L(-62, -16, ez(k))); camera.lookAt(0, L(5, 8, k), 0); }
+      cam(k) { camera.position.set(L(10, 6.5, k), DECK_Y + L(1.6, 2.6, k), L(-62, -16, ez(k))); camera.lookAt(0, DECK_Y + L(5, 8, k), 0); }
     },
     { // 5: crane up the hero mech, title card
       at: 35, enter() { hit(1.1); pulse(9, 1.05); BGM.set(3); caption(''); later(3400, () => { card.classList.add('on'); hit(1.3); white(.6); }); },
-      cam(k) { const a = L(-.9, .55, ez(k)), r = L(17, 13, k); camera.position.set(Math.sin(a) * r, L(1.5, 12, ez(k)), -Math.cos(a) * r); camera.lookAt(0, L(3, 9, ez(k)), 0); }
+      cam(k) { const a = L(-.9, .55, ez(k)), r = L(17, 13, k); camera.position.set(Math.sin(a) * r, DECK_Y + L(1.5, 12, ez(k)), -Math.cos(a) * r); camera.lookAt(0, DECK_Y + L(3, 9, ez(k)), 0); }
     },
     { // 6: into the cockpit
       at: 45, enter() { card.classList.remove('on'); BGM.set(0); later(700, () => VO.ai('パイロット、搭乗を確認してください。')); caption('パイロット、搭乗せよ。'); SFX.hiss(2); },
-      cam(k) { camera.position.set(L(2.5, 0, ez(k)), L(9.5, 8.6, ez(k)), L(-16, -2.2, ez(k))); camera.lookAt(0, 8.4, 0); blk.style.opacity = clamp((k - .7) / .3, 0, 1); }
+      cam(k) { camera.position.set(L(2.5, 0, ez(k)), DECK_Y + L(9.5, 8.6, ez(k)), L(-16, -2.2, ez(k))); camera.lookAt(0, DECK_Y + 8.4, 0); blk.style.opacity = clamp((k - .7) / .3, 0, 1); }
     },
     { at: 51, enter() { end(); } },
   ];
@@ -3534,7 +3587,7 @@ const MOV = (() => {
     resetBattlefield();
     resetPlayer(); ME.gait.init = false;
     VO.cancel();
-    CK.show(); camera.near = .1; camera.updateProjectionMatrix(); S.phase = 'hatch'; P.trauma = .3; SFX.clunk(); BGM.play('cockpit', { fade: 3 }); setBootMsg(STEPS[0].msg);
+    DROP.closeBay(true); CK.show(); camera.near = .1; camera.updateProjectionMatrix(); S.phase = 'hatch'; P.trauma = .3; SFX.clunk(); BGM.play('cockpit', { fade: 3 }); setBootMsg(STEPS[0].msg);
     window.dispatchEvent(new Event('resize'));
   }
   const JIT = new THREE.Vector3();
@@ -3542,7 +3595,7 @@ const MOV = (() => {
     if (S.phase === 'ignite') { igniteUpdate(dt); return; }
     if (S.phase === 'title') {
       attractA += dt * .12; const r = 24;
-      camera.position.set(Math.sin(attractA) * r, 7 + Math.sin(attractA * .7) * 2, -Math.cos(attractA) * r); camera.lookAt(0, 7.5, 0);
+      camera.position.set(Math.sin(attractA) * r, DECK_Y + 7 + Math.sin(attractA * .7) * 2, -Math.cos(attractA) * r); camera.lookAt(0, DECK_Y + 7.5, 0);
       return;
     }
     if (!playing) return;
@@ -3562,7 +3615,7 @@ const MOV = (() => {
   }
   function igniteUpdate(dt) {
     ig += dt; const k = ez(clamp(ig / 1.6, 0, 1));
-    camera.position.set(L(IGC.x, 0, k), L(IGC.y, 10.4, k), L(IGC.z, -8.6, k)); camera.lookAt(IGL.set(0, L(7.5, 9.9, k), L(0, -1.3, k)));
+    camera.position.set(L(IGC.x, 0, k), L(IGC.y, DECK_Y + 10.4, k), L(IGC.z, -8.6, k)); camera.lookAt(IGL.set(0, DECK_Y + L(7.5, 9.9, k), L(0, -1.3, k)));
     const flick = [[.9, 1.4], [1.0, .03], [1.12, 2], [1.22, .03], [1.5, 4.5]];
     let v = .03; for (const [at, val] of flick) if (ig >= at) v = val;
     ME.visor.emissiveIntensity = v; ME.eye.material.opacity = clamp((v - .03) / 4.5, 0, 1); ME.eye.scale.set(3.4 + v * 1.4, 1.3 + v * .3, 1);
@@ -4082,7 +4135,7 @@ function resetSortie() {
   glc.classList.add('on'); document.body.classList.remove('op', 'cine');
   $('#bootPanel').hidden = false; $('#controls').hidden = true; $('#viewBtn').hidden = true;
   CK.reset(); camera.near = .1; camera.updateProjectionMatrix();
-  resetBattlefield();
+  resetBattlefield(); DROP.closeBay(true);
   S.phase = 'hatch'; setBootMsg(STEPS[0].msg);
   BGM.play('cockpit', { fade: 2 });
   window.dispatchEvent(new Event('resize'));
@@ -4981,11 +5034,11 @@ function frameBody(now) {
     if (CK.combatOn) CK.update(dt, T);
     lodPass(); updatePistons(); renderer.render(scene, camera); CK.renderCombat(); drawLever();
   } else if (S.phase === 'title' || S.phase === 'movie' || S.phase === 'ignite') {
-    updateMech(dt); followSun(); updateGantry(dt, T); updateEnemies(dt); updateAllies(dt); updateShells(dt); updateParts(dt); MOV.update(dt); lodPass(); updatePistons(); renderer.render(scene, camera);
+    DROP.update(dt); updateMech(dt); followSun(); updateGantry(dt, T); updateEnemies(dt); updateAllies(dt); updateShells(dt); updateParts(dt); MOV.update(dt); lodPass(); updatePistons(); renderer.render(scene, camera);
   } else if (S.phase === 'walk') {
     updateMech(dt); followSun(); updateGantry(dt, T); updateParts(dt); WALK.update(dt); renderer.render(scene, camera);
   } else if (S.phase === 'hatch' || S.phase === 'cam') {
-    CK.update(dt, T); updateMech(dt); followSun(); updateGantry(dt, T); updateParts(dt); updateCamera(T, dt); renderer.render(scene, camera);
+    CK.update(dt, T); DROP.update(dt); updateMech(dt); followSun(); updateGantry(dt, T); updateParts(dt); updateCamera(T, dt); renderer.render(scene, camera);
   }
   { const sh = P.trauma * P.trauma; mon.style.transform = sh > .01 ? `translate(${(Math.random() - .5) * sh * 4}px,${(Math.random() - .5) * sh * 4}px)` : ''; }
   drawHUD(dt, T); drawGauges(dt, T); if (PNL) PNL.update(dt, T);
