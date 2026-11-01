@@ -598,103 +598,89 @@ const BGM = (() => {
   const rsnare = (t, k = 1) => { tone(t, 'triangle', 185, 165, .32 * k, .1, .25); noise(t, 'bandpass', 2400, .8, .42 * k, .17, .4); noise(t, 'highpass', 6000, .6, .07 * k, .09, .3); };
   const hat = (t, open = false, k = 1) => noise(t, 'highpass', 8500, .8, (open ? .045 : .028) * k, open ? .22 : .03, .05);
   const crash = (t, k = 1) => noise(t, 'highpass', 5000, .5, .07 * k, 1.6, .4);
-  // ---- full song form: intro / verse / pre-chorus / chorus / breakdown / guitar solo / final chorus (key up) ----
+  // ---- modern metalcore: drop-tuned chugs, double kick, synth arps and pads, big minor-key chorus, breakdown, key-up finale ----
   let lastVox = 0;
-  function vox(t, m, dur, k = 1) {       // the "singer": warm detuned lead with glide and vibrato
+  function vox(t, m, dur, k = 1) {       // soaring lead "voice"
     const f = n2f(m), f0 = lastVox ? n2f(lastVox) : f; lastVox = m;
-    [['sawtooth', -7, .038], ['square', 7, .02], ['triangle', 0, .03]].forEach(([ty, dt, a]) => {
+    [['sawtooth', -8, .036], ['sawtooth', 8, .036], ['triangle', 0, .03]].forEach(([ty, dt, a]) => {
       const o = ctx.createOscillator(); o.type = ty; o.detune.value = dt;
-      o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f, t + .07);
-      const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 5.3; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(f * .007, t + Math.min(dur, .45)); lfo.connect(lg); lg.connect(o.frequency);
-      const fl = ctx.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = 3400; fl.Q.value = 1.2;
-      const e = ctx.createGain(); e.gain.setValueAtTime(.0001, t); e.gain.exponentialRampToValueAtTime(a * k, t + .035); e.gain.setValueAtTime(a * k * .85, t + dur * .8); e.gain.exponentialRampToValueAtTime(.0001, t + dur + .06);
-      o.connect(fl); fl.connect(e); bus(e, .38, .22); o.start(t); lfo.start(t); o.stop(t + dur + .1); lfo.stop(t + dur + .1);
+      o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f, t + .08);
+      const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 5.4; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(f * .008, t + Math.min(dur, .5)); lfo.connect(lg); lg.connect(o.frequency);
+      const fl = ctx.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = 3000; fl.Q.value = 1;
+      const e = ctx.createGain(); e.gain.setValueAtTime(.0001, t); e.gain.exponentialRampToValueAtTime(a * k, t + .04); e.gain.setValueAtTime(a * k * .85, t + dur * .8); e.gain.exponentialRampToValueAtTime(.0001, t + dur + .08);
+      o.connect(fl); fl.connect(e); bus(e, .42, .25); o.start(t); lfo.start(t); o.stop(t + dur + .12); lfo.stop(t + dur + .12);
     });
   }
-  function epiano(t, m, dur, a = .045) {   // bell-ish electric piano for the quiet parts
-    const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = n2f(m);
-    const o2 = ctx.createOscillator(); o2.type = 'sine'; o2.frequency.value = n2f(m) * 3;
-    const e = ctx.createGain(); e.gain.setValueAtTime(.0001, t); e.gain.exponentialRampToValueAtTime(a, t + .006); e.gain.exponentialRampToValueAtTime(.0001, t + dur);
-    const e2 = ctx.createGain(); e2.gain.setValueAtTime(.25, t); e2.gain.exponentialRampToValueAtTime(.01, t + .25);
-    o.connect(e); o2.connect(e2); e2.connect(e); bus(e, .45, .3); o.start(t); o2.start(t); o.stop(t + dur + .05); o2.stop(t + dur + .05);
+  function arp(t, m, dur, a = .03) {      // plucky trance arp with echo
+    const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = n2f(m);
+    const fl = ctx.createBiquadFilter(); fl.type = 'lowpass'; fl.Q.value = 6; fl.frequency.setValueAtTime(3800, t); fl.frequency.exponentialRampToValueAtTime(500, t + dur);
+    const e = ctx.createGain(); e.gain.setValueAtTime(.0001, t); e.gain.exponentialRampToValueAtTime(a, t + .004); e.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    o.connect(fl); fl.connect(e); bus(e, .3, .35); o.start(t); o.stop(t + dur + .05);
   }
-  const SCH = { E: [40, [52, 56, 59]], D: [38, [50, 54, 57]], A: [33, [49, 52, 57]], B: [35, [47, 51, 54]], c: [37, [49, 52, 56]], g: [32, [47, 51, 56]] };
-  const FORM = [['intro', 2, 'EEEE'], ['verse', 8, 'EDAE'], ['pre', 4, 'cABB'], ['chorus', 8, 'EBcA'], ['break', 4, 'ABgc'], ['solo', 8, 'EDAB'], ['final', 8, 'EBcA']];
+  const china = (t, k = 1) => { noise(t, 'bandpass', 3200, 1.2, .12 * k, .9, .35); noise(t, 'highpass', 6000, .6, .06 * k, .7, .3); };
+  const ride = (t, k = 1) => noise(t, 'bandpass', 7500, 3, .035 * k, .18, .2);
+  const SCH = { C: [36, [48, 51, 55]], a: [32, [44, 48, 51]], b: [34, [46, 50, 53]], g: [31, [43, 46, 50]], e: [39, [46, 51, 55]], G: [31, [43, 47, 50]], f: [29, [41, 44, 48]] };
+  const FORM = [['intro', 4, 'CCCC'], ['verse', 8, 'Cabg'], ['pre', 4, 'faGG'], ['chorus', 8, 'abCCabeG'], ['break', 4, 'CCCC'], ['bridge', 8, 'aebCaebG'], ['final', 8, 'abCCabeG']];
   const SONG_LEN = FORM.reduce((a, f) => a + f[1], 0);
   function where(bar) {
-    let b = bar < SONG_LEN ? bar : 2 + (bar - 2) % (SONG_LEN - 2);
-    for (const [name, len, prog] of FORM) { if (b < len) return { name, i: b, len, chord: prog[b % 4] }; b -= len; }
-    return { name: 'verse', i: 0, len: 8, chord: 'E' };
+    let b = bar < SONG_LEN ? bar : 4 + (bar - 4) % (SONG_LEN - 4);
+    for (const [name, len, prog] of FORM) { if (b < len) return { name, i: b, len, chord: prog[b % prog.length] }; b -= len; }
+    return { name: 'verse', i: 0, len: 8, chord: 'C' };
   }
-  const SMEL = {   // original upbeat melodies in E major
-    verse: [[[0, 68, 2], [2, 71, 2], [4, 73, 2], [6, 71, 2], [8, 68, 4], [12, 66, 4]], [[0, 66, 2], [2, 69, 2], [4, 71, 4], [8, 69, 2], [10, 66, 2], [12, 64, 4]], [[0, 64, 2], [2, 66, 2], [4, 68, 2], [6, 69, 2], [8, 71, 4], [12, 73, 4]], [[0, 71, 6], [6, 68, 2], [8, 71, 8]],
-            [[0, 76, 2], [2, 75, 2], [4, 73, 2], [6, 71, 2], [8, 73, 4], [12, 71, 4]], [[0, 69, 2], [2, 71, 2], [4, 74, 4], [8, 73, 2], [10, 71, 2], [12, 69, 4]], [[0, 73, 4], [4, 71, 2], [6, 69, 2], [8, 68, 4], [12, 66, 4]], [[0, 68, 8], [8, 71, 4], [12, 75, 4]]],
-    pre: [[[0, 73, 4], [4, 75, 4], [8, 76, 8]], [[0, 76, 4], [4, 75, 4], [8, 73, 8]], [[0, 71, 2], [2, 73, 2], [4, 75, 4], [8, 78, 4], [12, 75, 4]], [[0, 78, 12], [12, 80, 4]]],
-    chorus: [[[0, 80, 3], [3, 80, 3], [6, 78, 2], [8, 76, 4], [12, 78, 4]], [[0, 78, 3], [3, 78, 3], [6, 76, 2], [8, 75, 4], [12, 71, 4]], [[0, 73, 2], [2, 76, 2], [4, 80, 4], [8, 78, 2], [10, 76, 2], [12, 73, 4]], [[0, 76, 6], [6, 78, 2], [8, 80, 8]],
-             [[0, 80, 3], [3, 80, 3], [6, 78, 2], [8, 76, 4], [12, 78, 4]], [[0, 78, 3], [3, 78, 3], [6, 80, 2], [8, 83, 4], [12, 80, 4]], [[0, 81, 4], [4, 80, 4], [8, 78, 4], [12, 76, 4]], [[0, 78, 8], [8, 76, 4], [12, 80, 4]]],
+  const SMEL = {   // original melodies, C minor
+    verse: [null, null, null, null, [[0, 79, 6], [6, 77, 2], [8, 75, 8]], [[0, 75, 4], [4, 74, 4], [8, 72, 8]], [[0, 74, 4], [4, 75, 4], [8, 77, 8]], [[0, 74, 16]]],
+    pre: [[[0, 72, 4], [4, 75, 4], [8, 77, 8]], [[0, 75, 4], [4, 77, 4], [8, 80, 8]], [[0, 74, 8], [8, 79, 8]], [[0, 83, 16]]],
+    chorus: [[[0, 75, 4], [4, 77, 2], [6, 79, 6], [12, 77, 4]], [[0, 77, 4], [4, 79, 2], [6, 82, 6], [12, 79, 4]], [[0, 79, 6], [6, 77, 2], [8, 75, 4], [12, 74, 4]], [[0, 72, 12], [12, 74, 4]],
+             [[0, 75, 4], [4, 77, 2], [6, 79, 6], [12, 80, 4]], [[0, 82, 4], [4, 80, 2], [6, 79, 6], [12, 77, 4]], [[0, 79, 4], [4, 82, 4], [8, 84, 8]], [[0, 83, 8], [8, 79, 4], [12, 74, 4]]],
   };
-  const PENT = [52, 54, 56, 59, 61, 64, 66, 68, 71, 73, 76, 78, 80, 83];
-  const SSOLO = [[[0, 71, 2], [2, 73, 2], [4, 76, 4], [8, 78, 1], [9, 76, 1], [10, 73, 1], [11, 71, 1], [12, 68, 4]], [[0, 69, 6], [6, 71, 2], [8, 73, 2], [10, 74, 2], [12, 73, 2], [14, 71, 2]],
-    [[0, 73, 1], [1, 76, 1], [2, 78, 1], [3, 80, 1], [4, 81, 4], [8, 80, 2], [10, 78, 2], [12, 76, 4]], [[0, 78, 8], [8, 75, 4], [12, 78, 4]],
-    Array.from({ length: 16 }, (_, i) => [i, PENT[Math.min(13, 2 + i)], 1]), [[0, 83, 6], [6, 81, 2], [8, 80, 4], [12, 76, 4]],
-    Array.from({ length: 16 }, (_, i) => [i, PENT[Math.max(0, 13 - i)], 1]), [[0, 80, 8], [8, 83, 4], [12, 87, 4]]];
-  function fillDrums(t, s, kind) {
-    if (kind === 0) { if (s >= 8) tom(t, [190, 170, 150, 130, 115, 100, 90, 80][s - 8], .55); }
-    else if (kind === 1) { if (s >= 12) rsnare(t, .45 + (s - 12) * .15); }
-    else { if (s >= 8 && s % 2 === 0) { rsnare(t, .6); rkick(t, .7); } }
-  }
+  function shred(tri, up) { const n = [tri[0] + 24, tri[1] + 24, tri[2] + 24, tri[0] + 36]; const seq = up ? [0, 1, 2, 3, 2, 1, 0, 1, 2, 3, 2, 1, 0, 1, 2, 3] : [3, 2, 1, 0, 1, 2, 3, 2, 1, 0, 1, 2, 3, 2, 1, 0]; return seq.map((k, i) => [i, n[k], 1]); }
+  const BRIDGE = [[[0, 75, 4], [4, 79, 4], [8, 82, 4], [12, 80, 4]], [[0, 79, 8], [8, 75, 4], [12, 77, 4]], null, [[0, 84, 6], [6, 82, 2], [8, 79, 8]], [[0, 80, 4], [4, 79, 4], [8, 75, 4], [12, 79, 4]], null, [[0, 87, 8], [8, 84, 4], [12, 82, 4]], null];
   function rock(s16, t, sd, withLead) {
-    const s = s16 % 16, bar = Math.floor(s16 / 16), W = where(bar), sec = W.name, tr = sec === 'final' ? 2 : 0;
+    const s = s16 % 16, bar = Math.floor(s16 / 16), W = where(bar), sec = W.name, tr = sec === 'final' ? 1 : 0;
     const [root0, tri0] = SCH[W.chord], r = root0 + tr, tri = tri0.map(n => n + tr);
-    const lastOf4 = W.i % 4 === 3, fillKind = (bar >> 2) % 3;
-    const drums = I >= 1 && sec !== 'intro';
+    const heavy = I >= 1, chor = sec === 'chorus' || sec === 'final', lastOf4 = W.i % 4 === 3;
+    const introQuiet = sec === 'intro' && W.i < 2;
+    // ---------- atmosphere: pad + arpeggiator
+    if (s === 0 && (sec === 'intro' || sec === 'pre' || chor || sec === 'bridge' || sec === 'break')) pad(t, tri.map(n => n + 12), sd * 16 * 1.02, introQuiet ? .03 : .016, introQuiet ? 800 : 1200);
+    if (sec !== 'break' && !(sec === 'pre' && W.i >= 2)) { const seq = [0, 1, 2, 1, 2, 0, 1, 2]; arp(t, tri[seq[s % 8]] + 24 + (s >= 8 && chor ? 12 : 0), sd * 1.8, introQuiet ? .04 : chor ? .018 : .026); }
+    if (sec === 'intro' && W.i === 2 && s >= 8) tone(t, 'sawtooth', 200 + s * 40, 300 + s * 60, .01, sd, .5);   // riser
     // ---------- drums
-    if (sec === 'intro') { if (bar % 2 === 1 && s % 2 === 0 && s >= 4) rsnare(t, .2 + s / 32); if (s === 0) crash(t, .6); }
-    else if (drums) {
-      if (sec === 'break') { if (s === 0 || (s === 10 && W.i % 2)) rkick(t, .8); if (s === 8) rsnare(t, .8); if (s % 4 === 0) hat(t, false, .8); if (W.i === 3) fillDrums(t, s, 1); }
+    if (heavy && !introQuiet) {
+      if (sec === 'intro' && W.i === 2) { if (s % (s < 8 ? 4 : s < 12 ? 2 : 1) === 0) rsnare(t, .35 + s / 30); }
+      else if (sec === 'break') { if ([0, 3, 6, 8, 11, 14].includes(s)) rkick(t, 1); if (s === 8) rsnare(t, 1); if (s === 0 || s === 8) china(t); }
+      else if (sec === 'pre') { if (s % 4 === 0) rkick(t); if (W.i < 2) { if (s === 4 || s === 12) rsnare(t); ride(t, s % 4 === 0 ? 1 : .6); } else if (W.i === 2 ? s % 2 === 0 : true) rsnare(t, .4 + (W.i === 3 ? s / 26 : .15)); }
       else {
-        const filling = lastOf4 && s >= 8 && sec !== 'pre';
-        if (filling) fillDrums(t, s, fillKind);
+        const fill = lastOf4 && s >= 12 && sec !== 'intro';
+        if (fill) { tom(t, [180, 150, 120, 95][s - 12], .7); rkick(t, .5); }
         else {
-          const kp = sec === 'verse' ? [0, 3, 8, 10] : sec === 'pre' ? [0, 8] : [0, 4, 8, 12];
-          if (kp.includes(s)) rkick(t);
-          if (sec === 'pre' && W.i >= 2) { if (W.i === 2 ? s % 4 === 0 : s % 2 === 0) rsnare(t, .4 + (W.i === 3 ? s / 30 : .1)); }
-          else if (s === 4 || s === 12) rsnare(t);
-          const chor = sec === 'chorus' || sec === 'final';
-          if (s % 2 === 0) hat(t, chor && s % 4 === 2, s % 4 === 0 ? 1 : .7); else if (chor || sec === 'solo') hat(t, false, .35);
+          if (chor) { if (s % 2 === 0) rkick(t, .8); ride(t, s % 4 === 0 ? 1 : .6); }
+          else rkick(t, s % 4 === 0 ? .85 : .5);                       // double kick 16ths in verse / bridge / intro drop
+          if (s === 4 || s === 12) rsnare(t);
+          if (!chor && s % 2 === 0) hat(t, false, .6);
         }
-        if (s === 0 && (W.i === 0 || ((sec === 'chorus' || sec === 'final') && W.i % 2 === 0))) crash(t);
+        if (s === 0 && (chor || W.i % 2 === 0)) (chor ? crash : china)(t);
       }
     }
-    // ---------- strings pad for lift
-    if (s === 0 && (sec === 'pre' || sec === 'chorus' || sec === 'final' || sec === 'break')) pad(t, tri.map(n => n + 12), sd * 16 * 1.02, sec === 'break' ? .02 : .016, sec === 'break' ? 700 : 1100);
-    // ---------- rhythm guitars
-    if (sec === 'intro') { if (s === 0) power(t, r + 12, sd * 15, .85); else if (bar === 1 && s === 12) power(t, r + 12, sd * 4, .9); }
-    else if (sec === 'verse') {
-      const P1 = { 0: ['O', 3], 3: ['O', 3], 6: ['O', 2], 8: ['m', 1], 10: ['O', 2], 12: ['m', 1], 14: ['O', 2] }, P2 = { 0: ['O', 2], 2: ['m', 1], 3: ['O', 3], 6: ['O', 2], 8: ['m', 1], 9: ['m', 1], 10: ['O', 3], 14: ['O', 2] };
-      const p = (W.i < 4 ? P1 : P2)[s]; if (p) power(t, r + 12, sd * p[1], p[0] === 'O' ? 1 : .85, p[0] === 'm');
-    } else if (sec === 'pre') { if (s === 0 || s === 8) power(t, r + 12, sd * 7.5, .95); }
-    else if (sec === 'chorus' || sec === 'final') { if (s % 2 === 0) power(t, r + 12, sd * 1.8, s % 4 === 0 ? 1 : .85); }
-    else if (sec === 'break') { if (W.i >= 2 && s === 0) power(t, r + 12, sd * 14, .7); }
-    else if (sec === 'solo') { if (s % 2 === 0) power(t, r + 12, sd, s === 0 ? .95 : .8, s !== 0); }
-    // ---------- slap bass: thumb on the root, popped octaves on the off-sixteenths
-    if (sec !== 'intro') {
-      const SL = sec === 'break' ? { 0: 0, 6: 12, 8: 0, 14: 12 } : sec === 'pre' ? { 0: 0, 4: 0, 8: 0, 12: 0 } : { 0: 0, 3: 12, 6: 0, 8: 0, 10: 12, 11: 0, 14: 12 };
-      if (s in SL) { const pop = SL[s] === 12; synth(t, n2f(r + SL[s]), sd * (pop ? .9 : 1.6), { type: pop ? 'square' : 'sawtooth', amp: pop ? .06 : .08, cut: pop ? 900 : 300, cutEnv: pop ? 2200 : 700, q: pop ? 3 : 1, att: .003, wet: 0 }); }
+    // ---------- guitars (drop tuned)
+    if (!introQuiet) {
+      if (sec === 'verse' || sec === 'bridge' || (sec === 'intro' && W.i === 3)) {
+        const V = { 0: ['O', 2], 2: ['m', 1], 3: ['m', 1], 5: ['m', 1], 6: ['O', 2], 8: ['m', 1], 9: ['m', 1], 10: ['O', 2], 12: ['m', 1], 13: ['m', 1], 14: ['m', 1], 15: ['m', 1] };
+        const p = V[s]; if (p) power(t, r, sd * p[1], p[0] === 'O' ? 1 : .95, p[0] === 'm');
+      } else if (sec === 'pre') { if (s === 0 || s === 8) power(t, r + 12, sd * 7.5, .95); }
+      else if (chor) { if (s === 0) power(t, r + 12, sd * 7.6, 1); else if (s === 8) power(t, r + 12, sd * 5.6, 1); else if (s === 14 || s === 15) power(t, r + 12, sd, .9, true); }
+      else if (sec === 'break') { if ([0, 3, 6, 8, 11, 14].includes(s)) power(t, r, sd * (s === 0 || s === 8 ? 2 : 1.2), 1, s !== 0 && s !== 8); }
+      else if (sec === 'intro' && W.i === 2 && s === 0) power(t, r + 12, sd * 15, .8);
     }
-    // ---------- synth brass stabs on the anticipations
-    if ((sec === 'chorus' || sec === 'final') && (s === 14 || (W.i % 2 === 1 && s === 6))) stab(t, tri.map(n => n + 12), sd * 1.6, .04);
-    if (sec === 'verse' && W.i % 4 === 3 && (s === 10 || s === 14)) stab(t, tri.map(n => n + 12), sd * 1.4, .035);
-    if (sec === 'intro' && bar === 1 && (s === 12 || s === 14)) stab(t, tri.map(n => n + 12), sd * 1.5, .04);
-    // ---------- electric piano: arpeggios in the verse's second half and the breakdown
-    if ((sec === 'break' || (sec === 'verse' && W.i >= 4)) && s % 2 === 0) { const arp = [0, 1, 2, 1, 0, 2, 1, 2]; epiano(t, tri[arp[s / 2]] + 24, sd * 3, sec === 'break' ? .05 : .025); }
-    // ---------- melody: the "singer" on verse / pre / chorus, the guitar on the solo
+    // ---------- bass locks to the guitars
+    if (!introQuiet && sec !== 'intro' || (sec === 'intro' && W.i === 3)) {
+      const hit = sec === 'break' ? [0, 3, 6, 8, 11, 14].includes(s) : sec === 'pre' ? s % 4 === 0 : s % 2 === 0;
+      if (hit) synth(t, n2f(r + 12), sd * (sec === 'pre' ? 3.6 : 1.7), { type: 'sawtooth', amp: .08, cut: 240, cutEnv: 520, q: 1, att: .004, wet: 0 });
+    }
+    // ---------- melody: voice-lead over the hook / pre / chorus, guitar lead over the bridge
     if (I >= 1) {
-      if (sec === 'verse' || sec === 'pre' || sec === 'chorus' || sec === 'final') {
-        const ml = SMEL[sec === 'final' ? 'chorus' : sec][W.i % SMEL[sec === 'final' ? 'chorus' : sec].length];
-        for (const [st, m, len] of ml) if (st === s) { vox(t, m + tr, sd * len * .95, sec === 'verse' ? .8 : 1); if ((sec === 'chorus' || sec === 'final') && withLead && I >= 2) lead(t, m + tr - 12, sd * len * .95); }
-      }
-      if (sec === 'solo' && withLead) for (const [st, m, len] of SSOLO[W.i]) if (st === s) lead(t, m, sd * len * .97);
+      const key = sec === 'final' ? 'chorus' : sec;
+      if (SMEL[key]) { const ml = SMEL[key][W.i % SMEL[key].length]; if (ml) for (const [st, m, len] of ml) if (st === s) { vox(t, m + tr, sd * len * .95, sec === 'verse' ? .7 : 1); if (chor && withLead && I >= 2) lead(t, m + tr - 12, sd * len * .95); } }
+      if (sec === 'bridge' && withLead) { const ml = BRIDGE[W.i] || shred(tri, W.i % 4 !== 3); for (const [st, m, len] of ml) if (st === s) lead(t, m, sd * len * .97); }
     }
   }
   const TRACKS = {
@@ -705,8 +691,8 @@ const BGM = (() => {
       if (s === 6 || s === 14) synth(t, n2f(c.ch[(bar + s) % 3] + 36), sd * 2, { type: 'sine', amp: .03, cut: 5000, cutEnv: 0, q: 1, wet: .6, echo: .6 });
       if (s === 8 && bar % 2 === 1) tone(t, 'sine', 1600, 400, .02, 1.2, .7);
     } },
-    movie: { bpm: 150, vol: .8, fn(s16, t, sd) { rock(s16, t, sd, true); } },
-    battle: { bpm: 160, vol: .7, fn(s16, t, sd) { rock(s16, t, sd, true); } },
+    movie: { bpm: 140, vol: .8, fn(s16, t, sd) { rock(s16, t, sd, true); } },
+    battle: { bpm: 150, vol: .7, fn(s16, t, sd) { rock(s16, t, sd, true); } },
     orch: { bpm: 124, vol: .8, fn(s16, t, sd) { battle(s16, t, sd, true); } },
     cockpit: { bpm: 64, vol: .6, fn(s16, t, sd) {
       const s = s16 % 16, bar = Math.floor(s16 / 16), c = PROG[Math.floor(bar / 2) % 4];
