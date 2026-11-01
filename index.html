@@ -808,6 +808,40 @@ const BGM = (() => {
       if (sec === 'bridge' && withLead) { const ml = BRIDGE[W.i] || shred(tri, W.i % 4 !== 3); for (const [st, m, len] of ml) if (st === s) (BRIDGE[W.i] ? twin : lead)(t, m, sd * len * .97, tr); }
     }
   }
+  // ---- CRISIS: racing low-string ostinato on a semitone, heartbeat kick, ticking clock, dissonant brass, tremolo violins, rising key every phrase ----
+  function trem(t, m, dur, a = .012) {      // tremolo violins: fast 32nd re-bows
+    const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = n2f(m);
+    const fl = ctx.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = 2600;
+    const e = ctx.createGain(); e.gain.setValueAtTime(.0001, t); e.gain.linearRampToValueAtTime(a, t + dur * .3); e.gain.setValueAtTime(a, t + dur * .8); e.gain.linearRampToValueAtTime(.0001, t + dur);
+    const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.type = 'square'; lfo.frequency.value = 13; lg.gain.value = a * .8; lfo.connect(lg); lg.connect(e.gain);
+    o.connect(fl); fl.connect(e); bus(e, .5); o.start(t); lfo.start(t); o.stop(t + dur + .05); lfo.stop(t + dur + .05);
+  }
+  function danger(s16, t, sd) {
+    const s = s16 % 16, bar = Math.floor(s16 / 16), ph = Math.floor(bar / 4) % 4, lift = [0, 1, 3, 5][ph], b4 = bar % 4;
+    const root = 36 + lift;                                         // C, Db, Eb, F … the floor keeps rising
+    // low strings: root / minor-second grind, staccato sixteenths
+    const os = [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 1, 0, 1][s];
+    synth(t, n2f(root + 12 + os), sd * .8, { type: 'sawtooth', amp: .06, cut: 500, cutEnv: 900, q: 3, att: .004, wet: .2 });
+    if (s % 4 === 0) synth(t, n2f(root + os), sd * 1.5, { type: 'sawtooth', amp: .07, cut: 160, cutEnv: 300, q: 2, wet: 0 });
+    // heartbeat
+    if (s === 0) rkick(t, .9); if (s === 3) rkick(t, .55); if (s === 8) rkick(t, .9); if (s === 11) rkick(t, .55);
+    // ticking clock
+    if (s % 2 === 0) noise(t, 'bandpass', s % 4 === 0 ? 4200 : 3600, 6, .07, .02, .1);
+    // guitars stab the off-beats
+    if ([0, 3, 6, 10, 12].includes(s)) power(t, root, sd * (s === 0 ? 1.6 : .9), .9, s !== 0);
+    // snare backbeat, roll into each phrase
+    if (b4 < 3 && (s === 4 || s === 12)) rsnare(t, .9);
+    if (b4 === 3 && s >= 8) { rsnare(t, .3 + (s - 8) * .09); if (s % 2 === 0) timp(t, n2f(root + 12), .4 + (s - 8) * .06); }
+    if (s % 2 === 1) hatM(t, false, .5);
+    // dissonant brass hit + metal crash at the top of each 2 bars
+    if (s === 0 && bar % 2 === 0) { brass(t, [root + 12, root + 13, root + 19], sd * 6, .03, .02); crashM(t, .8); warDrum(t, .8); }
+    // violins scream a semitone apart, higher each phrase
+    if (s === 0 && b4 % 2 === 0) { trem(t, root + 43, sd * 31, .011); trem(t, root + 44, sd * 31, .009); }
+    // choir cluster swells on every phrase
+    if (s === 0 && b4 === 0) choir(t, [root + 24, root + 25, root + 31], sd * 64, .014);
+    // alarm blips
+    if (b4 === 2 && (s === 0 || s === 2)) tone(t, 'square', 1320, 1320, .02, sd * 1.2, .3);
+  }
   const TRACKS = {
     title: { bpm: 76, vol: .9, fn(s16, t, sd) {
       const s = s16 % 16, bar = Math.floor(s16 / 16), c = PROG[bar % 4];
@@ -818,6 +852,7 @@ const BGM = (() => {
     } },
     movie: { bpm: 140, vol: .8, fn(s16, t, sd) { rock(s16, t, sd, true); } },
     battle: { bpm: 150, vol: .7, fn(s16, t, sd) { rock(s16, t, sd, true); } },
+    danger: { bpm: 168, vol: .75, fn(s16, t, sd) { danger(s16, t, sd); } },
     orch: { bpm: 124, vol: .8, fn(s16, t, sd) { battle(s16, t, sd, true); } },
     cockpit: { bpm: 64, vol: .6, fn(s16, t, sd) {
       const s = s16 % 16, bar = Math.floor(s16 / 16), c = PROG[Math.floor(bar / 2) % 4];
@@ -839,10 +874,12 @@ const BGM = (() => {
     if (o.intensity != null) I = o.intensity;
     if (track && track.name === name) return;
     const t = ctx.currentTime;
+    if (track) track.saved = { step, at: t };
     if (g) { const old = g; old.gain.cancelScheduledValues(t); old.gain.setValueAtTime(old.gain.value, t); old.gain.linearRampToValueAtTime(0, t + 1.5); setTimeout(() => { try { old.disconnect(); } catch (e) {} }, 2600); }
     track = TRACKS[name]; track.name = name;
     g = ctx.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(track.vol, t + (o.fade != null ? o.fade : 1.2)); g.connect(out);
     step = 0; nextT = t + .06;
+    if (o.resume !== false && track.saved && t - track.saved.at < 90) step = Math.ceil(track.saved.step / 16) * 16;
     if (!timer) timer = setInterval(sched, 25);
   }
   return { play, set(i) { I = i; }, impact() { if (init() && g) impact(ctx.currentTime + .02, 1); } };
@@ -3169,7 +3206,7 @@ function allyHit(a, at) {
   if (a.hp <= 0) killAlly(a);
 }
 function killAlly(a) {
-  if (!a.alive) return; a.alive = false;
+  if (!a.alive) return; a.alive = false; S.allyDownT = performance.now();
   a.flames.forEach(f => f.visible = false);
   explosion(new THREE.Vector3(a.x, 7, a.z), 1.8);
   WRECK.start(a.root, { legs: a.legs, h: 9, size: 6, drop: 1.6 });
@@ -3753,7 +3790,7 @@ DROP.place();
 async function doLaunch() {
   for (let i = 0; i < 3; i++) { sTone({ f: 520, dur: .35, type: 'sawtooth', gain: .06, at: i * .5 }); sTone({ f: 390, dur: .15, type: 'sawtooth', gain: .06, at: i * .5 + .35 }); }
   SFX.spinup(); buzz([100, 60, 200]); P.trauma = .6;
-  say('出撃！', 'a', 2.2); VO.ai('HK-07、発進。', 'high'); BGM.play('battle', { intensity: 2, fade: .4 }); await wait(600);
+  say('出撃！', 'a', 2.2); VO.ai('HK-07、発進。', 'high'); DANGER.on = false; BGM.play('battle', { intensity: 2, fade: .4, resume: false }); await wait(600);
   if (S.mode !== 'space') {
     $('#bootPanel').hidden = true; await DROP.start(); if (S.phase !== 'drop') return;
   }
@@ -4718,6 +4755,7 @@ const CUT = (() => {
     rd.gait = makeGait(rd.g, rd.legs, { hipX: [1.5, -1.5], hipY: 4.2, l1: 1.9, l2: 1.8, ankle: .5, lift: .7, sway: .2 });
     const R = { ...rd, x: s.x + side * 46, z: s.z - 14, y: 0, yaw: 0, spd: 0 };
     R.yaw = Math.atan2(-(s.x - R.x), -(s.z - R.z));
+    if (opt.mina) { DANGER.on = true; BGM.play('danger', { fade: .3, resume: false }); }
     if (!begin('grab', { s, R, side, held: false, mina: !!opt.mina }, () => { scene.remove(R.g); if (s.alive) { s.alive = false; s.grabbed = true; scene.remove(s.g); if (onLost) onLost(); } })) scene.remove(R.g);
   }
   function stepR(R, dt, vx, vz) {
@@ -4850,6 +4888,20 @@ function bossMoves(e, dt) {
       say('高速接近！ 突進してくるぞ', 'r', 1.8); sNoise({ dur: .9, f: 400, f2: 3000, gain: .45 });
     }
   }
+}
+
+/* ---------- crisis music: switch to the tension track when 07, the squad, Mina or the base is in real trouble ---------- */
+const DANGER = { on: false, safeT: 0 };
+function dangerMusic(dt) {
+  if (S.phase !== 'op' || P.dead) return;
+  const now = performance.now();
+  const lowP = P.armor < 35;
+  const hurtA = allies.filter(a => a.alive && a.hp < (a.hpMax || SQ.hp) * .3).length >= 2 || (S.allyDownT && now - S.allyDownT < 9000) || allies.some(a => a.mina && a.alive && a.hp < (a.hpMax || SQ.hp) * .35);
+  const baseLow = structs.some(q => q.friendly && q.alive && q.kind === 'base' && q.hp < q.max * .3);
+  if (lowP || hurtA || baseLow) {
+    DANGER.safeT = 0;
+    if (!DANGER.on) { DANGER.on = true; BGM.play('danger', { fade: .5 }); if (lowP) VO.event('dangerP', () => VO.ai('警告。装甲、危険域。……持ちこたえてください！', 'high'), 30); else if (baseLow) VO.event('dangerB', () => VO.say('cmd', '基地が持たない！07、急げ！'), 30); else VO.event('dangerA', () => VO.say('ren', 'まずい、押されてる！07、援護を頼む！'), 30); }
+  } else if (DANGER.on) { DANGER.safeT += dt; if (DANGER.safeT > 7) { DANGER.on = false; BGM.play('battle', { fade: 1.6 }); } }
 }
 
 /* ================= INPUT ================= */
@@ -5700,7 +5752,7 @@ function frameBody(now) {
   if (live) {
     if (S.phase === 'cut') CUT.update(dt); else if (S.phase === 'drop') DROP.update(dt); else { updatePlayer(dt); DROP.update(dt); } updateMech(dt); followSun();
     if (S.phase === 'op' && allDestroyedWins() && S.spawned >= ENEMY_TOTAL && !enemies.some(e => e.alive && !e.ally)) endGame(true);
-    MIS.update(dt, T);
+    MIS.update(dt, T); dangerMusic(dt);
     if (S.phase === 'op' && !P.dead) { S.cmdT -= dt; if (S.cmdT <= 0) { S.cmdT = rand(30, 46); const CL = CMD_LINES[S.mode]; VO.radio('司令部', CL[Math.random() * CL.length | 0], 0, .7); } } updateGantry(dt, T); updateEnemies(dt); updateAllies(dt); updateShells(dt); updateParts(dt); if (S.phase !== 'cut') updateCamera(T, dt);
     if (CK.combatOn) CK.update(dt, T);
     lodPass(); updatePistons(); renderer.render(scene, camera); CK.renderCombat(); drawLever();
