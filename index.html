@@ -653,10 +653,11 @@ const CMD_LINES = {
 const S = { mode: 'land', cmdT: 20, view: 'fp', phase: 'title', step: 0, busy: false, power: 0, hyd: 0, os: 0, reactor: 0, holding: false, holdT: 0, hudA: 0, msg: [], camStatic: 0, endTimer: 0, t0: 0, kills: 0 };
 const P = {};
 function resetPlayer() {
+  if (window.__dropCancel) window.__dropCancel();
   if (S.viewSave) { S.view = S.viewSave; S.viewSave = null; }
   Object.assign(P, { x: 0, z: 0, yaw: 0, spd: 0, turn: 0, thr: 0, ty: 0, tp: 0, tyT: 0, tpT: 0, armor: 100, heat: 0, over: false,
     main: 6, mainRes: 24, reload: 0, sub: 400, mgCd: 0, mainCd: 0, mgN: 0, phase: 0, stepN: 0, side: 1,
-    bobY: 0, bobV: 0, kick: 0, kickV: 0, trauma: 0, glitch: 0, flash: 0, dead: false, hits: [], servo: 0, bumpCd: 0, fired: 0, hitsLanded: 0,
+    gy: 0, bobY: 0, bobV: 0, kick: 0, kickV: 0, trauma: 0, glitch: 0, flash: 0, dead: false, hits: [], servo: 0, bumpCd: 0, fired: 0, hitsLanded: 0,
     brl: 0, mgSpin: 0, vel: new THREE.Vector3(), pitchS: 0, cat: 0, onDeck: true, crouch: .22, acc: 0, lastSpd: 0, lean: 0, y: 0, vy: 0, thrust: 0, fuel: 100, fuelCd: 0, jetT: 0, fuelWarn: false, aimO: new THREE.Vector3(0, 7.9, 0), aimD: new THREE.Vector3(0, 0, -1) });
 }
 resetPlayer();
@@ -850,7 +851,7 @@ function makeGait(root, legs, opt) {
 }
 function idealFoot(G, i, out, lead) {
   const hx = G.opt.hipX[i] * (G.opt.scale || 1);
-  out.set(G.px + Math.cos(G.yaw) * hx, G.opt.ankle * (G.opt.scale || 1), G.pz - Math.sin(G.yaw) * hx); if (lead) out.add(lead); return out;
+  out.set(G.px + Math.cos(G.yaw) * hx, G.opt.ankle * (G.opt.scale || 1) + (G.gy || 0), G.pz - Math.sin(G.yaw) * hx); if (lead) out.add(lead); return out;
 }
 function gaitStep(G, dt, px, pz, yaw, vx, vz, onPlant) {
   G.px = px; G.pz = pz; G.yaw = yaw;
@@ -860,8 +861,8 @@ function gaitStep(G, dt, px, pz, yaw, vx, vz, onPlant) {
   if (sw >= 0) {
     const f = G.feet[sw]; f.t += dt / f.dur;
     const p = Math.min(1, f.t), e = p * p * (3 - 2 * p);
-    f.pos.lerpVectors(f.from, f.to, e); f.pos.y = G.opt.ankle * (G.opt.scale || 1) + Math.sin(p * Math.PI) * f.lift;
-    if (p >= 1) { f.t = -1; f.pos.y = G.opt.ankle * (G.opt.scale || 1); G.last = sw; if (onPlant) onPlant(sw, f.k); sw = -1; }
+    f.pos.lerpVectors(f.from, f.to, e); f.pos.y = G.opt.ankle * (G.opt.scale || 1) + (G.gy || 0) + Math.sin(p * Math.PI) * f.lift;
+    if (p >= 1) { f.t = -1; f.pos.y = G.opt.ankle * (G.opt.scale || 1) + (G.gy || 0); G.last = sw; if (onPlant) onPlant(sw, f.k); sw = -1; }
   }
   if (sw < 0) {
     const lead = GV2.set(vx, 0, vz).multiplyScalar(Ts * .95);
@@ -1541,7 +1542,8 @@ function onPlayerPlant(i, k) {
 function updateMech(dt) {
   const r = ME.root, G = ME.gait, sp = Math.abs(P.spd);
   // crouch deeper at speed so the legs can reach long strides; lean into acceleration
-  P.crouch += ((P.y > .3 ? .1 : .22 + .42 * Math.min(1, sp / 10)) - P.crouch) * Math.min(1, dt * 3);
+  const gy = P.gy || 0; G.gy = gy;
+  P.crouch += ((P.y - gy > .3 ? .1 : .22 + .42 * Math.min(1, sp / 10)) - P.crouch) * Math.min(1, dt * 3);
   P.acc += ((P.spd - P.lastSpd) / Math.max(dt, 1e-3) - P.acc) * Math.min(1, dt * 4); P.lastSpd = P.spd;
   P.lean = -clamp(P.spd * .01 + P.acc * .03, -.12, .16);
   r.position.set(P.x + Math.cos(P.yaw) * G.sway, P.y + P.bobY * .55 - P.crouch, P.z - Math.sin(P.yaw) * G.sway);
@@ -1550,7 +1552,7 @@ function updateMech(dt) {
   if (fly) { r.position.set(P.x, P.y, P.z); r.rotation.set(P.pitchS, P.yaw, -P.turn * .35); P.crouch = 0; }
   r.updateMatrixWorld(true);
   if (fly) { flightPose(ME.legs, T); G.airborne = true; }
-  else if (P.y > .3) {
+  else if (P.y - gy > .3) {
     G.airborne = true;
     const k = Math.min(1, dt * 5);
     ME.legs.forEach((l, i) => { l.thigh.rotation.z = 0; l.foot.rotation.z = 0; l.thigh.rotation.x += ((i ? .45 : .2) - l.thigh.rotation.x) * k; l.knee.rotation.x += ((i ? -.9 : -.5) - l.knee.rotation.x) * k; l.foot.rotation.x = -(l.thigh.rotation.x + l.knee.rotation.x) * .6; });
@@ -3328,10 +3330,99 @@ async function doRelease() {
   for (let i = 0; i < 2; i++) sTone({ f: 140, f2: 70, dur: .35, type: 'sawtooth', gain: .15, at: .3 + i * .9 });
   await wait(1700); SFX.clunk(); P.trauma = .5; say('拘束解除', 'a', 1.6); await wait(400);
 }
+/* ---------- air-drop sortie: ride a heavy transport, the bay opens, walk to the nose, jump, slam into the ground ---------- */
+const DROP = (() => {
+  const H = 78, ZS = -3, DECK_Z = 8, EDGE_Z = -31;
+  let g = null, doors = [], flames = [], lamp = null, t = 0, on = false, st = 0, jumped = false, landed = -1, fwd = 0, local = DECK_Z, resolve = null, flying = false;
+  function build() {
+    g = new THREE.Group(); scene.add(g);
+    const hull = std(0x4b514c, .55, .5), dark = std(0x24272a, .6, .45), trim = std(0x9a8448, .5, .4), glass = new THREE.MeshStandardMaterial({ color: 0x0c1218, roughness: .1, metalness: .9 });
+    const red = new THREE.MeshBasicMaterial({ color: 0xff3020 }), grn = new THREE.MeshBasicMaterial({ color: 0x40ff60 });
+    part(cb(15, 9, 64, .9), hull, 0, -4.7, 2, g);                                   // fuselage
+    part(cb(11, 6.5, 12, 2.2), hull, 0, -5.4, -35, g);                              // nose
+    part(cb(7, 1.8, 4, .5), glass, 0, -2.6, -38.5, g, -.35);                        // flight deck glass
+    part(new THREE.BoxGeometry(12, .3, 52), dark, 0, .05, -6, g);                   // drop deck
+    for (let z = -30; z < 18; z += 6) part(new THREE.BoxGeometry(12.1, .32, .5), trim, 0, .06, z, g);
+    [-1, 1].forEach(s => { part(new THREE.BoxGeometry(.4, .5, 52), trim, s * 6, .3, -6, g); for (let z = -28; z < 18; z += 8) part(new THREE.BoxGeometry(.3, .3, .3), red, s * 6, .65, z, g); });
+    part(cb(80, 1.3, 14, .5), hull, 0, -6.8, 6, g);                                 // wings
+    [-1, 1].forEach(s => { part(new THREE.BoxGeometry(.6, .6, .6), s < 0 ? red : grn, s * 40, -6.6, 6, g); part(cb(1.1, 12, 10, .3), hull, s * 5.5, 4, 29, g, 0, 0, s * .12); });
+    part(cb(32, 1.1, 7, .3), hull, 0, -3, 32, g);                                   // tailplane
+    [-27, -15, 15, 27].forEach(x => {
+      cyl(2.3, 2.3, 8, dark, x, -9.2, 5, g, 18); cyl(1.6, 1.9, .8, hull, x, -9.2, 9.3, g, 18);
+      const f = new THREE.Mesh(sphGeo, flameMat); f.position.set(x, -9.2, 10.4); f.scale.set(1.5, 1.5, 3); g.add(f); flames.push(f);
+    });
+    // clamshell bay over the machine, hinged on the deck edges
+    [-1, 1].forEach(s => {
+      const d = new THREE.Group(); d.position.set(s * 6.6, .2, DECK_Z); g.add(d);
+      part(cb(.7, 13.5, 19, .2), hull, 0, 6.75, 0, d); part(cb(6.9, .7, 19, .2), hull, -s * 3.3, 13.5, 0, d);
+      part(new THREE.BoxGeometry(.75, .4, 19.2), trim, 0, 3, 0, d); part(new THREE.BoxGeometry(6.6, .2, .4), red, -s * 3.3, 13.9, -9.4, d);
+      doors.push({ d, s });
+    });
+    lamp = part(new THREE.BoxGeometry(1.2, .6, .6), red, 0, 1, -2, g);
+    g.traverse(o => { if (o.isMesh && o.material !== flameMat && o.material.type !== 'MeshBasicMaterial') { o.castShadow = true; o.receiveShadow = true; } });
+    g.visible = false;
+  }
+  function start() {
+    if (!g) build();
+    t = 0; st = 0; jumped = false; landed = -1; local = DECK_Z; on = true; flying = false;
+    g.visible = true; g.position.set(0, H, ZS); g.rotation.set(0, 0, 0); doors.forEach(o => o.d.rotation.z = 0);
+    Object.assign(P, { x: 0, z: ZS + DECK_Z, y: H, gy: H, vy: 0, spd: 0, thr: 0, yaw: 0, turn: 0, thrust: 0 }); ME.gait.init = false;
+    S.phase = 'drop';
+    sNoise({ dur: 3, f: 200, f2: 120, gain: .35, a: .6 }); sTone({ f: 48, f2: 52, dur: 3, type: 'sawtooth', gain: .08 });
+    return new Promise(r => resolve = r);
+  }
+  function rumble() { sNoise({ dur: 1.1, f: 180, f2: 140, gain: .28 }); }
+  function update(dt) {
+    if (!g || !g.visible) return;
+    t += dt;
+    flames.forEach(f => { const k = .8 + Math.random() * .4; f.scale.set(1.5 * k, 1.5 * k, 3 * k); });
+    if (flying) { g.position.z -= 34 * dt; g.position.y += 5 * dt; g.rotation.x = Math.min(.12, g.rotation.x + dt * .05); if (g.position.z < -1400) g.visible = false; }
+    else g.position.y = H + Math.sin(t * 1.1) * .12;
+    if (!on) return;
+    if (Math.floor(t / 1.0) !== Math.floor((t - dt) / 1.0)) rumble();
+    lamp.material = (t * 2 % 1) < .5 ? lamp.material : lamp.material; lamp.visible = (t * 2.5 % 1) < .55;
+    // the bay opens
+    const k = clamp((t - .8) / 2.0, 0, 1), a = k * k * (3 - 2 * k) * 2.15;
+    doors.forEach(o => o.d.rotation.z = -o.s * a);
+    if (st === 0 && t > .7) { st = 1; SFX.hiss(2.4); SFX.clunk(); buzz([60, 40, 60]); VO.radio('輸送機', '降下ポイント上空に到達。ハッチ開放！', 0, .9); say('降下ハッチ開放', 'a', 2.2); P.trauma = Math.max(P.trauma, .35); }
+    if (st === 1 && t > 3.4) { st = 2; VO.ai('降下位置へ移動します。'); say('前進 ─ 降下位置へ', 'g', 2); }
+    if (!jumped) {
+      if (st >= 2) { local -= 6.2 * dt; P.spd = 6.2; } else P.spd = 0;
+      P.x = 0; P.z = g.position.z + local; P.y = g.position.y + .2; P.gy = P.y; P.vy = 0; P.yaw = 0;
+      if (local <= EDGE_Z) {
+        jumped = true; P.gy = 0; P.vy = 7.5; fwd = 10; P.spd = 0; flying = true;
+        VO.radio('輸送機', '07、降下！幸運を！', 0, .9); say('降下！', 'a', 1.8); SFX.spinup(); sNoise({ dur: 3.4, f: 400, f2: 2400, gain: .45, a: .4 });
+      }
+      return;
+    }
+    if (landed < 0) {
+      P.vy -= 20 * dt; P.y += P.vy * dt; P.z -= fwd * dt; P.trauma = Math.max(P.trauma, .22 + .3 * clamp(-P.vy / 40, 0, 1));
+      if (P.y <= 0) {
+        landed = t; P.y = 0; P.vy = 0; P.crouch = 1.25; P.trauma = 1; P.glitch = .55; P.kickV -= 3; S.camShake = 1;
+        for (let i = 0; i < 22; i++) { const q = i / 22 * TAU; addPart({ pos: new THREE.Vector3(P.x + Math.cos(q) * 4, .6, P.z + Math.sin(q) * 4), color: 0x9a8a6c, op: .65, s0: 2, s1: 9, life: 2.2, vel: new THREE.Vector3(Math.cos(q) * 16, 1.5, Math.sin(q) * 16) }); }
+        for (let i = 0; i < 14; i++) addPart({ geo: boxGeo, rot: true, pos: new THREE.Vector3(P.x + rand(-3, 3), .5, P.z + rand(-3, 3)), color: 0x6a5e4a, s0: rand(.3, .8), life: rand(1.2, 2), grav: 26, spin: rand(3, 8), vel: new THREE.Vector3(rand(-10, 10), rand(8, 16), rand(-10, 10)) });
+        sTone({ f: 55, f2: 22, dur: 1.6, gain: 1 }); sNoise({ dur: 1.4, f: 500, f2: 60, gain: .9 }); sNoise({ dur: .4, type: 'highpass', f: 2500, gain: .2 }); SFX.clunk();
+        buzz([250, 60, 300, 60, 120]); say('着地', 'a', 1.4); boomLight.position.set(P.x, 3, P.z); boomLight.intensity = 4;
+      }
+      return;
+    }
+    if (st === 2 && t - landed > 1.3) { st = 3; VO.ai('メインシステム、戦闘モード起動。', 'high'); say('MAIN SYSTEM ─ COMBAT MODE', 'r', 2.8); sTone({ f: 440, f2: 880, dur: .25, type: 'square', gain: .05 }); sTone({ f: 880, f2: 1320, dur: .3, type: 'square', gain: .05, at: .22 }); }
+    if (st === 3 && t - landed > 3.2) { st = 4; on = false; P.gy = 0; const r = resolve; resolve = null; if (r) r(); }
+  }
+  function cancel() { on = false; if (g) g.visible = false; P.gy = 0; const r = resolve; resolve = null; if (r) r(); }
+  window.__dropCancel = cancel;
+  return { start, update, cancel, get on() { return on; } };
+})();
 async function doLaunch() {
   for (let i = 0; i < 3; i++) { sTone({ f: 520, dur: .35, type: 'sawtooth', gain: .06, at: i * .5 }); sTone({ f: 390, dur: .15, type: 'sawtooth', gain: .06, at: i * .5 + .35 }); }
   SFX.spinup(); buzz([100, 60, 200]); P.trauma = .6;
-  say('出撃！', 'a', 2.2); VO.ai('HK-07、発進。', 'high'); BGM.play('battle', { intensity: 2, fade: .4 }); setTimeout(() => VO.radio('01', '07が来たぞ！全機、援護しろ！', 1, .9), 2600); await wait(600);
+  say('出撃！', 'a', 2.2); VO.ai('HK-07、発進。', 'high'); BGM.play('battle', { intensity: 2, fade: .4 }); await wait(600);
+  if (S.mode !== 'space') {
+    const bo = $('#blackout'); bo.style.transition = 'opacity .45s'; bo.style.opacity = 1; await wait(500);
+    $('#bootPanel').hidden = true; const dp = DROP.start(); bo.style.opacity = 0; setTimeout(() => { bo.style.transition = ''; }, 600);
+    await dp; if (S.phase !== 'drop') return;
+  }
+  setTimeout(() => VO.radio('01', '07が来たぞ！全機、援護しろ！', 1, .9), 1200);
   S.phase = 'op'; S.t0 = performance.now();
   if (S.mode === 'space') { P.onDeck = false; P.cat = 2.2; ME.gait.airborne = true; sNoise({ dur: 2.4, f: 300, f2: 1800, gain: .7, a: .2 }); sTone({ f: 60, f2: 140, dur: 2.2, type: 'sawtooth', gain: .2 }); setTimeout(() => VO.ai('カタパルト、射出。'), 300); }
   $('#hint').innerHTML = S.mode === 'space'
@@ -4394,7 +4485,7 @@ function drawHUD(dt, T) {
   if (hud.width !== Math.round(W * d) || hud.height !== Math.round(H * d)) { hud.width = Math.round(W * d); hud.height = Math.round(H * d); }
   hx.setTransform(d, 0, 0, d, 0, 0); hx.clearRect(0, 0, W, H);
   if (S.phase === 'cam' || S.camStatic > 0) { S.camStatic -= dt; drawStatic(W, H, 1); return; }
-  if (S.phase !== 'op' && S.phase !== 'end' && S.phase !== 'launch') return;
+  if (S.phase !== 'op' && S.phase !== 'end' && S.phase !== 'launch' && S.phase !== 'drop') return;
   S.hudA = Math.min(1, S.hudA + dt * .8);
   const fs = clamp(W / 58, 10, 15), cx = W / 2, cy = H / 2;
   hx.save(); hx.globalAlpha = S.hudA; hx.lineWidth = 1.4; hx.shadowColor = 'rgba(125,255,168,.6)'; hx.shadowBlur = 4;
@@ -4880,10 +4971,10 @@ function frameBody(now) {
   QA.acc += dt; QA.n++;
   if (QA.acc > 2.5) { const a = QA.acc / QA.n; let d = QA.dpr; if (a > 1 / 42) d = Math.max(QA.min, d - .25); else if (a < 1 / 56) d = Math.min(QA.max, d + .25); if (d !== QA.dpr) { QA.dpr = d; renderer.setPixelRatio(d); resize(); } QA.acc = 0; QA.n = 0; }
   if (S.holding) { S.holdT += dt; if (S.holdT >= 1.4) { S.holding = false; runStep(S.step); } }
-  const live = S.phase === 'op' || S.phase === 'end' || S.phase === 'launch';
+  const live = S.phase === 'op' || S.phase === 'end' || S.phase === 'launch' || S.phase === 'drop';
   if (!live) { P.bobV += (-60 * P.bobY - 9 * P.bobV) * dt; P.bobY += P.bobV * dt; P.trauma = Math.max(0, P.trauma - .9 * dt); }
   if (live) {
-    updatePlayer(dt); updateMech(dt); followSun();
+    if (S.phase === 'drop') DROP.update(dt); else { updatePlayer(dt); DROP.update(dt); } updateMech(dt); followSun();
     if (S.phase === 'op' && allDestroyedWins() && S.spawned >= ENEMY_TOTAL && !enemies.some(e => e.alive && !e.ally)) endGame(true);
     MIS.update(dt, T);
     if (S.phase === 'op' && !P.dead) { S.cmdT -= dt; if (S.cmdT <= 0) { S.cmdT = rand(30, 46); const CL = CMD_LINES[S.mode]; VO.radio('司令部', CL[Math.random() * CL.length | 0], 0, .7); } } updateGantry(dt, T); updateEnemies(dt); updateAllies(dt); updateShells(dt); updateParts(dt); updateCamera(T, dt);
