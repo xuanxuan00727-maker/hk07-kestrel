@@ -1500,7 +1500,7 @@ function updateEnemiesSpace(dt, T) {
       SFX.enemyGun(camera.position.distanceTo(mz));
     }
   }
-  if (battle && S.spawned < ENEMY_TOTAL && enemies.filter(e => e.alive && !e.ally).length < enemyCap()) spawnWave(Math.min(3, ENEMY_TOTAL - S.spawned));
+  if ((S.phase === 'op' || S.phase === 'movie') && S.spawned < ENEMY_TOTAL && enemies.filter(e => e.alive && !e.ally).length < enemyCap()) spawnWave(Math.min(3, ENEMY_TOTAL - S.spawned));
 }
 function nearestEnemy3(x, y, z, maxD) { let best = null, bd = maxD; for (const e of enemies) if (e.alive) { const d = Math.hypot(e.x - x, e.y - y, e.z - z); if (d < bd) { bd = d; best = e; } } return best ? { e: best, d: bd } : null; }
 function updateAlliesSpace(dt, T) {
@@ -1689,6 +1689,7 @@ let NEXT_BOSS = null;
 function makeEnemy(kind) {
   if (kind) return makeBossModel(kind);
   if (!RAIDER_T) { const t = buildRaider(); scene.remove(t.g); t.tur.name = 'tur'; t.muzzle.name = 'muzzle'; t.legs.forEach((l, i) => { l.thigh.name = 'th' + i; l.knee.name = 'kn' + i; l.foot.name = 'ft' + i; }); mergeStatic(t.g); RAIDER_T = t; RAIDER_T.pgeo = bakeProxy(t.g); }
+  if (!RAIDER_T.slim) { RAIDER_T.slim = true; RAIDER_T.g.traverse(o => { o.userData = {}; }); }   // userData is deep-copied on clone: keep it empty so spawning stays cheap
   const g = RAIDER_T.g.clone(); scene.add(g);
   const proxy = new THREE.Mesh(RAIDER_T.pgeo, eMat); proxy.visible = false; proxy.castShadow = true; g.add(proxy);
   return { g, proxy, tur: g.getObjectByName('tur'), muzzle: g.getObjectByName('muzzle'), legs: [0, 1].map(i => ({ thigh: g.getObjectByName('th' + i), knee: g.getObjectByName('kn' + i), foot: g.getObjectByName('ft' + i) })) };
@@ -3018,7 +3019,9 @@ function updateEnemies(dt) {
   const battle = BATTLE(), tg = battle ? enemyTargets() : [];
   for (const e of enemies) {
     if (!e.alive) {
-      e.smokeT -= dt; if (e.smokeT <= 0) { e.smokeT = .45; addPart({ pos: new THREE.Vector3(e.x + rand(-1, 1), 4, e.z + rand(-1, 1)), color: 0x2f2b26, op: .55, s0: 1.5, s1: 6, life: 4, vel: new THREE.Vector3(rand(-.5, .5) + 1, rand(3, 5), rand(-.5, .5)) }); }
+      e.deadT = (e.deadT || 0) + dt;
+      if (e.deadT < 12) { e.smokeT -= dt; if (e.smokeT <= 0) { e.smokeT = .6; if (Math.hypot(camera.position.x - e.x, camera.position.z - e.z) < 320) addPart({ pos: new THREE.Vector3(e.x + rand(-1, 1), 4, e.z + rand(-1, 1)), color: 0x2f2b26, op: .55, s0: 1.5, s1: 6, life: 4, vel: new THREE.Vector3(rand(-.5, .5) + 1, rand(3, 5), rand(-.5, .5)) }); } }
+      else if (e.deadT > 16 && !e.gone) { e.gone = true; scene.remove(e.g); }
       continue;
     }
     let t = null, dist = 1e9;
@@ -3066,8 +3069,9 @@ function updateEnemies(dt) {
       SFX.enemyGun(hd);
     }
   }
-  if (battle && S.spawned < ENEMY_TOTAL && enemies.filter(e => e.alive && !e.ally).length < enemyCap()) spawnWave(Math.min(3, ENEMY_TOTAL - S.spawned));
+  if ((S.phase === 'op' || S.phase === 'movie') && S.spawned < ENEMY_TOTAL && enemies.filter(e => e.alive && !e.ally).length < enemyCap()) spawnWave(Math.min(3, ENEMY_TOTAL - S.spawned));
   if (S.phase === 'op') hackTick(dt);
+  for (let i = enemies.length - 1; i >= 0; i--) if (enemies[i].gone) enemies.splice(i, 1);
 }
 
 /* ---------- particles / projectiles ---------- */
@@ -3139,15 +3143,19 @@ const WRECK = (() => {
 })();
 
 const PART_CAP = window.matchMedia && matchMedia('(pointer:coarse)').matches ? 150 : 260;
+const PPOOL = [];
 function addPart(o) {
-  const mat = new THREE.MeshBasicMaterial({ color: o.color, transparent: true, opacity: o.op ?? 1, depthWrite: false, blending: o.add ? THREE.AdditiveBlending : THREE.NormalBlending });
-  const m = new THREE.Mesh(o.geo || sphGeo, mat); m.position.copy(o.pos); m.scale.setScalar(o.s0 ?? 1);
+  if (!o.pos || !isFinite(o.pos.x + o.pos.y + o.pos.z)) return;
+  let m = PPOOL.pop();
+  if (m) { m.geometry = o.geo || sphGeo; const mt = m.material; mt.color.setHex(o.color); mt.opacity = o.op ?? 1; mt.blending = o.add ? THREE.AdditiveBlending : THREE.NormalBlending; m.rotation.set(0, 0, 0); m.visible = true; }
+  else m = new THREE.Mesh(o.geo || sphGeo, new THREE.MeshBasicMaterial({ color: o.color, transparent: true, opacity: o.op ?? 1, depthWrite: false, blending: o.add ? THREE.AdditiveBlending : THREE.NormalBlending }));
+  m.position.copy(o.pos); m.scale.setScalar(o.s0 ?? 1);
   if (o.rot) m.rotation.set(rand(0, 3), rand(0, 3), rand(0, 3));
   scene.add(m);
   parts.push({ m, vel: o.vel || new THREE.Vector3(), life: o.life, max: o.life, s0: o.s0 ?? 1, s1: o.s1 ?? o.s0 ?? 1, op: o.op ?? 1, grav: o.grav || 0, spin: o.spin || 0 });
   if (parts.length > PART_CAP) killPart(parts.shift());
 }
-function killPart(p) { scene.remove(p.m); p.m.material.dispose(); }
+function killPart(p) { scene.remove(p.m); if (PPOOL.length < 320) PPOOL.push(p.m); else p.m.material.dispose(); }
 function updateParts(dt) {
   WRECK.update(dt);
   for (let i = parts.length - 1; i >= 0; i--) {
@@ -3330,7 +3338,7 @@ async function runStep(i) {
 }
 setBootMsg(STEPS[0].msg);
 $('#skip').addEventListener('click', async () => {
-  audioInit(); if (S.phase === 'hatch' && S.busy) { CK.fast(); return; } if (S.busy || S.phase === 'op' || S.phase === 'end') return; S.busy = true;
+  audioInit(); if (S.phase === 'hatch' && S.busy) { CK.fast(); return; } if (S.busy || !['hatch', 'boot', 'cam', 'launch'].includes(S.phase)) return; S.busy = true;
   if (S.phase !== 'launch') {
     CK.instant(); SFX.relay(); glc.classList.remove('on');
     bootEl.innerHTML = ''; bootEl.classList.add('on'); S.phase = 'boot';
@@ -4045,12 +4053,12 @@ $('#btnMain').addEventListener('pointerdown', e => { e.preventDefault(); const b
 $('#btnC').addEventListener('pointerdown', e => { e.preventDefault(); P.tyT = 0; P.tpT = 0; SFX.click(); });
 
 const lvTrack = $('#lvTrack'), lvKnob = $('#lvKnob'), lvRead = $('#lvRead');
-function setThr(v) { v = clamp(v, -0.5, 1); if (Math.abs(v) < 0.06) v = 0; P.thr = v; }
+function setThr(v, snap = true) { v = clamp(v, -0.5, 1); if (snap && Math.abs(v) < 0.06) v = 0; P.thr = v; }
 function lvFromEvent(e) { const r = lvTrack.getBoundingClientRect(); const k = clamp((e.clientY - r.top) / r.height, 0, 1); setThr(1 - k * 1.5); }
 let lvDrag = false;
 lvTrack.addEventListener('pointerdown', e => { e.preventDefault(); lvDrag = true; lvTrack.setPointerCapture(e.pointerId); lvFromEvent(e); SFX.click(); });
 lvTrack.addEventListener('pointermove', e => { if (lvDrag) lvFromEvent(e); });
-const lvEnd = () => lvDrag = false; lvTrack.addEventListener('pointerup', lvEnd); lvTrack.addEventListener('pointercancel', lvEnd);
+const lvEnd = () => lvDrag = false; lvTrack.addEventListener('pointerup', lvEnd); lvTrack.addEventListener('pointercancel', lvEnd); lvTrack.addEventListener('lostpointercapture', lvEnd);
 function drawLever() {
   lvKnob.style.top = ((1 - P.thr) / 1.5 * 100).toFixed(2) + '%';
   lvRead.textContent = P.thr > 0 ? `前進 ${Math.round(P.thr * 100)}%` : P.thr < 0 ? `後進 ${Math.round(-P.thr * 200)}%` : '停止';
@@ -4136,7 +4144,7 @@ function updatePlayer(dt) {
   const alive = !P.dead, ctl = alive && S.phase === 'op';
   if (S.mode === 'space' && !P.onDeck) spaceMove(dt, ctl); else {
   // throttle by keys (pushing the lever)
-  if (ctl) { if (keys.w) setThr(P.thr + 0.7 * dt); if (keys.s) setThr(P.thr - 0.7 * dt); } else if (S.phase === 'launch') P.thr = 0;
+  if (ctl) { if (keys.w) setThr(P.thr + 0.7 * dt, false); if (keys.s) setThr(P.thr - 0.7 * dt, false); } else if (S.phase === 'launch') P.thr = 0;
   const turnIn = ctl ? ((keys.a || btn.l) ? 1 : 0) - ((keys.d || btn.r) ? 1 : 0) : 0;
   const maxSpd = 10 * ST.spd * (P.armor < 40 ? .7 : 1) * (P.over ? .6 : 1);
   const target = ctl ? P.thr * maxSpd : 0;
@@ -4830,9 +4838,28 @@ function resize() {
 new ResizeObserver(resize).observe(mon); addEventListener('resize', resize); resize();
 
 let last = performance.now(), T = 0;
+// leaving the app (LINE, home button, a call) must not leave buttons held down or the clock jumping
+function releaseInputs() { for (const k in keys) keys[k] = false; btn.l = btn.r = btn.sub = btn.jump = false; S.holding = false; lvDrag = false; document.querySelectorAll('.act').forEach(b => b.classList.remove('act')); }
+document.addEventListener('visibilitychange', () => { releaseInputs(); last = performance.now(); if (!document.hidden && AU.ctx && AU.ctx.state === 'suspended') AU.ctx.resume().catch(() => {}); });
+addEventListener('pagehide', releaseInputs);
+// phones can drop the 3D context under memory pressure: recover instead of leaving a black screen
+glc.addEventListener('webglcontextlost', e => { e.preventDefault(); try { say('画面を復旧しています…', 'a', 3); } catch (_) {} }, false);
+glc.addEventListener('webglcontextrestored', () => { try { localStorage.setItem('hk07-ctxlost', '1'); } catch (_) {} location.reload(); }, false);
 const QA = { acc: 0, n: 0, dpr: DPR, max: Math.min(window.devicePixelRatio || 1, 2), min: .75 };
+let FERR = 0;
 function frame(now) {
-  const dt = Math.min(.05, (now - last) / 1000); last = now; T += dt;
+  requestAnimationFrame(frame);
+  try { frameBody(now); FERR = 0; } catch (e) { FERR++; if (FERR < 4) console.error('[HK07 frame]', e); recoverFrame(); }
+}
+function recoverFrame() {
+  // drop anything left in a broken state so the next frame can carry on
+  try { for (let i = shells.length - 1; i >= 0; i--) { const s = shells[i]; if (!s || !s.m || !s.v || !isFinite(s.m.position.x + s.m.position.y + s.m.position.z)) { if (s && s.m) scene.remove(s.m); shells.splice(i, 1); } } } catch (_) {}
+  try { if (!isFinite(P.x + P.z + P.y + P.yaw)) { P.x = 0; P.z = -40; P.y = 0; P.vy = 0; P.yaw = 0; P.spd = 0; } } catch (_) {}
+  try { for (const e of enemies) if (e.alive && !isFinite(e.x + e.z + e.yaw)) { e.x = rand(-200, 200); e.z = rand(-450, -300); e.yaw = Math.PI; e.spd = 0; e.gait.init = false; } } catch (_) {}
+  try { for (const a of allies) if (a.alive && !isFinite(a.x + a.z + a.yaw)) { a.x = rand(-60, 60); a.z = -60; a.yaw = 0; a.spd = 0; a.gait.init = false; } } catch (_) {}
+}
+function frameBody(now) {
+  const dt = Math.min(.05, Math.max(0, (now - last) / 1000) || 0); last = now; T += dt;
   mMark.emissiveIntensity = (T % 1.6) < .14 ? 3.2 : .25;
   QA.acc += dt; QA.n++;
   if (QA.acc > 2.5) { const a = QA.acc / QA.n; let d = QA.dpr; if (a > 1 / 42) d = Math.max(QA.min, d - .25); else if (a < 1 / 56) d = Math.min(QA.max, d + .25); if (d !== QA.dpr) { QA.dpr = d; renderer.setPixelRatio(d); resize(); } QA.acc = 0; QA.n = 0; }
@@ -4856,7 +4883,6 @@ function frame(now) {
   { const sh = P.trauma * P.trauma; mon.style.transform = sh > .01 ? `translate(${(Math.random() - .5) * sh * 4}px,${(Math.random() - .5) * sh * 4}px)` : ''; }
   drawHUD(dt, T); drawGauges(dt, T); if (PNL) PNL.update(dt, T);
   engineUpdate(P.spd, P.thr, P.servo || 0, !P.dead, P.thrust || 0);
-  requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 })();
