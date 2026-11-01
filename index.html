@@ -595,10 +595,10 @@ const BGM = (() => {
     const e = ctx.createGain(); e.gain.setValueAtTime(.5, t); e.gain.setValueAtTime(.45, t + dur * .85); e.gain.exponentialRampToValueAtTime(.0001, t + dur + .08);
     src.connect(e); e.connect(amp('lead', 0)); src.start(t); lfo.start(t); src.stop(t + dur + .12); lfo.stop(t + dur + .12);
   }
-  const rkick = (t, k = 1) => { tone(t, 'sine', 110, 50, .7 * k, .26, .02); tone(t, 'triangle', 220, 60, .25 * k, .05, 0); noise(t, 'highpass', 3000, .7, .08 * k, .012, 0); };
-  const rsnare = (t, k = 1) => { tone(t, 'triangle', 185, 165, .32 * k, .1, .25); noise(t, 'bandpass', 2400, .8, .42 * k, .17, .4); noise(t, 'highpass', 6000, .6, .07 * k, .09, .3); };
-  const hat = (t, open = false, k = 1) => noise(t, 'highpass', 8500, .8, (open ? .045 : .028) * k, open ? .22 : .03, .05);
-  const crash = (t, k = 1) => noise(t, 'highpass', 5000, .5, .07 * k, 1.6, .4);
+  const rkick = (t, k = 1) => { tone(t, 'sine', 120, 48, .72 * k, .24, .02); tone(t, 'sine', 55, 45, .3 * k, .3, 0); tone(t, 'triangle', 260, 70, .2 * k, .04, 0); noise(t, 'bandpass', 3500, 1.5, .1 * k, .015, 0); };
+  const rsnare = (t, k = 1) => { tone(t, 'triangle', 190, 160, .34 * k, .1, .3); tone(t, 'sine', 330, 280, .1 * k, .06, .3); noise(t, 'bandpass', 2200, .7, .42 * k, .2, .5); noise(t, 'highpass', 5500, .6, .1 * k, .14, .4); };
+  const hat = (t, open = false, k = 1) => hatM(t, open, k);
+  const crash = (t, k = 1) => crashM(t, k);
   // ---- modern metalcore: drop-tuned chugs, double kick, synth arps and pads, big minor-key chorus, breakdown, key-up finale ----
   let lastVox = 0;
   function vox(t, m, dur, k = 1) {       // soaring lead "voice"
@@ -619,7 +619,7 @@ const BGM = (() => {
     o.connect(fl); fl.connect(e); bus(e, .3, .35); o.start(t); o.stop(t + dur + .05);
   }
   const china = (t, k = 1) => { noise(t, 'bandpass', 3200, 1.2, .12 * k, .9, .35); noise(t, 'highpass', 6000, .6, .06 * k, .7, .3); };
-  const ride = (t, k = 1) => noise(t, 'bandpass', 7500, 3, .035 * k, .18, .2);
+  const ride = (t, k = 1) => rideM(t, k);
   const SCH = { C: [36, [48, 51, 55]], a: [32, [44, 48, 51]], b: [34, [46, 50, 53]], g: [31, [43, 46, 50]], e: [39, [46, 51, 55]], G: [31, [43, 47, 50]], f: [29, [41, 44, 48]] };
   const FORM = [['intro', 4, 'CCCC'], ['verse', 8, 'Cabg'], ['pre', 4, 'faGG'], ['chorus', 8, 'abCCabeG'], ['break', 4, 'CCCC'], ['bridge', 8, 'aebCaebG'], ['final', 8, 'abCCabeG']];
   const SONG_LEN = FORM.reduce((a, f) => a + f[1], 0);
@@ -697,6 +697,65 @@ const BGM = (() => {
       if (s === 0) { warDrum(t, .8); brass(t, tri.map(n => n - 12), sd * 15, .018, sd * 6); }
     }
   }
+  // ---- full band extras: metallic cymbals, picked bass, rock organ, twin-guitar harmonies, gang shouts, pick slides, feedback ----
+  const MET = [2, 3, 4.16, 5.43, 6.79, 8.21];
+  function metal(t, base, dur, a, hpF = 7000) {      // 6 detuned squares = cymbal metal
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = hpF;
+    const bp = ctx.createBiquadFilter(); bp.type = 'peaking'; bp.frequency.value = 10000; bp.gain.value = 6;
+    const e = ctx.createGain(); e.gain.setValueAtTime(.0001, t); e.gain.exponentialRampToValueAtTime(a, t + .002); e.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    MET.forEach(r => { const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = base * r; o.connect(hp); o.start(t); o.stop(t + dur + .02); });
+    hp.connect(bp); bp.connect(e); bus(e, .25);
+  }
+  const hatM = (t, open = false, k = 1) => { metal(t, 330, open ? .3 : .045, (open ? .05 : .04) * k); noise(t, 'highpass', 9000, .7, (open ? .02 : .012) * k, open ? .25 : .03, .05); };
+  const crashM = (t, k = 1) => { metal(t, 260, 2.2, .05 * k, 4500); noise(t, 'highpass', 4800, .5, .07 * k, 2, .5); };
+  const rideM = (t, k = 1) => { metal(t, 410, .5, .022 * k, 6000); tone(t, 'sine', 3400, 3380, .008 * k, .4, .2); };
+  let BASSAMP = null;
+  function bassAmp() {
+    const m = GCH.get(g) || {}; if (m.bass) return m.bass; GCH.set(g, m);
+    const inp = ctx.createGain(); inp.gain.value = 2.2; const sh = ctx.createWaveShaper(), N = 1024, c = new Float32Array(N);
+    for (let i = 0; i < N; i++) { const x = i / N * 2 - 1; c[i] = Math.tanh(x * 1.6); } sh.curve = c;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1100; lp.Q.value = .7;
+    const lo = ctx.createBiquadFilter(); lo.type = 'peaking'; lo.frequency.value = 90; lo.gain.value = 4;
+    const og = ctx.createGain(); og.gain.value = .16;
+    inp.connect(sh); sh.connect(lp); lp.connect(lo); lo.connect(og); bus(og, 0);
+    return m.bass = inp;
+  }
+  function pickBass(t, m, dur) { pluck(t, m, dur, bassAmp(), .9, false); }
+  function organ(t, notes, dur, a = .012) {         // drawbar organ with a spinning-speaker shimmer
+    const e = ctx.createGain(); e.gain.setValueAtTime(.0001, t); e.gain.linearRampToValueAtTime(a, t + .05); e.gain.setValueAtTime(a, t + dur * .9); e.gain.linearRampToValueAtTime(.0001, t + dur);
+    const trem = ctx.createOscillator(), tg = ctx.createGain(); trem.frequency.value = 6.4; tg.gain.value = a * .35; trem.connect(tg); tg.connect(e.gain);
+    const sh = ctx.createWaveShaper(), c = new Float32Array(512); for (let i = 0; i < 512; i++) { const x = i / 256 - 1; c[i] = Math.tanh(x * 2.2); } sh.curve = c;
+    notes.forEach(m => [[.5, .6], [1, 1], [2, .7], [3, .45], [4, .3]].forEach(([h, v]) => { const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = n2f(m) * h; const gg = ctx.createGain(); gg.gain.value = v; o.connect(gg); gg.connect(sh); o.start(t); o.stop(t + dur + .05); }));
+    sh.connect(e); bus(e, .35); trem.start(t); trem.stop(t + dur + .05);
+  }
+  const SCALE = [0, 2, 3, 5, 7, 8, 10];
+  function third(m, key) { const pc = ((m - key) % 12 + 12) % 12; let d = SCALE.findIndex(x => x >= pc); if (d < 0) d = 0; const up = SCALE[(d + 2) % 7] + (d + 2 >= 7 ? 12 : 0) - SCALE[d]; return m + up; }
+  function twin(t, m, dur, key) { lead(t, m, dur); lead(t + .008, third(m, key), dur); }
+  function shout(t, k = 1) {         // gang vocal "HEY!" — four throats, vowel e->i formant glide
+    for (let v = 0; v < 4; v++) {
+      const f0 = rand(140, 230), o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(f0 * 1.08, t); o.frequency.exponentialRampToValueAtTime(f0 * .9, t + .28);
+      const f1 = ctx.createBiquadFilter(); f1.type = 'bandpass'; f1.Q.value = 5; f1.frequency.setValueAtTime(560, t); f1.frequency.linearRampToValueAtTime(330, t + .25);
+      const f2 = ctx.createBiquadFilter(); f2.type = 'bandpass'; f2.Q.value = 6; f2.frequency.setValueAtTime(1850, t); f2.frequency.linearRampToValueAtTime(2300, t + .25);
+      const e = ctx.createGain(); const d = rand(0, .02); e.gain.setValueAtTime(.0001, t + d); e.gain.exponentialRampToValueAtTime(.09 * k, t + d + .03); e.gain.exponentialRampToValueAtTime(.0001, t + d + .3);
+      o.connect(f1); o.connect(f2); f1.connect(e); f2.connect(e); bus(e, .45); o.start(t + d); o.stop(t + d + .35);
+    }
+    noise(t, 'bandpass', 3000, 1, .08 * k, .06, .3);    // the breathy "h"
+  }
+  function pickSlide(t, dur) { const s = ctx.createBufferSource(); s.buffer = AU.nb; const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 3; f.frequency.setValueAtTime(3200, t); f.frequency.exponentialRampToValueAtTime(260, t + dur); const e = ctx.createGain(); e.gain.setValueAtTime(.0001, t); e.gain.exponentialRampToValueAtTime(.5, t + .03); e.gain.exponentialRampToValueAtTime(.0001, t + dur); s.connect(f); f.connect(e); e.connect(amp('rhythm', 0)); s.start(t); s.stop(t + dur + .05); }
+  function feedback(t, m, dur) { const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = n2f(m); const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 5; lg.gain.value = n2f(m) * .01; lfo.connect(lg); lg.connect(o.frequency); const e = ctx.createGain(); e.gain.setValueAtTime(.0001, t); e.gain.exponentialRampToValueAtTime(.12, t + dur * .7); e.gain.exponentialRampToValueAtTime(.0001, t + dur); o.connect(e); e.connect(amp('lead', 0)); o.start(t); lfo.start(t); o.stop(t + dur + .05); lfo.stop(t + dur + .05); }
+  function band(s, bar, W, sd, t, r, tri, tr) {
+    const sec = W.name, chor = sec === 'chorus' || sec === 'final', nxt = where(bar + 1).name;
+    if (sec === 'intro' && W.i === 2 && s === 0) feedback(t, 79 + tr, sd * 16);
+    if (nxt !== sec && s === 12 && sec !== 'intro') pickSlide(t, sd * 4);
+    if (sec === 'intro' && W.i === 3 && s === 12) pickSlide(t, sd * 4);
+    if (I < 1) return;
+    if ((chor || sec === 'bridge') && s === 0) organ(t, [tri[0] + 12, tri[1] + 12, tri[2] + 12], sd * 16, chor ? .011 : .009);
+    if (sec === 'verse' && W.i % 4 === 3 && (s === 12 || s === 14)) shout(t, s === 14 ? 1.1 : .8);
+    if (sec === 'pre' && W.i === 3 && s === 14) shout(t, 1.2);
+    if (chor && W.i % 2 === 1 && s === 14) shout(t, .9);
+    if (sec === 'break' && (s === 0 || s === 8) && W.i % 2 === 0) shout(t, 1.1);
+    if (chor && s % 4 === 2) arp(t, tri[2] + 24, sd * 1.5, .012);
+  }
   function shred(tri, up) { const n = [tri[0] + 24, tri[1] + 24, tri[2] + 24, tri[0] + 36]; const seq = up ? [0, 1, 2, 3, 2, 1, 0, 1, 2, 3, 2, 1, 0, 1, 2, 3] : [3, 2, 1, 0, 1, 2, 3, 2, 1, 0, 1, 2, 3, 2, 1, 0]; return seq.map((k, i) => [i, n[k], 1]); }
   const BRIDGE = [[[0, 75, 4], [4, 79, 4], [8, 82, 4], [12, 80, 4]], [[0, 79, 8], [8, 75, 4], [12, 77, 4]], null, [[0, 84, 6], [6, 82, 2], [8, 79, 8]], [[0, 80, 4], [4, 79, 4], [8, 75, 4], [12, 79, 4]], null, [[0, 87, 8], [8, 84, 4], [12, 82, 4]], null];
   function rock(s16, t, sd, withLead) {
@@ -705,6 +764,7 @@ const BGM = (() => {
     const heavy = I >= 1, chor = sec === 'chorus' || sec === 'final', lastOf4 = W.i % 4 === 3;
     const introQuiet = sec === 'intro' && W.i < 2;
     war(s, bar, W, sd, t, r, tri);
+    band(s, bar, W, sd, t, r, tri, tr);
     // ---------- atmosphere: pad + arpeggiator
     if (s === 0 && (sec === 'bridge' || (sec === 'intro' && W.i >= 2))) pad(t, tri.map(n => n + 12), sd * 16 * 1.02, .014, 1000);
     if (sec !== 'break' && !(sec === 'pre' && W.i >= 2)) { const seq = [0, 1, 2, 1, 2, 0, 1, 2]; arp(t, tri[seq[s % 8]] + 24 + (s >= 8 && chor ? 12 : 0), sd * 1.8, introQuiet ? .022 : chor ? .011 : .016); }
@@ -739,13 +799,13 @@ const BGM = (() => {
     // ---------- bass locks to the guitars
     if (!introQuiet && sec !== 'intro' || (sec === 'intro' && W.i === 3)) {
       const hit = sec === 'break' ? [0, 3, 6, 8, 11, 14].includes(s) : sec === 'pre' ? s % 4 === 0 : s % 2 === 0;
-      if (hit) synth(t, n2f(r + 12), sd * (sec === 'pre' ? 3.6 : 1.7), { type: 'sawtooth', amp: .08, cut: 240, cutEnv: 520, q: 1, att: .004, wet: 0 });
+      if (hit) pickBass(t, r + 12, sd * (sec === 'pre' ? 3.6 : 1.7));
     }
     // ---------- melody: voice-lead over the hook / pre / chorus, guitar lead over the bridge
     if (I >= 1) {
       const key = sec === 'final' ? 'chorus' : sec;
-      if (SMEL[key]) { const ml = SMEL[key][W.i % SMEL[key].length]; if (ml) for (const [st, m, len] of ml) if (st === s) { vox(t, m + tr, sd * len * .95, sec === 'verse' ? .7 : 1); if (chor && withLead && I >= 2) lead(t, m + tr - 12, sd * len * .95); } }
-      if (sec === 'bridge' && withLead) { const ml = BRIDGE[W.i] || shred(tri, W.i % 4 !== 3); for (const [st, m, len] of ml) if (st === s) lead(t, m, sd * len * .97); }
+      if (SMEL[key]) { const ml = SMEL[key][W.i % SMEL[key].length]; if (ml) for (const [st, m, len] of ml) if (st === s) { vox(t, m + tr, sd * len * .95, sec === 'verse' ? .7 : 1); if (chor && withLead && I >= 2) twin(t, m + tr - 12, sd * len * .95, tr); } }
+      if (sec === 'bridge' && withLead) { const ml = BRIDGE[W.i] || shred(tri, W.i % 4 !== 3); for (const [st, m, len] of ml) if (st === s) (BRIDGE[W.i] ? twin : lead)(t, m, sd * len * .97, tr); }
     }
   }
   const TRACKS = {
@@ -773,7 +833,7 @@ const BGM = (() => {
     } },
     lose: { bpm: 56, vol: .8, fn(s16, t, sd) { const s = s16 % 16; if (s === 0) { pad(t, [50, 53, 57], sd * 16, .04, 380); synth(t, n2f(26), sd * 15, { amp: .1, cut: 70, cutEnv: 90, q: 2, att: 1, wet: .3 }); } } },
   };
-  function sched() { if (!track || !ctx) return; const sd = 60 / track.bpm / 4; while (nextT < ctx.currentTime + .15) { track.fn(step, nextT, sd); step++; nextT += sd; } }
+  function sched() { if (!track || !ctx) return; const sd = 60 / track.bpm / 4; while (nextT < ctx.currentTime + .15) { try { track.fn(step, nextT, sd); } catch (e) { if (!sched.err) { sched.err = 1; console.error('[BGM]', e); } } step++; nextT += sd; } }
   function play(name, o = {}) {
     if (!init()) return;
     if (o.intensity != null) I = o.intensity;
