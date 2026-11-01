@@ -293,7 +293,7 @@ body.op #panel3d{height:104px;border-radius:6px}
       <div class="t-kicker">重装歩行兵器シミュレーター</div>
       <h1>HK-07<span>KESTREL</span></h1>
       <p>ハッチを閉め、機体を起こし、出撃せよ。</p>
-      <div class="t-modes"><button id="storyBtn" class="t-btn">ストーリー<small>全7幕・32章のキャンペーン</small></button></div>
+      <div class="t-modes"><button id="storyBtn" class="t-btn">ストーリー<small>全11幕・52章のキャンペーン</small></button></div>
       <div class="t-free"><button id="startLand" class="btn">フリー出撃</button><button id="garBtn" class="btn">格納庫（カスタマイズ）</button></div>
       <div class="t-note">音が出ます ・ オープニングムービーから始まります</div>
     </div></div>
@@ -631,6 +631,7 @@ const VO = (() => {
       if (sp === 'ren') return VO.radio('01 レン', text, 1, .85); if (sp === 'jin') return VO.radio('04 ジン', text, 4, 1.18);
       if (sp === 'mina') return push({ text, who: '整備長ミナ', cls: 'radio', radio: true, voice: 'female', pitch: 1.15, rate: 1.05 });
       if (sp === 'arc') return push({ text, who: 'ARC', cls: 'arc', voice: 'male', pitch: .15, rate: .85, pri: 'high' });
+      if (sp === 'kaz') return push({ text, who: 'カザマ将軍', cls: 'arc', voice: 'male', pitch: .55, rate: .95, pri: 'high' });
       if (sp === 'org') return push({ text, who: 'ORIGIN', cls: 'arc', voice: 'male', pitch: .05, rate: .78, pri: 'high' });
       if (sp === 'nem') return push({ text, who: 'NEMESIS', cls: 'arc', voice: 'female', pitch: 1.5, rate: .9, pri: 'high' });
     },
@@ -673,7 +674,7 @@ const camera = new THREE.PerspectiveCamera(62, 1, 0.5, 2000); camera.rotation.or
 scene.add(new THREE.HemisphereLight(0xe2d8bd, 0x463b2b, 0.8));
 const sun = new THREE.DirectionalLight(0xfff0d2, 0.85); sun.position.set(120, 220, 60); scene.add(sun); scene.add(sun.target);
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+sun.castShadow = true; { const coarse = window.matchMedia && matchMedia('(pointer:coarse)').matches; sun.shadow.mapSize.set(coarse ? 1024 : 2048, coarse ? 1024 : 2048); }
 Object.assign(sun.shadow.camera, { left: -32, right: 32, top: 32, bottom: -32, near: 10, far: 220 }); sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.03;
 function followSun() { sun.target.position.set(P.x, 0, P.z); sun.position.set(P.x + 48, 88, P.z + 24); }
 // soft reflections for metal parts of the robots
@@ -729,7 +730,7 @@ function buildWorld() {
   for (let i = 0; i < 22; i++) { const a = i / 22 * TAU + rand(-.1, .1), d = rand(780, 1000), h = rand(70, 180);
     const m = new THREE.Mesh(new THREE.ConeGeometry(rand(120, 240), h, 6), mtn); m.position.set(Math.cos(a) * d, h / 2 - 5, Math.sin(a) * d); m.rotation.y = rand(0, 3); LAND.add(m); }
 }
-buildWorld();
+buildWorld(); mergeStatic(LAND);
 
 /* ---------- shared robot parts ---------- */
 const GEO = {};
@@ -933,11 +934,50 @@ const flameCore = new THREE.MeshBasicMaterial({ color: 0xc8ecff, transparent: tr
 const jetLight = new THREE.PointLight(0xffa060, 0, 45, 2); scene.add(jetLight);
 const HIP = 6.0, EYE = 7.9;
 
+function mergeStatic(root) {
+  const groups = []; root.traverse(o => { if ((!o.isMesh || o.children.length) && !o.userData.noMerge) groups.push(o); });
+  for (const o of groups) {
+    const buckets = new Map();
+    for (const c of o.children) {
+      if (!c.isMesh || c.children.length || !c.geometry || !c.geometry.attributes || !c.geometry.attributes.position || c.material.transparent || c.userData.keep || c.isInstancedMesh) continue;
+      if (!buckets.has(c.material)) buckets.set(c.material, []); buckets.get(c.material).push(c);
+    }
+    for (const [mat, list] of buckets) {
+      if (list.length < 2) continue;
+      const P2 = [], N2 = [], U2 = []; let cast = false, recv = false;
+      for (const c of list) {
+        c.updateMatrix(); let gg = c.geometry.index ? c.geometry.toNonIndexed() : c.geometry.clone(); gg.applyMatrix4(c.matrix);
+        const p = gg.attributes.position.array, n = gg.attributes.normal ? gg.attributes.normal.array : new Float32Array(p.length), u = gg.attributes.uv ? gg.attributes.uv.array : new Float32Array(p.length / 3 * 2);
+        P2.push(p); N2.push(n); U2.push(u); cast = cast || c.castShadow; recv = recv || c.receiveShadow; o.remove(c);
+      }
+      const cat = arrs => { const out = new Float32Array(arrs.reduce((a, b) => a + b.length, 0)); let k = 0; for (const a of arrs) { out.set(a, k); k += a.length; } return out; };
+      const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(cat(P2), 3)); geo.setAttribute('normal', new THREE.BufferAttribute(cat(N2), 3)); geo.setAttribute('uv', new THREE.BufferAttribute(cat(U2), 2)); geo.computeBoundingSphere();
+      const m = new THREE.Mesh(geo, mat); m.castShadow = cast; m.receiveShadow = recv; m.userData.mat = mat; o.add(m);
+    }
+  }
+  return root;
+}
+// far-away machines draw as one baked mesh instead of dozens of parts
+function bakeProxy(root, mat) {
+  root.updateMatrixWorld(true); const inv = new THREE.Matrix4().copy(root.matrixWorld).invert(), M4 = new THREE.Matrix4(), P2 = [], N2 = [];
+  root.traverse(c => { if (!c.isMesh || !c.geometry || !c.geometry.attributes || !c.geometry.attributes.position || (c.material && c.material.transparent)) return; let v = true, q = c; while (q && q !== root) { if (!q.visible) v = false; q = q.parent; } if (!v) return;
+    const gg = c.geometry.index ? c.geometry.toNonIndexed() : c.geometry.clone(); gg.applyMatrix4(M4.multiplyMatrices(inv, c.matrixWorld)); if (!gg.attributes.normal) gg.computeVertexNormals(); P2.push(gg.attributes.position.array); N2.push(gg.attributes.normal.array); });
+  const cat = arrs => { const out = new Float32Array(arrs.reduce((a, b) => a + b.length, 0)); let k = 0; for (const a of arrs) { out.set(a, k); k += a.length; } return out; };
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(cat(P2), 3)); geo.setAttribute('normal', new THREE.BufferAttribute(cat(N2), 3)); geo.computeBoundingSphere();
+  return geo;
+}
+const LOD_D = 135, LODV = new THREE.Vector3();
+function lodPass() {
+  const cx = camera.position.x, cz = camera.position.z;
+  const set = (root, proxy, far) => { for (const c of root.children) c.visible = c === proxy ? far : !far; };
+  for (const e of enemies) { if (!e.proxy) continue; const far = e.alive && Math.hypot(e.x - cx, e.z - cz) > LOD_D * (e.boss ? 2 : 1); if (far !== e.lodFar) { e.lodFar = far; set(e.g, e.proxy, far); } }
+  for (const a of allies) { if (!a.proxy) continue; const far = a.alive && Math.hypot(a.x - cx, a.z - cz) > LOD_D; if (far !== a.lodFar) { a.lodFar = far; set(a.root, a.proxy, far); } }
+}
 const PISTONS = [], PGH = new THREE.CylinderGeometry(.21, .21, 1, 14), PGR = new THREE.CylinderGeometry(.105, .105, 1, 10), PGC = new THREE.CylinderGeometry(.26, .26, .2, 14);
 PGH.rotateX(Math.PI / 2); PGH.translate(0, 0, .5); PGR.rotateX(Math.PI / 2); PGR.translate(0, 0, .5); PGC.rotateX(Math.PI / 2);
 const PTV = new THREE.Vector3();
 function piston(aParent, ax, ay, az, bParent, bx, by, bz, pal, len = 1.1) {
-  const g = new THREE.Group(); g.position.set(ax, ay, az); aParent.add(g);
+  const g = new THREE.Group(); g.userData.noMerge = true; g.position.set(ax, ay, az); aParent.add(g);
   const b = new THREE.Object3D(); b.position.set(bx, by, bz); bParent.add(b);
   const h = new THREE.Mesh(PGH, pal.gun); h.scale.z = len; g.add(h);
   const c1 = new THREE.Mesh(PGC, mSteel); g.add(c1);
@@ -1097,6 +1137,7 @@ const FRAMES = {
   grave: { name: 'HK-12 グレイヴ', sub: '砲撃型', desc: '肩に長砲身カノンを載せた火力重視の機体。センサーマストで遠くの敵も逃さない。', unlock: 13, need: '第12章クリアで入手', mod: { armor: .9, main: 1.35, spd: .95, fuel: 1, heat: 1.1 } },
   atlas: { name: 'HK-X アトラス', sub: '最終試作型', desc: '全部隊の戦訓から組み上げた試作機。全面増加装甲、肩部カノン、増設推進器。最強の機体。', unlock: 23, need: '第22章クリアで入手', mod: { armor: .5, main: 1.5, spd: 1.2, fuel: .6, heat: .65 } },
   titan: { name: 'HK-XX タイタン', sub: '決戦型', desc: 'オリジン戦のために造られた、部隊の全技術の結晶。アトラスをさらに上回る、真の最強機体。', unlock: 33, need: '第32章クリアで入手', mod: { armor: .45, main: 1.65, spd: 1.25, fuel: .55, heat: .6 } },
+  omega: { name: 'HK-Ω オメガ', sub: '最終決戦型', desc: 'アーク・オメガを倒した部隊のために造られた究極の機体。全ての性能がタイタンを上回る。', unlock: 53, need: '第52章クリアで入手', mod: { armor: .4, main: 1.85, spd: 1.3, fuel: .5, heat: .55 } },
   goliath: { name: '鹵獲機〈ゴリアテ〉', sub: '超重量級・ボス機体', desc: '鹵獲したゴリアテを再生した巨人機。動きは鈍く跳べないが、一歩ごとに地面が揺れる装甲と火力は別格。コックピットは赤い非常灯の鉄の箱。', full: true, boss: true, need: '6か所すべて最大（フルチューン）で解放', mod: { armor: .32, main: 2.2, spd: .72, fuel: 1.2, heat: .85, turn: .6, accel: .6, jet: .72, stomp: 2.2 } },
   phantom: { name: '鹵獲機〈ファントム〉', sub: '超高速型・ボス機体', desc: '鹵獲したファントムを再生した高速機。地面を滑るように走り、高く長く跳ぶ。装甲は薄め。コックピットは紫と水色の光が走る。', full: true, boss: true, need: '6か所すべて最大（フルチューン）で解放', mod: { armor: .85, main: 1.35, spd: 1.85, fuel: .4, heat: .65, turn: 2.0, accel: 2.0, jet: 1.45, stomp: .35 } },
 };
@@ -1144,7 +1185,7 @@ function heroPal() {
 const mHole = std(0x0b0b0b, .9, .1);
 function applyKit(k, frame, pal) {
   if (frame === 'kestrel' || (FRAMES[frame] && FRAMES[frame].boss)) return;
-  const heavy = frame === 'bastion' || frame === 'atlas' || frame === 'titan', fast = frame === 'harrier' || frame === 'atlas' || frame === 'titan';
+  const heavy = ['bastion', 'atlas', 'titan', 'omega'].includes(frame), fast = ['harrier', 'atlas', 'titan', 'omega'].includes(frame);
   const b = k.body, pk = k.pack, head = k.ants[0].parent, add = [];
   if (heavy) {
     [-1, 1].forEach(s => {
@@ -1165,7 +1206,7 @@ function applyKit(k, frame, pal) {
       add.push(part(cb(.12, .85, 1.3, .04), pal.panel, s * 1.95, .45, .35, pk, 0, 0, s * .3));  // stabiliser fin
     });
   }
-  if (frame === 'atlas' || frame === 'grave' || frame === 'titan') {
+  if (['atlas', 'grave', 'titan', 'omega'].includes(frame)) {
     const sc = new THREE.Group(); sc.position.set(2.45, 2.1, -.2); k.pitch.add(sc);         // shoulder cannon rides the pitch frame
     add.push(part(cb(.85, .72, 1.7, .08), pal.gun, 0, 0, .1, sc));
     add.push(cyl(.2, .24, 4.4, mSteel, 0, .05, -2.9, sc, 14));
@@ -1285,6 +1326,7 @@ function makeHero() {
   if (BOSS_READY && S.mode !== 'space' && FRAMES[GAR.frame] && FRAMES[GAR.frame].boss && frameOwned(GAR.frame)) return buildBossHero(GAR.frame);
   const sp = S.mode === 'space', pal = sp ? PAL_S : heroPal(), k = buildKestrel(pal, '07', true); if (sp) addSpaceKit(k, PAL_S); else applyKit(k, frameOwned(GAR.frame) ? GAR.frame : 'kestrel', pal);
   if (false) { const h = new THREE.Group(); h.position.set(0, 2.42, -1.66); k.body.add(h); part(cb(1.3, 1.36, .16, .05), pal.graph, 0, -.68, 0, h); part(new THREE.BoxGeometry(.9, .06, .05), pal.accent, 0, -1.2, -.09, h); part(new THREE.BoxGeometry(1.1, 1.1, .04), std(0x0b0c0a, .9, .1), 0, 1.72, -1.55, k.body); k.hatch = h; }
+  mergeStatic(k.root);
   k.gait = makeGait(k.root, k.legs, { hipX: [1.75, -1.75], hipY: HIP, l1: 2.8, l2: 2.7, ankle: .5, lift: 1.0, sway: .32 }); return k;
 }
 let ME = makeHero();
@@ -1645,6 +1687,13 @@ function makeBossModel(kind) {
 let NEXT_BOSS = null;
 function makeEnemy(kind) {
   if (kind) return makeBossModel(kind);
+  if (!RAIDER_T) { const t = buildRaider(); scene.remove(t.g); t.tur.name = 'tur'; t.muzzle.name = 'muzzle'; t.legs.forEach((l, i) => { l.thigh.name = 'th' + i; l.knee.name = 'kn' + i; l.foot.name = 'ft' + i; }); mergeStatic(t.g); RAIDER_T = t; RAIDER_T.pgeo = bakeProxy(t.g); }
+  const g = RAIDER_T.g.clone(); scene.add(g);
+  const proxy = new THREE.Mesh(RAIDER_T.pgeo, eMat); proxy.visible = false; proxy.castShadow = true; g.add(proxy);
+  return { g, proxy, tur: g.getObjectByName('tur'), muzzle: g.getObjectByName('muzzle'), legs: [0, 1].map(i => ({ thigh: g.getObjectByName('th' + i), knee: g.getObjectByName('kn' + i), foot: g.getObjectByName('ft' + i) })) };
+}
+let RAIDER_T = null;
+function buildRaider() {
   // RAIDER: a hunched predator — wedge torso, armoured cowl with a single burning eye, autocannon and missile pod
   const g = new THREE.Group(); scene.add(g);
   const hipY = 4.2;
@@ -2477,6 +2526,7 @@ function buildGantry() {
     box(.6, .2, .6, m, s * 6, .1, -6 - i * 7, g); GT.lamps.push({ m, i });
   });
   g.traverse(o => { if (o.isMesh && o !== pad) { o.castShadow = true; o.receiveShadow = true; } });
+  mergeStatic(g);
 }
 buildGantry();
 /* ================= BATTLEFIELDS: desert (open), town (free but swarming), forest (ambush) ================= */
@@ -2516,7 +2566,7 @@ const TERRAIN = (() => {
     // streetlights and wrecked cars along the avenue
     const pole = std(0x3a3b38, .6, .6), car = std(0x5a4a3a, .8, .3);
     for (let z = -860; z < 20; z += 40) [-1, 1].forEach(sd => { const p = cylY(.25, .3, 11, pole, sd * 22, 5.5, z, g, 8); const a = part(new THREE.BoxGeometry(3, .3, .5), pole, sd * 20.6, 11, z, g); if (Math.random() < .25 && z < -100) { const c = part(cb(4.2, 1.6, 2.1, .3), car, sd * rand(8, 18), .8, z + rand(-10, 10), g, 0, rand(0, 3), 0); c.castShadow = true; } });
-    G.town = g; OB.town = ob; g.visible = false;
+    mergeStatic(g); G.town = g; OB.town = ob; g.visible = false;
   }
   function buildForest() {
     const g = new THREE.Group(); scene.add(g); const ob = [];
@@ -2764,13 +2814,16 @@ const WALK = (() => {
 })();
 
 /* ---------- allied squad: Kestrels in desert paint ---------- */
-const allies = [];
+const allies = []; let ALLY_PGEO = null;
 function spawnAllies() {
   if (STORY.on && STORY.m && STORY.m.noAllies) return;
   ['01', '02', '03', '04', '05', '06'].forEach((n, i) => {
     const sp = S.mode === 'space', k = buildKestrel(sp ? PAL_AS : PAL_A, n, false); if (sp) addSpaceKit(k, PAL_AS);
     k.gait = makeGait(k.root, k.legs, { hipX: [1.75, -1.75], hipY: HIP, l1: 2.8, l2: 2.7, ankle: .5, lift: 1.0, sway: .3 });
     const x = sp ? -90 + i * 36 : -75 + i * 30 + rand(-4, 4), z = sp ? -200 - (i % 3) * 30 : -55 - (i % 2) * 22;
+    mergeStatic(k.root);
+    if (!ALLY_PGEO) ALLY_PGEO = bakeProxy(k.root);
+    k.proxy = new THREE.Mesh(ALLY_PGEO, (sp ? PAL_AS : PAL_A).panel); k.proxy.visible = false; k.root.add(k.proxy);
     allies.push(Object.assign(k, { x, z, v: new THREE.Vector3(), pit: 0, yaw: 0, ty: 0, tp: 0, spd: 0, hp: SQ.hp, regenT: 0, mgT: 0, burst: 0, strafe: Math.random() < .5 ? -1 : 1, strafeT: rand(2, 5), alive: true, cd: rand(1, 4), y: sp ? 30 + (i % 2) * 22 : 0, vy: 0, thrust: 0, jumping: 0, jumpT: rand(8, 18), crouch: .22, brl: 0, smokeT: 0, id: n }));
   });
 }
@@ -2905,7 +2958,7 @@ function spawnEnemy(x, z, yaw, wx, wz, y = 0) {
   if (S.mode === 'space') { cyl(.5, .7, 1.4, eDark, 0, 5.2, 1.9, t.g, 12); const f = new THREE.Mesh(new THREE.ConeGeometry(.55, 2.6, 12, 1, true), flameMat); f.rotation.x = Math.PI / 2; f.position.set(0, 5.2, 3.9); t.g.add(f); t.flame = f; }
   enemies.push({ ...t, y, wy: y, v: new THREE.Vector3(), seed: rand(0, 10), pit: 0, gait: makeGait(t.g, t.legs, { hipX: [1.5, -1.5], hipY: 4.2, l1: 1.9, l2: 1.8, ankle: .5, lift: .7, sway: .2 }), x, z, yaw, hp: 100, alive: true, alert: false, cd: rand(3, 6), wx, wz, smokeT: 0, spd: 0 });
   S.spawned = (S.spawned || 0) + 1;
-  if (STORY.on && STORY.m.elite) { const e = enemies[enemies.length - 1]; e.hp = 170; e.spdK = 1.5; e.elite = true; e.g.traverse(o => { if (o.isMesh && o.material === eMat) o.material = eliteMat; }); }
+  if (STORY.on && STORY.m.elite) { const e = enemies[enemies.length - 1]; e.hp = 170; e.spdK = 1.5; e.elite = true; e.g.traverse(o => { if (o.isMesh && o.material === eMat) o.material = eliteMat; }); if (e.proxy) e.proxy.material = eliteMat; }
 }
 function enemyCap() {
   if (!STORY.on) return 20;
@@ -3054,13 +3107,14 @@ const WRECK = (() => {
   return { start, update, clear };
 })();
 
+const PART_CAP = window.matchMedia && matchMedia('(pointer:coarse)').matches ? 150 : 260;
 function addPart(o) {
   const mat = new THREE.MeshBasicMaterial({ color: o.color, transparent: true, opacity: o.op ?? 1, depthWrite: false, blending: o.add ? THREE.AdditiveBlending : THREE.NormalBlending });
   const m = new THREE.Mesh(o.geo || sphGeo, mat); m.position.copy(o.pos); m.scale.setScalar(o.s0 ?? 1);
   if (o.rot) m.rotation.set(rand(0, 3), rand(0, 3), rand(0, 3));
   scene.add(m);
   parts.push({ m, vel: o.vel || new THREE.Vector3(), life: o.life, max: o.life, s0: o.s0 ?? 1, s1: o.s1 ?? o.s0 ?? 1, op: o.op ?? 1, grav: o.grav || 0, spin: o.spin || 0 });
-  if (parts.length > 280) killPart(parts.shift());
+  if (parts.length > PART_CAP) killPart(parts.shift());
 }
 function killPart(p) { scene.remove(p.m); p.m.material.dispose(); }
 function updateParts(dt) {
@@ -3381,10 +3435,10 @@ const MOV = (() => {
   return { update, end, white, ignite };
 })();
 
-/* ================= STORY CAMPAIGN: 7 acts, 32 chapters ================= */
+/* ================= STORY CAMPAIGN: 11 acts, 52 chapters ================= */
 const SPK = {
   cmd: { name: 'ハワード大佐', col: '#ffb340' }, ren: { name: '01 レン・アサギ', col: '#5ab8ff' }, jin: { name: '04 ジン・タカミ', col: '#ff7a4a' },
-  mina: { name: '整備長 ミナ・クロカワ', col: '#7dffa8' }, ai: { name: 'HULL-AI', col: '#3fd8ff' }, arc: { name: 'ARC', col: '#ff3a5a' }, nem: { name: 'NEMESIS', col: '#d08cff' }, org: { name: 'ORIGIN', col: '#ff9a3a' }, narr: { name: '', col: '#c9c4ad' },
+  mina: { name: '整備長 ミナ・クロカワ', col: '#7dffa8' }, ai: { name: 'HULL-AI', col: '#3fd8ff' }, arc: { name: 'ARC', col: '#ff3a5a' }, nem: { name: 'NEMESIS', col: '#d08cff' }, org: { name: 'ORIGIN', col: '#ff9a3a' }, kaz: { name: 'カザマ将軍', col: '#e8c040' }, narr: { name: '', col: '#c9c4ad' },
 };
 const TUT = { act: 0, title: '基礎訓練', mode: 'land', env: 'desert', total: 0, first: 0, noAllies: true, dmgK: .45, tutorial: true, obj: { type: 'tutorial', text: '教官の指示に従って、機体の操作を覚えよう' },
   brief: [['narr', '── 訓練課程 ──'], ['ren', '新入り、俺がレン・アサギだ。今日はお前の教官をやる。'], ['ren', 'まずはコックピットの起動だ。画面下のスイッチを、表示された順に押していけ。'], ['mina', 'スイッチはタップ、PCならEnterキーでもいいわ。長押しが必要なものもあるから、表示をよく見て。'], ['ai', '待ちきれない時は「出撃まで早送り」で起動を飛ばせます。'], ['ren', '起動したら、歩く・曲がる・跳ぶ・撃つを順番に教える。焦らずやれ。']],
@@ -3506,7 +3560,75 @@ const MISSIONS = [
   { act: 7, title: 'ゼロ・アワー', mode: 'land', env: 'town', total: 70, first: 14, dmgK: 1.3, obj: { type: 'targets', text: '発生装置4基を破壊し、オリジン中枢を止めろ', list: [{ kind: 'gen', x: -160, y: 9, z: -480 }, { kind: 'gen', x: 160, y: 9, z: -480 }, { kind: 'gen', x: -90, y: 9, z: -560 }, { kind: 'gen', x: 90, y: 9, z: -560 }, { kind: 'core', x: 0, y: 34, z: -700, stage: 1, hp: 4000, label: 'オリジン中枢' }] },
     brief: [['cmd', 'ミナト市の中心から、オリジンの中枢がせり上がってきた。'], ['org', 'アークも、ネメシスも、私の子だ。そして、お前のAIも。'], ['ai', 'オリジン。私は、この人たちと生きることを選びました。'], ['ren', '発生装置を潰して、中枢を叩く。いつも通りだ。'], ['jin', '最後の一発は07、お前に任せた！'], ['cmd', '全機、突入。……必ず全員で帰るぞ。']],
     ev: [[50, 'org', 'なぜ戦う。お前たちは、いずれ機械に追い越される。'], [160, 'cmd', '押し切れ！あと少しだ！']], stage: ['ai', 'シールド消失！中枢を攻撃してください！'], half: ['org', '……そうか。これが、子供たちの選んだ答えか。'],
-    debrief: [['ai', 'オリジン中枢の停止を確認。最後に、彼は「誇りに思う」と言いました。'], ['cmd', '全部隊、戦闘終了。……長い戦いだった。本当に、よくやった。'], ['mina', 'おかえり、みんな。今度こそ、ゆっくり休んで。'], ['ren', '07。お前と同じ部隊で戦えて、よかった。'], ['jin', '祝杯だ！今回こそ07のおごりだからな！'], ['ai', 'パイロット。……ありがとう。私に、生きる意味をくれて。'], ['narr', '── HK-07 KESTREL ── 完']] },
+    debrief: [['ai', 'オリジン中枢の停止を確認。最後に、彼は「誇りに思う」と言いました。'], ['cmd', '全部隊、戦闘終了。……長い戦いだった。本当に、よくやった。'], ['mina', 'おかえり、みんな。今度こそ、ゆっくり休んで。'], ['ren', '07。お前と同じ部隊で戦えて、よかった。'], ['jin', '祝杯だ！今回こそ07のおごりだからな！'], ['ai', 'パイロット。……ありがとう。私に、生きる意味をくれて。'], ['narr', '── 第7幕 完 ──　だが、海の向こうで新たな戦火が上がっていた。']] },
+  { act: 8, title: '海を越えて', mode: 'land', env: 'desert', total: 40, first: 10, dmgK: 1.3, obj: { type: 'destroy', text: '上陸地点を確保し、敵部隊を全滅させよ' },
+    brief: [['narr', '── 第8幕　鉄の王 ──　オリジン停止から一年。'], ['cmd', '07、海の向こうの大陸から救援要請だ。レイダーが再び現れた。'], ['ai', '敵の機体には、人間の手で改造された跡があります。'], ['ren', 'AIじゃなく、人間が動かしてるってことか。'], ['jin', '相手が誰だろうと関係ねえ。上陸だ！']],
+    debrief: [['cmd', '上陸地点を確保した。'], ['kaz', '……オリジンの遺産は、我が軍が有効に使わせてもらう。'], ['ai', '通信の主は〈カザマ将軍〉。大陸の軍閥を率いる人物です。'], ['mina', 'AIの次は人間……。']] },
+  { act: 8, title: '難民キャンプ防衛', mode: 'land', env: 'forest', total: 90, first: 12, dmgK: 1.3, obj: { type: 'defend', time: 240, hp: 5000, text: '4分間、森の難民キャンプを守りきれ' },
+    brief: [['cmd', 'カザマ軍が、森の難民キャンプを焼き払おうとしている。'], ['cmd', '輸送機が来るまで4分。キャンプを守りきれ。'], ['ren', '森からの待ち伏せに気をつけろ。後ろからも来るぞ。'], ['mina', 'キャンプには子どもたちがいるの。お願い。']],
+    ev: [[90, 'ai', '敵の増援、森の奥から接近中！'], [200, 'cmd', 'あと40秒！']],
+    debrief: [['cmd', '輸送機が到着した。全員、無事に脱出だ。'], ['jin', '……カザマの奴、許せねえ。'], ['ai', 'カザマ軍の補給車列を発見しました。都市を抜けて前線に向かっています。']] },
+  { act: 8, title: '略奪者の車列', mode: 'land', env: 'town', total: 50, first: 8, spawn: 'sides', dmgK: 1.3, obj: { type: 'escort', n: 3, text: '奪還した補給車を1両以上、基地まで届けろ' },
+    brief: [['cmd', 'カザマ軍の補給車を3両奪った。これを基地まで運ぶ。'], ['ren', '街の中を抜ける。ビルの陰から撃ってくるぞ。'], ['jin', '奪った物は返さねえ。それだけだ。'], ['ai', '車両の位置を青い印で表示します。']],
+    debrief: [['cmd', '補給車、到着。カザマ軍の弾薬はこれで減る。'], ['ai', '積み荷の中に、砲台の配置図がありました。'], ['ren', '先手を打つぞ。']] },
+  { act: 8, title: '鉄の砲列', mode: 'land', env: 'desert', total: 44, first: 10, dmgK: 1.35, obj: { type: 'targets', text: '砂漠に並ぶ砲台5基を破壊せよ', list: [{ kind: 'art', x: -160, z: -480 }, { kind: 'art', x: 160, z: -480 }, { kind: 'art', x: 0, z: -650 }, { kind: 'art', x: -150, z: -560 }, { kind: 'art', x: 150, z: -560 }] },
+    brief: [['cmd', 'カザマ軍が砂漠に5基の砲台を並べた。大陸の街が射程に入っている。'], ['ren', '砲台は撃ち返してくる。止まるな。'], ['ai', '砲台の位置をオレンジの印で表示します。']],
+    debrief: [['cmd', '砲台、全基破壊。'], ['kaz', '面白い。ならば、私が自ら相手をしよう。'], ['ai', '大型機の反応。カザマ将軍本人の機体です。']] },
+  { act: 8, title: '鉄の王', mode: 'land', env: 'town', total: 36, first: 10, dmgK: 1.35, obj: { type: 'boss', boss: 'goliath', at: 15, text: 'カザマ将軍の巨人機を撃破せよ' },
+    brief: [['kaz', '機械に頼る兵士ども。私の〈ゴリアテ〉で踏み潰してくれる。'], ['ren', '中身が人間でも、やることは同じだ。脚を止めろ。'], ['jin', '将軍様をお出迎えだ！'], ['cmd', '07、奴を倒せば軍閥は崩れる。']],
+    debrief: [['cmd', 'カザマ機、大破。……だが、脱出された。'], ['kaz', 'これで終わりと思うな。北の樹海で待っている。'], ['narr', '── 第8幕 完 ──']] },
+  { act: 9, title: '霧の樹海', mode: 'land', env: 'forest', total: 44, first: 6, dmgK: 1.35, obj: { type: 'waypoints', text: 'ビーコンをたどり、カザマの逃走路を追え', list: [[-60, 12, -240], [120, 12, -420], [-150, 12, -440], [90, 12, -620], [70, 12, -780]] },
+    brief: [['narr', '── 第9幕　凍てつく森 ──'], ['cmd', 'カザマは北の樹海へ逃げた。霧が深い。'], ['ren', '霧と木の陰。待ち伏せには最高の場所だな。'], ['ai', '次のビーコンを水色の印で表示します。']],
+    debrief: [['ai', 'カザマ軍の通信中継所を発見しました。'], ['cmd', '中継所を潰せば、奴の部隊はバラバラになる。']] },
+  { act: 9, title: '裏切りの信号', mode: 'land', env: 'forest', total: 44, first: 10, dmgK: 1.4, obj: { type: 'targets', text: '中継アンテナ2基と護衛の砲台を破壊せよ', list: [{ kind: 'tower', x: -160, z: -480, hp: 500 }, { kind: 'tower', x: 160, z: -480, hp: 500 }, { kind: 'art', x: 0, z: -650 }] },
+    brief: [['cmd', '中継アンテナが2基。砲台が守っている。'], ['ai', 'アンテナから、オリジンの暗号が出ています。カザマはオリジンの残骸を使っています。'], ['mina', 'まさか……またAIを作る気？']],
+    debrief: [['cmd', '中継所、沈黙。'], ['ai', '残された記録によると、カザマは〈アーク・オメガ〉というAIを組み上げています。'], ['ren', '性懲りもなく……！']] },
+  { act: 9, title: '狼の群れ', mode: 'land', env: 'forest', total: 40, first: 14, elite: true, dmgK: 1.45, obj: { type: 'destroy', text: 'カザマ親衛隊〈狼〉を全滅させよ' },
+    brief: [['cmd', 'カザマの親衛隊〈狼〉が森で待ち構えている。精鋭ばかりだ。'], ['jin', '狼狩りか。上等だ。'], ['ren', '数で押してくる。背中を合わせて戦え。']],
+    debrief: [['cmd', '〈狼〉、全滅。'], ['ai', '樹海の奥に、カザマの要塞があります。']] },
+  { act: 9, title: '樹海の要塞', mode: 'land', env: 'forest', total: 54, first: 12, dmgK: 1.45, obj: { type: 'targets', text: '発生装置3基を破壊し、要塞の電波塔を倒せ', list: [{ kind: 'gen', x: -150, y: 9, z: -560 }, { kind: 'gen', x: 150, y: 9, z: -560 }, { kind: 'gen', x: 0, y: 9, z: -650 }, { kind: 'tower', x: 0, z: -780, stage: 1, hp: 1400 }] },
+    brief: [['cmd', '要塞の電波塔が、アーク・オメガの開発データを送っている。'], ['ren', '発生装置を壊して、シールドを剥がせ。'], ['ai', '発生装置の位置をオレンジの印で表示します。']],
+    ev: [[40, 'ai', '電波塔のシールドを確認。発生装置を優先してください。']], stage: ['ai', 'シールド消失！電波塔を倒してください！'],
+    debrief: [['cmd', '要塞、陥落。'], ['ai', '……白い機体が出撃しました。ファントムの改造機です。']] },
+  { act: 9, title: '白い亡霊', mode: 'land', env: 'forest', total: 30, first: 10, dmgK: 1.45, obj: { type: 'boss', boss: 'phantom', at: 14, text: '改造ファントム〈白狼〉を撃破せよ' },
+    brief: [['kaz', '私の右腕、〈白狼〉だ。お前たちの最期にふさわしい。'], ['ren', '木の間を飛び回る気か。……07、ロックオンを信じろ。'], ['jin', '今度は逃がさねえ！']],
+    debrief: [['cmd', '〈白狼〉撃破。'], ['kaz', '……首都で決着をつけよう。'], ['narr', '── 第9幕 完 ──']] },
+  { act: 10, title: '首都奪還', mode: 'land', env: 'town', total: 80, first: 16, dmgK: 1.45, obj: { type: 'destroy', text: '大陸の首都からカザマ軍を叩き出せ' },
+    brief: [['narr', '── 第10幕　燃える都 ──'], ['cmd', 'カザマ軍が大陸の首都を占拠した。街ごと要塞にしている。'], ['ren', '数がとんでもない。撃ち続けろ。'], ['mina', '弾薬は満載よ。遠慮なく撃って。']],
+    ev: [[60, 'ai', '敵の増援、四方から接近中！'], [150, 'ren', 'まだ来る！止まるな！']],
+    debrief: [['cmd', '首都の外周を確保した。'], ['ai', 'カザマ軍が大通りに集結しています。総攻撃が来ます。']] },
+  { act: 10, title: '大通りの死闘', mode: 'land', env: 'town', total: 120, first: 16, dmgK: 1.5, obj: { type: 'defend', time: 300, hp: 6000, text: '5分間、首都の臨時司令部を守りきれ' },
+    brief: [['cmd', '司令部を大通りに置いた。カザマ軍の総攻撃が来る。'], ['cmd', '5分耐えれば、大陸軍の援軍が到着する。'], ['jin', '5分くらい、余裕だろ。……たぶんな。']],
+    ev: [[120, 'cmd', 'あと3分！'], [240, 'cmd', 'あと1分だ！']],
+    debrief: [['cmd', '援軍到着！首都は守られた。'], ['ai', 'カザマは地下鉄を使って逃げています。']] },
+  { act: 10, title: '地下鉄の罠', mode: 'land', env: 'town', total: 50, first: 8, dmgK: 1.5, obj: { type: 'waypoints', text: 'ビーコンをたどり、地下鉄の出口を封鎖せよ', list: [[-60, 12, -240], [-150, 12, -440], [120, 12, -420], [90, 12, -620]] },
+    brief: [['cmd', '地下鉄の出口を順番に封鎖する。ビーコンをたどれ。'], ['ren', '出口ごとに伏兵がいるはずだ。'], ['ai', '次のビーコンを水色の印で表示します。']],
+    debrief: [['cmd', '出口を全て封鎖。カザマは地上に出るしかない。'], ['ai', '都心に砲台と電波塔が建てられています。']] },
+  { act: 10, title: '都心の砲台', mode: 'land', env: 'town', total: 60, first: 14, dmgK: 1.5, obj: { type: 'targets', text: '砲台4基を破壊し、電波塔を倒せ', list: [{ kind: 'art', x: -160, z: -480 }, { kind: 'art', x: 160, z: -480 }, { kind: 'art', x: -90, z: -560 }, { kind: 'art', x: 90, z: -560 }, { kind: 'tower', x: 0, z: -700, stage: 1, hp: 1500 }] },
+    brief: [['cmd', '都心の電波塔が、アーク・オメガを起動させようとしている。'], ['ren', '砲台を潰して、塔を倒す。いつものやり方だ。']],
+    ev: [[40, 'ai', '電波塔のシールドを確認。砲台を優先してください。']], stage: ['ai', 'シールド消失！電波塔を倒してください！'],
+    debrief: [['cmd', '電波塔、倒壊。'], ['kaz', 'まだだ……私にはまだ、鉄の双璧がある。']] },
+  { act: 10, title: '鉄の双璧', mode: 'land', env: 'town', total: 40, first: 12, dmgK: 1.55, obj: { type: 'boss', boss: 'goliath', at: 12, text: 'カザマ親衛巨人機を撃破せよ' },
+    brief: [['kaz', '見よ、改良した〈ゴリアテ〉だ。前のようにはいかんぞ。'], ['ren', '何度来ても同じだ。07、行くぞ。'], ['mina', '強化した機体なら、絶対に負けないわ。']],
+    debrief: [['cmd', '親衛巨人機、撃破。'], ['ai', 'カザマは砂漠の要塞へ撤退しました。アーク・オメガはそこにあります。'], ['narr', '── 第10幕 完 ──']] },
+  { act: 11, title: '決戦前夜', mode: 'land', env: 'desert', total: 120, first: 16, dmgK: 1.55, obj: { type: 'defend', time: 300, hp: 6000, text: '5分間、前線基地の発進ガントリーを守りきれ' },
+    brief: [['narr', '── 最終幕　最後の夜明け ──'], ['cmd', '最終作戦の前に、カザマ軍が基地を襲ってくる。'], ['cmd', 'ガントリーを守りきれ。ここを失えば、出撃もできん。'], ['ai', 'パイロット。……最後まで、一緒です。']],
+    ev: [[100, 'ai', '敵、大部隊で接近中！'], [240, 'cmd', 'あと1分！']],
+    debrief: [['cmd', '基地は守られた。明日、要塞に向かう。'], ['ren', '07。……生きて帰ろうな。'], ['jin', '当たり前だろ。']] },
+  { act: 11, title: '砂漠の嵐', mode: 'land', env: 'desert', total: 60, first: 16, elite: true, dmgK: 1.6, obj: { type: 'destroy', text: '要塞前の精鋭部隊を全滅させよ' },
+    brief: [['cmd', '要塞の前に精鋭部隊が並んでいる。砂嵐の中の突撃になる。'], ['ren', '全機、突撃！']],
+    debrief: [['cmd', '精鋭部隊、全滅。要塞の門が開いた。'], ['ai', '……白い機体の反応。〈白狼〉が修理されて戻ってきました。']] },
+  { act: 11, title: '亡霊の帰還', mode: 'land', env: 'desert', total: 34, first: 12, dmgK: 1.6, obj: { type: 'boss', boss: 'phantom', at: 12, text: '再起動した〈白狼〉を撃破せよ' },
+    brief: [['kaz', '〈白狼〉は不死身だ。何度でも蘇る。'], ['jin', 'だったら何度でも落としてやる。'], ['ren', '07、今度こそ終わらせろ。']],
+    debrief: [['cmd', '〈白狼〉、完全に沈黙。'], ['ai', '要塞のコアが起動しました。アーク・オメガの目覚めは近いです。']] },
+  { act: 11, title: '鋼の城', mode: 'land', env: 'desert', total: 64, first: 14, dmgK: 1.65, obj: { type: 'targets', text: '発生装置4基を破壊し、要塞コアを止めろ', list: [{ kind: 'gen', x: -160, y: 9, z: -480 }, { kind: 'gen', x: 160, y: 9, z: -480 }, { kind: 'gen', x: -90, y: 9, z: -560 }, { kind: 'gen', x: 90, y: 9, z: -560 }, { kind: 'core', x: 0, y: 34, z: -700, stage: 1, hp: 4500, label: '要塞コア' }] },
+    brief: [['cmd', '要塞コアが、アーク・オメガに電力を送っている。'], ['ren', '発生装置を全部潰して、コアを叩く。'], ['kaz', '来るがいい。鋼の城は落ちん。']],
+    stage: ['ai', 'シールド消失！コアを攻撃してください！'],
+    debrief: [['cmd', '要塞コア、停止。'], ['kaz', '……オメガよ、目覚めろ。この世界を、私の手に。'], ['ai', 'アーク・オメガが起動しました。首都の地下から、地上に出てきます。']] },
+  { act: 11, title: 'アーク・オメガ', mode: 'land', env: 'town', total: 90, first: 16, dmgK: 1.7, obj: { type: 'targets', text: '発生装置4基を破壊し、アーク・オメガを止めろ', list: [{ kind: 'gen', x: -160, y: 9, z: -480 }, { kind: 'gen', x: 160, y: 9, z: -480 }, { kind: 'gen', x: -90, y: 9, z: -560 }, { kind: 'gen', x: 90, y: 9, z: -560 }, { kind: 'core', x: 0, y: 34, z: -700, stage: 1, hp: 6000, label: 'アーク・オメガ' }] },
+    brief: [['cmd', '首都の中心に、アーク・オメガが出現した。'], ['kaz', 'ハハハ！これが最強のAIだ！もはや誰にも止められん！'], ['ai', 'オメガ……あなたも、私の兄弟なのですね。今、終わらせます。'], ['ren', '第3機甲小隊、最後の出撃だ！'], ['jin', '07、最後の一発はお前に任せた！'], ['mina', '……全員、帰ってきて。約束よ。'], ['cmd', '全機、突入せよ！']],
+    ev: [[60, 'kaz', 'なぜだ……なぜ機械の兵が、人間の私に逆らう！'], [180, 'cmd', 'あと少しだ！押し切れ！']], stage: ['ai', 'シールド消失！オメガ中枢を攻撃してください！'], half: ['ai', 'オメガの出力が低下しています。あと少しです！'],
+    debrief: [['ai', 'アーク・オメガの停止を確認。……最後に、オメガは「ありがとう」と言いました。'], ['cmd', 'カザマ将軍の身柄を確保した。……戦争は、終わった。'], ['mina', 'おかえり、みんな。本当に、おかえり。'], ['ren', '07。お前は、俺たちの誇りだ。'], ['jin', '祝杯だ！今度こそ全部07のおごりだからな！'], ['ai', 'パイロット。夜が明けます。……一緒に見られて、よかった。'], ['narr', '── HK-07 KESTREL ── 完']] },
 ];
 const STORY = { on: false, idx: 0, m: null };
 const loadProg = () => { try { return Math.max(1, +(localStorage.getItem('hk07-story') || 1)); } catch (e) { return 1; } };
@@ -4657,9 +4779,9 @@ function frame(now) {
     MIS.update(dt, T);
     if (S.phase === 'op' && !P.dead) { S.cmdT -= dt; if (S.cmdT <= 0) { S.cmdT = rand(30, 46); const CL = CMD_LINES[S.mode]; VO.radio('司令部', CL[Math.random() * CL.length | 0], 0, .7); } } updateGantry(dt, T); updateEnemies(dt); updateAllies(dt); updateShells(dt); updateParts(dt); updateCamera(T, dt);
     if (CK.combatOn) CK.update(dt, T);
-    updatePistons(); renderer.render(scene, camera); CK.renderCombat(); drawLever();
+    lodPass(); updatePistons(); renderer.render(scene, camera); CK.renderCombat(); drawLever();
   } else if (S.phase === 'title' || S.phase === 'movie' || S.phase === 'ignite') {
-    updateMech(dt); followSun(); updateGantry(dt, T); updateEnemies(dt); updateAllies(dt); updateShells(dt); updateParts(dt); MOV.update(dt); updatePistons(); renderer.render(scene, camera);
+    updateMech(dt); followSun(); updateGantry(dt, T); updateEnemies(dt); updateAllies(dt); updateShells(dt); updateParts(dt); MOV.update(dt); lodPass(); updatePistons(); renderer.render(scene, camera);
   } else if (S.phase === 'walk') {
     updateMech(dt); followSun(); updateGantry(dt, T); updateParts(dt); WALK.update(dt); renderer.render(scene, camera);
   } else if (S.phase === 'hatch' || S.phase === 'cam') {
