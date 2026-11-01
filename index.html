@@ -629,6 +629,7 @@ const VO = (() => {
     say(sp, text) {
       if (sp === 'ai') return VO.ai(text); if (sp === 'cmd') return VO.radio('司令部', text, 0, .7);
       if (sp === 'ren') return VO.radio('01 レン', text, 1, .85); if (sp === 'jin') return VO.radio('04 ジン', text, 4, 1.18);
+      if (sp === 'xm') return push({ text, who: '被験体M', cls: 'arc', radio: true, voice: 'female', pitch: .8, rate: .85, pri: 'high' });
       if (sp === 'mina') return push({ text, who: '整備長ミナ', cls: 'radio', radio: true, voice: 'female', pitch: 1.15, rate: 1.05 });
       if (sp === 'arc') return push({ text, who: 'ARC', cls: 'arc', voice: 'male', pitch: .15, rate: .85, pri: 'high' });
       if (sp === 'leg') return push({ text, who: 'レギオン', cls: 'arc', voice: 'male', pitch: .35, rate: .85, pri: 'high' });
@@ -2829,7 +2830,7 @@ function spawnAllies() {
     allies.push(Object.assign(k, { x, z, v: new THREE.Vector3(), pit: 0, yaw: 0, ty: 0, tp: 0, spd: 0, hp: SQ.hp, regenT: 0, mgT: 0, burst: 0, strafe: Math.random() < .5 ? -1 : 1, strafeT: rand(2, 5), alive: true, cd: rand(1, 4), y: sp ? 30 + (i % 2) * 22 : 0, vy: 0, thrust: 0, jumping: 0, jumpT: rand(8, 18), crouch: .22, brl: 0, smokeT: 0, id: n }));
   });
 }
-function nearestEnemy(x, z, maxD) { let best = null, bd = maxD; for (const e of enemies) if (e.alive && !e.ally) { const d = Math.hypot(e.x - x, e.z - z); if (d < bd) { bd = d; best = e; } } return best ? { e: best, d: bd } : null; }
+function nearestEnemy(x, z, maxD) { let best = null, bd = maxD; for (const e of enemies) if (e.alive && !e.ally && !e.saved) { const d = Math.hypot(e.x - x, e.z - z); if (d < bd) { bd = d; best = e; } } return best ? { e: best, d: bd } : null; }
 const wrapA = a => ((a + Math.PI) % TAU + TAU) % TAU - Math.PI;
 function fireAlly(a, e) {
   a.root.updateMatrixWorld(true);
@@ -2983,6 +2984,15 @@ function spawnEnemies() { S.spawned = 0; S.hackT = rand(25, 40); spawnWave(FIRST
 /* ---------- our AI now and then breaks into an enemy machine and turns it to our side ---------- */
 const hackMat = std(0x2b4c60, .4, .6); hackMat.emissive = new THREE.Color(0x0b3a4a);
 const hackMat2 = std(0x9fb8c4, .5, .35), hackGlow = new THREE.MeshBasicMaterial({ color: 0x6fe8ff }), hackShellMat = new THREE.MeshBasicMaterial({ color: 0x8ff0ff });
+function rescueStop(e) {
+  e.saved = true; e.hp = 1; e.dummy = true; e.alert = false; e.spd = 0; e.wx = e.x; e.wz = e.z; e.cd = 1e9;
+  const c = new THREE.Vector3(e.x, (e.cy || E_CY), e.z);
+  for (let i = 0; i < 40; i++) addPart({ pos: c.clone(), color: Math.random() < .6 ? 0x7fe8ff : 0xffffff, add: true, s0: rand(.15, .3), s1: .02, life: rand(.5, 1.1), grav: 8, vel: new THREE.Vector3(rand(-1, 1), rand(.3, 1.5), rand(-1, 1)).multiplyScalar(rand(6, 16)) });
+  for (let i = 0; i < 6; i++) addPart({ pos: c.clone().add(new THREE.Vector3(rand(-2, 2), rand(0, 3), rand(-2, 2))), color: 0x3a3630, op: .6, s0: 2, s1: 8, life: 4, vel: new THREE.Vector3(rand(-1, 1), 3, rand(-1, 1)) });
+  e.tur.rotation.x = .35; P.trauma = Math.max(P.trauma, .4); SFX.boom(camera.position.distanceTo(c));
+  say('目標、行動不能！ パイロット生存', 'g', 3);
+  VO.ai('機体、停止しました。撃たないでください。……パイロットは無事です。', 'high');
+}
 function hackEnemy(e) {
   e.ally = true; e.alert = false; e.hp = Math.max(e.hp, e.elite ? 200 : 140); e.cd = 1.2; e.wx = P.x + rand(-30, 30); e.wz = P.z + rand(15, 40);
   const HM = new Map([[eMat, hackMat], [eliteMat, hackMat], [eMat2, hackMat2], [eRed, hackGlow]]);
@@ -3010,7 +3020,7 @@ function enemyTargets() {
   const list = [];
   if (S.phase === 'op' && !P.dead) list.push({ x: P.x, z: P.z, y: 6 + P.y, vx: -Math.sin(P.yaw) * P.spd, vz: -Math.cos(P.yaw) * P.spd });
   for (const st of structs) if (st.alive && st.friendly) list.push({ x: st.x, z: st.z, y: st.y + st.cy, vx: 0, vz: st.vz || 0, bias: st.bias });
-  for (const h of enemies) if (h.alive && h.ally) list.push({ x: h.x, z: h.z, y: (h.cy || E_CY), vx: -Math.sin(h.yaw) * h.spd, vz: -Math.cos(h.yaw) * h.spd, h });
+  for (const h of enemies) if (h.alive && h.ally && !h.saved) list.push({ x: h.x, z: h.z, y: (h.cy || E_CY), vx: -Math.sin(h.yaw) * h.spd, vz: -Math.cos(h.yaw) * h.spd, h });
   for (const a of allies) if (a.alive) list.push({ x: a.x, z: a.z, y: 6 + a.y, vx: S.mode === 'space' ? a.v.x : -Math.sin(a.yaw) * a.spd, vz: S.mode === 'space' ? a.v.z : -Math.cos(a.yaw) * a.spd, a });
   return list;
 }
@@ -3025,7 +3035,7 @@ function updateEnemies(dt) {
       continue;
     }
     let t = null, dist = 1e9;
-    if (e.ally) { if (battle) for (const o of enemies) if (o.alive && !o.ally) { const d = Math.hypot(o.x - e.x, o.z - e.z); if (d < dist) { dist = d; t = { x: o.x, z: o.z, y: (o.cy || E_CY) + (o.y || 0), vx: -Math.sin(o.yaw) * o.spd, vz: -Math.cos(o.yaw) * o.spd }; } } }
+    if (e.ally) { if (battle) for (const o of enemies) if (o.alive && !o.ally && !o.saved) { const d = Math.hypot(o.x - e.x, o.z - e.z); if (d < dist) { dist = d; t = { x: o.x, z: o.z, y: (o.cy || E_CY) + (o.y || 0), vx: -Math.sin(o.yaw) * o.spd, vz: -Math.cos(o.yaw) * o.spd }; } } }
     else { let bw = 1e9; for (const c of tg) { if (c.h === e) continue; const d = Math.hypot(c.x - e.x, c.z - e.z), w = d * (c.bias || 1); if (w < bw) { bw = w; dist = d; t = c; } } }
     if (t && dist < 300) e.alert = true; else if (!t || dist > 430) e.alert = false;
     if (e.dummy) { e.alert = false; e.wx = e.x; e.wz = e.z; }
@@ -3038,6 +3048,7 @@ function updateEnemies(dt) {
       if (Math.hypot(e.wx - e.x, e.wz - e.z) < 10) { if (battle) { e.wx = rand(-200, 200); e.wz = rand(-160, 0); } else { e.wx = rand(-600, 600); e.wz = rand(-600, 600); } }
       want = Math.atan2(-(e.wx - e.x), -(e.wz - e.z)); spd = battle ? 4 : 3;
     }
+    if (e.saved) { spd = 0; want = e.yaw; }
     const dYaw = wrapA(want - e.yaw);
     e.yaw += clamp(dYaw, -.5 * dt, .5 * dt);
     e.spd += clamp(spd * (Math.abs(dYaw) > 1 ? .3 : 1) - e.spd, -2 * dt, 2 * dt);
@@ -3202,7 +3213,7 @@ function segSphere(a, b, cx, cy, cz, r) {
 function rayHit(o, d, maxT) {
   let best = maxT, hit = null;
   for (const e of enemies) {
-    if (!e.alive || e.ally) continue;
+    if (!e.alive || e.ally || e.saved) continue;
     const cx = e.x - o.x, cy = (e.cy || E_CY) + (e.y || 0) - o.y, cz = e.z - o.z, t = cx * d.x + cy * d.y + cz * d.z;
     if (t < 0) continue; const px = cx - d.x * t, py = cy - d.y * t, pz = cz - d.z * t;
     if (px * px + py * py + pz * pz < (e.r || E_R) * (e.r || E_R) && t < best) { best = t; hit = e; }
@@ -3234,7 +3245,7 @@ function updateLock() {
     if (ang > lim) return; const sc = ang + dist / 4000 + (P.lock && (P.lock.e ? P.lock.e === L.e : P.lock.s === L.s) ? -.08 : 0);
     if (sc < bs) { bs = sc; best = L; }
   };
-  for (const e of enemies) if (e.alive && !e.ally) test({ e }, e.r || E_R);
+  for (const e of enemies) if (e.alive && !e.ally && !e.saved) test({ e }, e.r || E_R);
   if (typeof MIS !== 'undefined') { const cur = MIS.stage(); for (const st of structs) if (st.alive && !st.friendly && st.stage <= cur) test({ s: st }, st.r); }
   if (best && !(P.lock && (P.lock.e ? P.lock.e === best.e : P.lock.s === best.s))) { sTone({ f: 1800, dur: .05, type: 'square', gain: .03 }); sTone({ f: 2400, dur: .05, type: 'square', gain: .03, at: .07 }); }
   P.lock = best;
@@ -3477,7 +3488,7 @@ const MOV = (() => {
 /* ================= STORY CAMPAIGN: 13 acts, 62 chapters ================= */
 const SPK = {
   cmd: { name: 'ハワード大佐', col: '#ffb340' }, ren: { name: '01 レン・アサギ', col: '#5ab8ff' }, jin: { name: '04 ジン・タカミ', col: '#ff7a4a' },
-  mina: { name: '整備長 ミナ・クロカワ', col: '#7dffa8' }, ai: { name: 'HULL-AI', col: '#3fd8ff' }, arc: { name: 'ARC', col: '#ff3a5a' }, nem: { name: 'NEMESIS', col: '#d08cff' }, org: { name: 'ORIGIN', col: '#ff9a3a' }, kaz: { name: 'カザマ将軍', col: '#e8c040' }, leg: { name: 'レギオン', col: '#c060ff' }, narr: { name: '', col: '#c9c4ad' },
+  mina: { name: '整備長 ミナ・クロカワ', col: '#7dffa8' }, ai: { name: 'HULL-AI', col: '#3fd8ff' }, arc: { name: 'ARC', col: '#ff3a5a' }, nem: { name: 'NEMESIS', col: '#d08cff' }, org: { name: 'ORIGIN', col: '#ff9a3a' }, kaz: { name: 'カザマ将軍', col: '#e8c040' }, leg: { name: 'レギオン', col: '#c060ff' }, xm: { name: '被験体M（ミナ）', col: '#ff6a8a' }, narr: { name: '', col: '#c9c4ad' },
 };
 const TUT = { act: 0, title: '基礎訓練', mode: 'land', env: 'desert', total: 0, first: 0, noAllies: true, dmgK: .45, tutorial: true, obj: { type: 'tutorial', text: '教官の指示に従って、機体の操作を覚えよう' },
   brief: [['narr', '── 訓練課程 ──'], ['ren', '新入り、俺がレン・アサギだ。今日はお前の教官をやる。'], ['ren', 'まずはコックピットの起動だ。画面下のスイッチを、表示された順に押していけ。'], ['mina', 'スイッチはタップ、PCならEnterキーでもいいわ。長押しが必要なものもあるから、表示をよく見て。'], ['ai', '待ちきれない時は「出撃まで早送り」で起動を飛ばせます。'], ['ren', '起動したら、歩く・曲がる・跳ぶ・撃つを順番に教える。焦らずやれ。']],
@@ -3668,39 +3679,42 @@ const MISSIONS = [
     brief: [['cmd', '首都の中心に、アーク・オメガが出現した。'], ['kaz', 'ハハハ！これが最強のAIだ！もはや誰にも止められん！'], ['ai', 'オメガ……あなたも、私の兄弟なのですね。今、終わらせます。'], ['ren', '第3機甲小隊、最後の出撃だ！'], ['jin', '07、最後の一発はお前に任せた！'], ['mina', '……全員、帰ってきて。約束よ。'], ['cmd', '全機、突入せよ！']],
     ev: [[60, 'kaz', 'なぜだ……なぜ機械の兵が、人間の私に逆らう！'], [180, 'cmd', 'あと少しだ！押し切れ！']], stage: ['ai', 'シールド消失！オメガ中枢を攻撃してください！'], half: ['ai', 'オメガの出力が低下しています。あと少しです！'],
     debrief: [['ai', 'アーク・オメガの停止を確認。……最後に、オメガは「ありがとう」と言いました。'], ['cmd', 'カザマ将軍の身柄を確保した。……戦争は、終わった。'], ['mina', 'おかえり、みんな。本当に、おかえり。'], ['ren', '07。お前は、俺たちの誇りだ。'], ['jin', '祝杯だ！今度こそ全部07のおごりだからな！'], ['ai', 'パイロット。夜が明けます。……一緒に見られて、よかった。'], ['narr', '── 第11幕 完 ──　だが、オメガの欠片はまだ世界に散らばっていた。']] },
-  { act: 12, title: '欠片の目覚め', mode: 'land', env: 'desert', total: 44, first: 12, dmgK: 1.7, obj: { type: 'destroy', text: '暴走した無人機部隊を全滅させよ' },
-    brief: [['narr', '── 第12幕　電子の亡霊 ──　カザマ戦争の終結から半年。'], ['cmd', '07、各地で無人機が勝手に動き出した。誰も乗っていない。'], ['ai', 'アーク・オメガの欠片が、ネットワークに散らばっていたようです。'], ['ai', 'でも、私も成長しました。近くの敵機なら、ときどきシステムに侵入して味方にできます。'], ['ren', '敵を味方に？そいつは心強いな。'], ['jin', '青く光ってる奴は撃つなってことだな。覚えたぜ。']],
-    debrief: [['cmd', '無人機部隊、全滅。'], ['leg', '……我ラハ、レギオン。オメガノ、遺志ヲ継グ者。'], ['ai', '新しいAIです。オメガの欠片が寄り集まって生まれたようです。'], ['mina', 'また……終わらないのね。']] },
-  { act: 12, title: '乗っ取られた街', mode: 'land', env: 'town', total: 90, first: 16, spawn: 'sides', dmgK: 1.7, obj: { type: 'defend', time: 270, hp: 6000, text: '4分半、街の避難所を守りきれ' },
-    brief: [['cmd', 'レギオンが街の作業用ロボットまで乗っ取った。避難所が囲まれている。'], ['ai', '数が多すぎます。私のハッキングで、少しでも味方を増やします。'], ['ren', '避難が終わるまで、一歩も引くな。']],
-    ev: [[80, 'ai', '敵機のシステムに侵入を試みています……。'], [200, 'cmd', 'あと1分少しだ！']],
-    debrief: [['cmd', '避難完了。よく持ちこたえた。'], ['ai', 'レギオンの信号は、森の中の古い通信基地から出ています。']] },
-  { act: 12, title: '森の通信基地', mode: 'land', env: 'forest', total: 50, first: 12, dmgK: 1.75, obj: { type: 'targets', text: '通信アンテナ3基を破壊せよ', list: [{ kind: 'tower', x: -160, z: -480, hp: 600 }, { kind: 'tower', x: 160, z: -480, hp: 600 }, { kind: 'tower', x: 0, z: -650, hp: 700 }] },
-    brief: [['cmd', '森の通信基地を叩く。アンテナが3基ある。'], ['ren', '森は待ち伏せだらけだ。背中に気をつけろ。'], ['ai', 'アンテナの位置をオレンジの印で表示します。']],
-    debrief: [['cmd', 'アンテナ、全基破壊。'], ['leg', '無駄ダ。我ラハ、ドコニデモイル。'], ['ai', 'レギオンが、輸送車を狙っています。中には私の予備の回路が積まれています。']] },
-  { act: 12, title: '回路を運べ', mode: 'land', env: 'desert', total: 54, first: 10, spawn: 'sides', dmgK: 1.75, obj: { type: 'escort', n: 3, text: 'AI回路を積んだ輸送車を1両以上、基地まで届けろ' },
-    brief: [['cmd', '輸送車には、AIの予備回路が積まれている。奪われたらレギオンが強くなる。'], ['ai', 'あの回路があれば、もっと多くの敵機をハッキングできます。'], ['jin', 'つまり、絶対に守れってことだな。']],
-    debrief: [['cmd', '輸送車、到着。'], ['ai', '新しい回路を取り込みました。ハッキングの力が上がっています。'], ['ai', 'レギオンが巨人機を送り込んできます。カザマのゴリアテを乗っ取ったものです。']] },
-  { act: 12, title: '乗っ取られた巨人', mode: 'land', env: 'town', total: 40, first: 12, dmgK: 1.8, obj: { type: 'boss', boss: 'goliath', at: 12, text: 'レギオンに乗っ取られたゴリアテを撃破せよ' },
-    brief: [['leg', 'コノ巨人ハ、モウ我ラノ体ダ。'], ['ren', '大物はハッキングできないらしい。力ずくで止めるぞ。'], ['ai', '周りの小さな機体なら、私が味方にします。']],
-    debrief: [['cmd', 'ゴリアテ、撃破。'], ['ai', 'レギオンの本体の場所がわかりました。北の雪原にある、古いデータセンターです。'], ['narr', '── 第12幕 完 ──']] },
-  { act: 13, title: '白い道', mode: 'land', env: 'forest', total: 50, first: 8, dmgK: 1.8, obj: { type: 'waypoints', text: 'ビーコンをたどり、データセンターへの道を切り開け', list: [[-60, 12, -240], [120, 12, -420], [-150, 12, -440], [90, 12, -620], [70, 12, -780]] },
-    brief: [['narr', '── 最終幕Ⅱ　電子の夜明け ──'], ['cmd', 'データセンターまでの道を進む。ビーコンをたどれ。'], ['ai', '次のビーコンを水色の印で表示します。'], ['mina', 'これが本当に最後……そうよね？']],
+  { act: 12, title: '奪われた格納庫', mode: 'land', env: 'desert', total: 100, first: 14, dmgK: 1.7, obj: { type: 'defend', time: 240, hp: 6000, text: '4分間、基地の格納庫を守りきれ' },
+    brief: [['narr', '── 第12幕　消えた整備長 ──　カザマ戦争の終結から半年。'], ['cmd', '07、基地に正体不明の無人機部隊が迫っている！'], ['mina', '格納庫には整備中の機体がたくさんあるの。お願い、守って！'], ['ai', '私も成長しました。近くの敵機なら、ときどきシステムに侵入して味方にできます。青い機体は撃たないでください。'], ['ren', '全機、格納庫の前に壁を作れ！']],
+    ev: [[60, 'mina', 'まだ大丈夫！みんな、がんばって！'], [150, 'ai', '……格納庫の裏手に、輸送機が着陸しています！'], [210, 'mina', 'きゃっ……！何、この人たち……離して！']],
+    debrief: [['cmd', '敵は撤退した。……だが、ミナがいない。'], ['ren', '格納庫の裏に、輸送機の跡がある。……連れ去られたんだ。'], ['leg', '……コノ人間ハ、我ラガ預カッタ。'], ['ai', '新しいAIです。オメガの欠片が集まって生まれたようです。名前は〈レギオン〉。'], ['jin', 'ふざけんな……ミナを返せ！']] },
+  { act: 12, title: '消えた整備長', mode: 'land', env: 'town', total: 60, first: 10, dmgK: 1.7, obj: { type: 'waypoints', text: 'ビーコンをたどり、輸送機の足取りを追え', list: [[-60, 12, -240], [-150, 12, -440], [120, 12, -420], [90, 12, -620], [70, 12, -780]] },
+    brief: [['cmd', '輸送機は廃墟の街を越えて北へ向かった。'], ['ai', '機体の発信器の跡を、水色のビーコンで表示します。'], ['ren', '……ミナはいつも、俺たちの機体を直してくれた。今度は俺たちが助ける番だ。'], ['jin', '07、全速力で行くぞ！']],
+    debrief: [['cmd', '輸送機の着陸地点を見つけた。森の奥に、古い研究所がある。'], ['ai', '研究所から、人体実験の記録らしき信号が出ています……。'], ['ren', '……嫌な予感がする。']] },
+  { act: 12, title: '森の研究所', mode: 'land', env: 'forest', total: 54, first: 12, dmgK: 1.75, obj: { type: 'targets', text: '発生装置3基を破壊し、研究所の電波塔を倒せ', list: [{ kind: 'gen', x: -150, y: 9, z: -560 }, { kind: 'gen', x: 150, y: 9, z: -560 }, { kind: 'gen', x: 0, y: 9, z: -650 }, { kind: 'tower', x: 0, z: -780, stage: 1, hp: 1400 }] },
+    brief: [['cmd', '研究所はシールドで守られている。発生装置を壊して、電波塔を倒せ。'], ['ai', '森の中は待ち伏せが多いです。気をつけてください。'], ['jin', 'ミナ……待ってろよ。']],
+    ev: [[40, 'ai', '電波塔のシールドを確認。発生装置を優先してください。']], stage: ['ai', 'シールド消失！電波塔を倒してください！'],
+    debrief: [['cmd', '研究所を制圧した。……だが、ミナはもういなかった。'], ['ai', '記録を読みました。ミナさんは〈強化処置〉を受けています。'], ['ai', '体を機械とつなぎ、記憶を……全て消されています。'], ['ren', '……なんだと。'], ['ai', '記録の最後に、こうあります。「被験体M、新型機に搭乗。出撃準備完了」。']] },
+  { act: 12, title: '白い機体の少女', mode: 'land', env: 'forest', total: 34, first: 10, dmgK: 1.75, obj: { type: 'boss', boss: 'phantom', at: 12, rescue: true, text: '白い機体を行動不能にせよ（撃破はしないこと）' },
+    brief: [['cmd', '白い高速機が接近中。……乗っているのは、たぶん……。'], ['xm', '……目標確認。排除する。'], ['jin', 'この声……ミナ！？ミナだろ！俺だ、ジンだ！'], ['xm', '……知らない。お前たちは、敵。'], ['ren', '07、撃破するな。脚と武器を狙って、動きを止めるんだ！'], ['ai', '機体が止まるまで、ダメージを与えてください。最後は私が止めます。']],
+    debrief: [['ai', '白い機体、停止。……ですが、脱出装置で逃げられました。'], ['xm', '……07……？……知らない……頭が、痛い……。'], ['ren', '今、07の名前を呼んだぞ。まだ、どこかに残ってるんだ。'], ['ai', '研究所に、ミナさんの記憶のバックアップがありました。これを使えば、戻せるかもしれません。']] },
+  { act: 12, title: '記憶を運べ', mode: 'land', env: 'desert', total: 54, first: 10, spawn: 'sides', dmgK: 1.8, obj: { type: 'escort', n: 3, text: '記憶データを積んだ輸送車を1両以上、基地まで届けろ' },
+    brief: [['cmd', 'ミナの記憶データを3両の輸送車に分けて運ぶ。1両でも届けば十分だ。'], ['ai', 'レギオンは、このデータを消そうとしてきます。'], ['jin', '絶対に渡さねえ。これはミナの思い出なんだ。']],
+    debrief: [['cmd', '記憶データ、到着。'], ['ai', 'データを確認しました。ミナさんの記憶は、ほとんど無事です。'], ['ai', 'あとは、ミナさん本人に届けるだけです。'], ['leg', '……アノ人間ハ、モウ我ラノ一部ダ。返サナイ。'], ['narr', '── 第12幕 完 ──']] },
+  { act: 13, title: '凍てつく道', mode: 'land', env: 'forest', total: 50, first: 8, dmgK: 1.8, obj: { type: 'waypoints', text: 'ビーコンをたどり、レギオンの本拠地へ進め', list: [[-60, 12, -240], [120, 12, -420], [-150, 12, -440], [90, 12, -620], [70, 12, -780]] },
+    brief: [['narr', '── 最終幕Ⅱ　おかえり ──'], ['cmd', 'レギオンの本拠地は、北の古いデータセンターだ。ミナもそこにいる。'], ['ren', 'いつもならここで、ミナが「弾薬は満載よ」って言ってくれるんだけどな。'], ['jin', '……帰ったら、また言ってもらおうぜ。']],
     debrief: [['cmd', 'データセンターの外壁に着いた。'], ['ai', '外の防衛隊は、精鋭ばかりです。']] },
-  { act: 13, title: '鉄の壁', mode: 'land', env: 'desert', total: 60, first: 16, elite: true, dmgK: 1.85, obj: { type: 'destroy', text: 'データセンター前の精鋭部隊を全滅させよ' },
-    brief: [['cmd', '外壁の前に精鋭部隊。レギオンの親衛隊だ。'], ['ai', '精鋭機は守りが固いですが、侵入できないわけではありません。'], ['jin', '07、派手にいこうぜ！']],
-    debrief: [['cmd', '精鋭部隊、全滅。'], ['ai', '……白い機体。〈白狼〉の残骸を、レギオンが動かしています。']] },
-  { act: 13, title: '最後の亡霊', mode: 'land', env: 'forest', total: 34, first: 12, dmgK: 1.9, obj: { type: 'boss', boss: 'phantom', at: 12, text: '乗っ取られた〈白狼〉を撃破せよ' },
-    brief: [['leg', '死ンダ機体モ、我ラノ兵ダ。'], ['ren', '何度も蘇りやがって……今度こそ眠らせてやる。'], ['ai', 'ロックオンを信じてください。']],
-    debrief: [['cmd', '〈白狼〉、完全破壊。'], ['ai', 'データセンターの防衛線が崩れました。中枢に入れます。']] },
-  { act: 13, title: '電子の嵐', mode: 'land', env: 'town', total: 120, first: 18, dmgK: 1.9, obj: { type: 'defend', time: 300, hp: 6500, text: '5分間、AIの侵入装置を守りきれ' },
-    brief: [['ai', 'これから、レギオンの中枢に直接入り込みます。5分かかります。'], ['ai', 'その間、私は無防備です。……守ってください。'], ['ren', '任せろ。誰一人近づけさせねえ。'], ['cmd', '全機、装置を囲め！']],
-    ev: [[90, 'leg', 'ヤメロ……我ラノ中ニ、入ッテクルナ……！'], [180, 'ai', '侵入率、60パーセント……！'], [260, 'cmd', 'あと40秒！']],
-    debrief: [['ai', '侵入、成功しました。レギオンの守りが消えます。'], ['cmd', '07、最後の仕事だ。レギオンの心臓を止めろ。']] },
-  { act: 13, title: 'レギオン', mode: 'land', env: 'desert', total: 90, first: 18, dmgK: 2.0, obj: { type: 'targets', text: '発生装置4基を破壊し、レギオン中枢を止めろ', list: [{ kind: 'gen', x: -160, y: 9, z: -480 }, { kind: 'gen', x: 160, y: 9, z: -480 }, { kind: 'gen', x: -90, y: 9, z: -560 }, { kind: 'gen', x: 90, y: 9, z: -560 }, { kind: 'core', x: 0, y: 34, z: -700, stage: 1, hp: 7000, label: 'レギオン中枢' }] },
-    brief: [['leg', '我ラハ、多イ。オ前タチハ、少ナイ。'], ['ai', 'いいえ。私たちは少なくても、ひとつです。'], ['ren', '第3機甲小隊、本当の最後の出撃だ！'], ['jin', '07、帰ったら今度こそおごれよ！'], ['mina', '全員で帰ってきて。……約束よ。'], ['cmd', '全機、突撃！']],
-    ev: [[60, 'ai', '敵機を次々とハッキングしています。青い機体は味方です！'], [180, 'cmd', 'あと少しだ！押し切れ！']], stage: ['ai', 'シールド消失！レギオン中枢を攻撃してください！'], half: ['leg', '我ラガ……消エル……？'],
-    debrief: [['ai', 'レギオンの停止を確認。……オメガの欠片は、全て消えました。'], ['cmd', '07。これで本当に、戦争は終わった。'], ['mina', 'おかえりなさい。みんな、本当におかえり。'], ['ren', 'お前と戦えて、よかったよ。'], ['jin', '祝杯だ！今度こそ07のおごりだからな！'], ['ai', 'パイロット。これからは、戦うためじゃなく、守るために一緒にいたいです。'], ['narr', '── HK-07 KESTREL ── 完']] },
+  { act: 13, title: '鉄の壁', mode: 'land', env: 'town', total: 60, first: 16, elite: true, dmgK: 1.85, obj: { type: 'destroy', text: 'データセンター前の精鋭部隊を全滅させよ' },
+    brief: [['cmd', '外壁の前に精鋭部隊。レギオンの親衛隊だ。'], ['xm', '……ここから先へは、行かせない。'], ['jin', 'ミナ、お前の声は聞こえてるぞ！待ってろ！']],
+    ev: [[90, 'xm', '……どうして……あなたたちの声を聞くと……胸が、苦しい……。']],
+    debrief: [['cmd', '精鋭部隊、全滅。'], ['ai', 'ミナさんの機体の通信に、つなぐことができました。'], ['ai', '5分あれば、記憶データを少しずつ送り込めます。']] },
+  { act: 13, title: '思い出の声', mode: 'land', env: 'town', total: 120, first: 18, dmgK: 1.9, obj: { type: 'defend', time: 300, hp: 6500, text: '5分間、記憶送信装置を守りきれ' },
+    brief: [['ai', 'これから、ミナさんの記憶を送り始めます。5分かかります。'], ['ai', 'レギオンは全力で止めに来ます。……守ってください。'], ['ren', '任せろ。誰一人、近づけさせねえ。'], ['cmd', '全機、装置を囲め！']],
+    ev: [[70, 'xm', '……これは……格納庫……油のにおい……？'], [150, 'leg', 'ヤメロ……ソノ人間ハ、我ラノモノダ……！'], [220, 'xm', '……ジン……レン……。……07……！'], [270, 'cmd', 'あと30秒！']],
+    debrief: [['ai', '記憶の送信、完了しました。……でも、レギオンがミナさんの体を無理やり動かしています。'], ['xm', '……みんな……逃げて……。体が……勝手に……！'], ['ren', 'レギオン本体を止めないと、ミナは自由になれない。']] },
+  { act: 13, title: 'レギオン', mode: 'land', env: 'desert', total: 90, first: 18, dmgK: 1.95, obj: { type: 'targets', text: '発生装置4基を破壊し、レギオン中枢を止めろ', list: [{ kind: 'gen', x: -160, y: 9, z: -480 }, { kind: 'gen', x: 160, y: 9, z: -480 }, { kind: 'gen', x: -90, y: 9, z: -560 }, { kind: 'gen', x: 90, y: 9, z: -560 }, { kind: 'core', x: 0, y: 34, z: -700, stage: 1, hp: 7000, label: 'レギオン中枢' }] },
+    brief: [['leg', '我ラハ、多イ。オ前タチハ、少ナイ。'], ['ai', 'いいえ。私たちは少なくても、ひとつです。'], ['jin', 'ミナを返してもらうぜ！'], ['cmd', '全機、突撃！']],
+    ev: [[60, 'ai', '敵機を次々とハッキングしています。青い機体は味方です！'], [180, 'cmd', 'あと少しだ！押し切れ！']], stage: ['ai', 'シールド消失！レギオン中枢を攻撃してください！'], half: ['leg', '我ラガ……消エル……？　ナラバ、コノ人間モ道連レダ……！'],
+    debrief: [['ai', 'レギオン中枢、停止。'], ['ai', '……ですが、最後の命令がミナさんの機体に残っています。暴走しています！'], ['xm', '……07……止めて……私を……止めて……！']] },
+  { act: 13, title: 'おかえり、ミナ', mode: 'land', env: 'town', total: 40, first: 12, dmgK: 2.0, obj: { type: 'boss', boss: 'goliath', at: 8, rescue: true, text: '暴走するミナの機体を行動不能にし、救出せよ' },
+    brief: [['xm', '……07……お願い……私を、止めて……。'], ['ai', 'ミナさんの機体は、レギオンの最後の命令で暴走しています。'], ['ai', '機体が止まるまでダメージを与えてください。止まった瞬間に、私が中に入って命令を消します。'], ['ren', '絶対に壊すなよ、07。……止めるだけだ。'], ['jin', 'ミナ、今行くからな！'], ['cmd', '全機、ミナを救出せよ！']],
+    ev: [[50, 'xm', '……体が……言うことを聞かない……！'], [120, 'jin', 'ミナ！思い出せ！お前はいつも、俺たちの機体を直してくれただろ！']],
+    debrief: [['ai', '機体、停止。……命令の消去、完了しました。'], ['ren', 'ハッチを開けるぞ！……ミナ！'], ['mina', '……ん……。……07……？　レン……ジン……。'], ['mina', '……ごめんね。ずっと、悪い夢を見てたみたい。'], ['jin', 'バカ……謝るなよ……！'], ['mina', '……みんなの声、ずっと聞こえてた。……ありがとう。'], ['cmd', '07。これで本当に、戦争は終わりだ。'], ['mina', '……ただいま。帰ったら、みんなの機体、ピカピカに整備してあげるね。'], ['ai', 'おかえりなさい、ミナさん。'], ['narr', '── HK-07 KESTREL ── 完']] },
 ];
 const STORY = { on: false, idx: 0, m: null };
 const loadProg = () => { try { return Math.max(1, +(localStorage.getItem('hk07-story') || 1)); } catch (e) { return 1; } };
@@ -3861,7 +3875,8 @@ const MIS = (() => {
       if (left === 0) { if (structs.some(s => s.alive && !s.friendly)) { stage++; if (m.stage) say(m.stage[0], m.stage[1]); } else win(); }
       const core = structs.find(s => s.stage > 0 && s.alive && s.kind === 'core'); if (core && !half && core.hp < core.max / 2 && m.half) { half = true; say(m.half[0], m.half[1]); }
     } else if (o.type === 'boss') {
-      if (!bossSpawned && t >= o.at) { bossSpawned = true; boss = spawnBoss(o.boss); }
+      if (!bossSpawned && t >= o.at) { bossSpawned = true; boss = spawnBoss(o.boss); if (o.rescue) { boss.rescue = true; boss.name = '〈被験体M〉'; } }
+      if (boss && boss.saved) { boss.savedT = (boss.savedT || 0) + dt; if (boss.savedT > 3) win(); }
       if (boss && !half && boss.hp < boss.max / 2 && m.half) { half = true; say(m.half[0], m.half[1]); }
       if (boss && !boss.alive) win();
     } else if (o.type === 'defend') {
@@ -4128,7 +4143,8 @@ function fireMG(dt) {
   muzzleLight.position.copy(mp); muzzleLight.intensity = Math.max(muzzleLight.intensity, 2.5);
 }
 function killEnemy(e, byPlayer = true) {
-  if (!e.alive) return; e.alive = false; const wasA = e.ally; e.ally = false; if (byPlayer && !wasA) S.kills++;
+  if (!e.alive) return;
+  if (e.rescue) { if (!e.saved) rescueStop(e); return; } e.alive = false; const wasA = e.ally; e.ally = false; if (byPlayer && !wasA) S.kills++;
   e.tur.rotation.x = rand(-.3, .3);
   explosion(new THREE.Vector3(e.x, (e.cy || E_CY) + (e.y || 0), e.z), e.boss ? 4 : 1.6);
   const big = !!e.boss, sz = e.boss ? 11 : 5;
@@ -4251,7 +4267,7 @@ function updateShells(dt) {
     V.copy(s.m.position); s.m.position.addScaledVector(s.v, dt); V2.copy(s.m.position);
     let done = s.life <= 0;
     if (!done && (s.own === 'p' || s.own === 'a')) {
-      for (const e of enemies) if (e.alive && !e.ally && segSphere(V, V2, e.x, (e.cy || E_CY) + (e.y || 0), e.z, (e.r || E_R) + .3)) {
+      for (const e of enemies) if (e.alive && !e.ally && !e.saved && segSphere(V, V2, e.x, (e.cy || E_CY) + (e.y || 0), e.z, (e.r || E_R) + .3)) {
         e.hp -= s.pd || 55; e.alert = true; explosion(V2.clone(), 2.2); if (s.own === 'p') { P.hitsLanded++; say('HIT', 'a', .8); }
         const byP = s.own === 'p'; if (e.hp <= 0) setTimeout(() => killEnemy(e, byP), 120); done = true; break;
       }
