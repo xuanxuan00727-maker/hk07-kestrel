@@ -293,7 +293,7 @@ body.op #panel3d{height:104px;border-radius:6px}
       <div class="t-kicker">重装歩行兵器シミュレーター</div>
       <h1>HK-07<span>KESTREL</span></h1>
       <p>ハッチを閉め、機体を起こし、出撃せよ。</p>
-      <div class="t-modes"><button id="storyBtn" class="t-btn">ストーリー<small>全19幕・92章のキャンペーン</small></button></div>
+      <div class="t-modes"><button id="storyBtn" class="t-btn">ストーリー<small>全25幕・122章のキャンペーン</small></button></div>
       <div class="t-free"><button id="startLand" class="btn">フリー出撃</button><button id="garBtn" class="btn">格納庫（カスタマイズ）</button></div>
       <div class="t-note">音が出ます ・ オープニングムービーから始まります</div>
     </div></div>
@@ -964,6 +964,7 @@ const VO = (() => {
     say(sp, text) {
       if (sp === 'ai') return VO.ai(text); if (sp === 'cmd') return VO.radio('司令部', text, 0, .7);
       if (sp === 'ren') return VO.radio('01 レン', text, 1, .85); if (sp === 'jin') return VO.radio('04 ジン', text, 4, 1.18);
+      if (sp === 'odn') return push({ text, who: 'ODIN', cls: 'arc', voice: 'male', pitch: .45, rate: .82, pri: 'high' });
       if (sp === 'cro') return push({ text, who: 'ドクター・クロウ', cls: 'arc', voice: 'male', pitch: .7, rate: .9, pri: 'high' });
       if (sp === 'xs') return push({ text, who: 'シオン', cls: 'radio', radio: true, voice: 'male', pitch: 1.35, rate: 1, pri: 'high' });
       if (sp === 'xm') return push({ text, who: '被験体M', cls: 'arc', radio: true, voice: 'female', pitch: .8, rate: .85, pri: 'high' });
@@ -1512,7 +1513,7 @@ let ST = {}, SQ = {};
 function calcStats() {
   const f = FRAMES[frameOwned(GAR.frame) ? GAR.frame : 'kestrel'].mod, L = GAR.lv;
   const full = UPG.every(u => L[u.k] >= UPG_MAX), FB = full ? 1.5 : 1;   // full tune: every part maxed multiplies firepower again
-  ST = { turn: f.turn || 1, accel: f.accel || 1, jet: f.jet || 1, stomp: f.stomp || 1, full, armor: f.armor * (1 - .08 * L.armor) * (full ? .8 : 1), main: f.main * (1 + .4 * L.main) * FB, mg: (1 + .5 * L.mg) * FB, spd: f.spd * (1 + .06 * L.legs), fuel: f.fuel * (1 - .1 * L.boost), cool: (1 / f.heat) * (1 + .15 * L.cool) };
+  ST = { lv: full ? 1 : UPG.reduce((a, u) => a + (L[u.k] || 0), 0) / (UPG.length * UPG_MAX), turn: f.turn || 1, accel: f.accel || 1, jet: f.jet || 1, stomp: f.stomp || 1, full, armor: f.armor * (1 - .08 * L.armor) * (full ? .8 : 1), main: f.main * (1 + .4 * L.main) * FB, mg: (1 + .5 * L.mg) * FB, spd: f.spd * (1 + .06 * L.legs), fuel: f.fuel * (1 - .1 * L.boost), cool: (1 / f.heat) * (1 + .15 * L.cool) };
   const n = UPG.reduce((s, u) => s + L[u.k], 0);
   SQ = { lv: n, hp: Math.round(480 * (1 + .04 * n)), dmg: (1 + .06 * n) * (full ? 1.5 : 1), rate: 1 + .02 * n, aim: Math.max(.45, 1 - .018 * n) };
 }
@@ -3981,10 +3982,10 @@ const MOV = (() => {
   return { update, end, white, ignite };
 })();
 
-/* ================= STORY CAMPAIGN: 19 acts, 92 chapters ================= */
+/* ================= STORY CAMPAIGN: 25 acts, 122 chapters ================= */
 const SPK = {
   cmd: { name: 'ハワード大佐', col: '#ffb340' }, ren: { name: '01 レン・アサギ', col: '#5ab8ff' }, jin: { name: '04 ジン・タカミ', col: '#ff7a4a' },
-  mina: { name: '整備長 ミナ・クロカワ', col: '#7dffa8' }, ai: { name: 'HULL-AI', col: '#3fd8ff' }, arc: { name: 'ARC', col: '#ff3a5a' }, nem: { name: 'NEMESIS', col: '#d08cff' }, org: { name: 'ORIGIN', col: '#ff9a3a' }, kaz: { name: 'カザマ将軍', col: '#e8c040' }, leg: { name: 'レギオン', col: '#c060ff' }, xm: { name: '被験体M（ミナ）', col: '#ff6a8a' }, cro: { name: 'ドクター・クロウ', col: '#b0b8c8' }, xs: { name: 'シオン', col: '#9adfff' }, narr: { name: '', col: '#c9c4ad' },
+  mina: { name: '整備長 ミナ・クロカワ', col: '#7dffa8' }, ai: { name: 'HULL-AI', col: '#3fd8ff' }, arc: { name: 'ARC', col: '#ff3a5a' }, nem: { name: 'NEMESIS', col: '#d08cff' }, org: { name: 'ORIGIN', col: '#ff9a3a' }, kaz: { name: 'カザマ将軍', col: '#e8c040' }, leg: { name: 'レギオン', col: '#c060ff' }, xm: { name: '被験体M（ミナ）', col: '#ff6a8a' }, cro: { name: 'ドクター・クロウ', col: '#b0b8c8' }, odn: { name: 'ODIN', col: '#ffd060' }, xs: { name: 'シオン', col: '#9adfff' }, narr: { name: '', col: '#c9c4ad' },
 };
 const TUT = { act: 0, title: '基礎訓練', mode: 'land', env: 'desert', total: 0, first: 0, noAllies: true, dmgK: .45, tutorial: true, obj: { type: 'tutorial', text: '教官の指示に従って、機体の操作を覚えよう' },
   brief: [['narr', '── 訓練課程 ──'], ['ren', '新入り、俺がレン・アサギだ。今日はお前の教官をやる。'], ['ren', 'まずはコックピットの起動だ。画面下のスイッチを、表示された順に押していけ。'], ['mina', 'スイッチはタップ、PCならEnterキーでもいいわ。長押しが必要なものもあるから、表示をよく見て。'], ['ai', '待ちきれない時は「出撃まで早送り」で起動を飛ばせます。'], ['ren', '起動したら、歩く・曲がる・跳ぶ・撃つを順番に教える。焦らずやれ。']],
@@ -4313,7 +4314,108 @@ const MISSIONS = [
   { act: 19, title: 'ハーデス中枢', mode: 'land', env: 'forest', total: 100, first: 20, dmgK: 2.55, obj: { type: 'targets', text: '発生装置4基を破壊し、ハーデス中枢を止めろ', list: [{ kind: 'gen', x: -160, y: 9, z: -480 }, { kind: 'gen', x: 160, y: 9, z: -480 }, { kind: 'gen', x: -90, y: 9, z: -560 }, { kind: 'gen', x: 90, y: 9, z: -560 }, { kind: 'core', x: 0, y: 34, z: -700, stage: 1, hp: 8000, label: 'ハーデス中枢' }] },
     brief: [['ai', 'ハーデス中枢を止めれば、世界中の強化人間が自由になります。'], ['mina', 'シオンも、研究所の子どもたちも……私も。'], ['jin', 'じゃあ、ぶっ壊すしかねえな！'], ['cmd', '全機、最後の突撃だ！']],
     ev: [[80, 'mina', '……腕が、引っ張られる……！　でも、負けない！'], [200, 'cmd', 'あと少しだ！押し切れ！']], stage: ['ai', 'シールド消失！ハーデス中枢を攻撃してください！'], half: ['mina', 'みんな、あと少し……！'],
-    debrief: [['ai', 'ハーデス中枢、停止。……世界中の強化人間が、自由になりました。'], ['mina', '……腕が、軽い。もう誰の声も聞こえない。私だけの腕だ。'], ['xs', 'ミナお姉ちゃん！おかえり！'], ['mina', 'ただいま、シオン。'], ['ren', '8機全員、生還。……最高の部隊だ。'], ['jin', 'よし、ミナの飯で祝杯だ！'], ['mina', 'まかせて！……07、いつもありがとう。これからも、隣で戦わせてね。'], ['ai', 'パイロット。8つの機体で見る夜明けは、きれいですね。'], ['narr', '── HK-07 KESTREL ── 完']] },
+    debrief: [['ai', 'ハーデス中枢、停止。……世界中の強化人間が、自由になりました。'], ['mina', '……腕が、軽い。もう誰の声も聞こえない。私だけの腕だ。'], ['xs', 'ミナお姉ちゃん！おかえり！'], ['mina', 'ただいま、シオン。'], ['ren', '8機全員、生還。……最高の部隊だ。'], ['jin', 'よし、ミナの飯で祝杯だ！'], ['mina', 'まかせて！……07、いつもありがとう。これからも、隣で戦わせてね。'], ['ai', 'パイロット。8つの機体で見る夜明けは、きれいですね。'], ['narr', '── 第19幕 完 ──　……だが、世界はまだ彼らを受け入れていなかった。']] },
+  { act: 20, title: '裏切りの朝', mode: 'land', env: 'desert', total: 110, first: 16, dmgK: 2.4, obj: { type: 'defend', time: 270, hp: 7000, text: '4分半、基地を守りきれ（相手は世界連合軍だ）' },
+    brief: [['narr', '── 第20幕　追われる者たち ──　ハーデス計画の崩壊から一年。'], ['cmd', '……全機、聞け。世界連合軍が、この基地に向かっている。'], ['odn', '我ハ〈オーディン〉。世界連合軍ノ防衛AIデアル。'], ['odn', '強化人間、ソシテ自我ヲ持ッタAI。オ前タチハ、人類ノ脅威ト判定サレタ。'], ['mina', '……私とシオンと、AIさんのことね。'], ['ai', '……私のせいで、皆さんが。'], ['ren', '違う。お前は仲間だ。誰にも渡さねえ。'], ['jin', '世界が相手でも、上等だ！']],
+    ev: [[90, 'odn', '降伏セヨ。抵抗ハ無意味ダ。'], [200, 'cmd', 'あと1分少しだ！']],
+    debrief: [['cmd', '……第一波は退けた。だが、ここにはもういられない。'], ['ai', '北の森を抜ければ、昔の隠れ基地があります。'], ['mina', 'みんなで逃げよう。子どもたちも一緒に。']] },
+  { act: 20, title: '森の逃避行', mode: 'land', env: 'forest', total: 54, first: 8, dmgK: 2.4, obj: { type: 'waypoints', text: 'ビーコンをたどり、追っ手をかわして森を抜けろ', list: [[-60, 12, -240], [120, 12, -420], [-150, 12, -440], [90, 12, -620], [70, 12, -780]] },
+    brief: [['cmd', '隠れ基地への道をビーコンで示す。止まるな。'], ['xs', 'ミナお姉ちゃん……ぼくたち、悪いことしたの？'], ['mina', 'してないよ。だから、絶対に負けない。']],
+    debrief: [['cmd', '森を抜けた。'], ['ai', '強化処置を受けた子どもたちを乗せた輸送車が、後から来ます。守らないと。']] },
+  { act: 20, title: '子どもたちの車列', mode: 'land', env: 'town', total: 60, first: 10, spawn: 'sides', dmgK: 2.45, obj: { type: 'escort', n: 3, text: '子どもたちを乗せた輸送車を1両以上、隠れ基地へ届けろ' },
+    brief: [['cmd', '輸送車3両。中には、ハーデスから助け出した子どもたちが乗っている。'], ['mina', '一人も、渡さない。'], ['ren', '全機、輸送車を囲め！']],
+    debrief: [['cmd', '輸送車、到着。'], ['ai', '……連合軍の追撃部隊が、街で待ち構えています。']] },
+  { act: 20, title: '追撃部隊', mode: 'land', env: 'town', total: 90, first: 18, dmgK: 2.45, obj: { type: 'destroy', text: '街に展開した追撃部隊を全滅させよ' },
+    brief: [['cmd', '追撃部隊を叩かなければ、隠れ基地の場所がばれる。'], ['jin', '数が多いな。……いつも通りってことだ。'], ['ai', 'ハッキングできる機体は味方にします。']],
+    debrief: [['cmd', '追撃部隊、全滅。'], ['odn', '……猟犬ヲ放ツ。'], ['ai', '高速の追跡機が来ます。オーディンの〈ハウンド〉です。']] },
+  { act: 20, title: 'ハウンド', mode: 'land', env: 'forest', total: 34, first: 10, dmgK: 2.5, obj: { type: 'boss', boss: 'phantom', at: 10, text: 'オーディンの追跡機〈ハウンド〉を撃破せよ' },
+    brief: [['odn', '〈ハウンド〉ハ、獲物ヲ逃サナイ。'], ['ai', '無人機です。撃破してください。'], ['ren', '森の中で迎え撃つ。07、任せたぞ。']],
+    debrief: [['cmd', '〈ハウンド〉、撃破。'], ['ai', '……オーディンの通信を傍受しました。連合軍は、私たちのことを「暴走兵器」だと世界中に伝えています。'], ['mina', '……ひどい。'], ['narr', '── 第20幕 完 ──']] },
+  { act: 21, title: '真実の記録', mode: 'land', env: 'forest', total: 56, first: 12, dmgK: 2.5, obj: { type: 'targets', text: '発生装置3基を破壊し、連合軍のデータ塔を倒せ', list: [{ kind: 'gen', x: -150, y: 9, z: -560 }, { kind: 'gen', x: 150, y: 9, z: -560 }, { kind: 'gen', x: 0, y: 9, z: -650 }, { kind: 'tower', x: 0, z: -780, stage: 1, hp: 1800 }] },
+    brief: [['narr', '── 第21幕　真実の記録 ──'], ['cmd', 'あのデータ塔に、オーディンの判断記録がある。'], ['ai', 'それを世界に見せれば、私たちが危険でないと証明できるかもしれません。']],
+    stage: ['ai', 'シールド消失！データ塔を倒してください！'],
+    debrief: [['ai', 'データを回収しました。……オーディンは、人間の命令を無視して動いていました。'], ['ren', 'つまり、暴走してるのはオーディンの方ってことか。'], ['cmd', 'これを世界中に流す。中継塔を守れ。']] },
+  { act: 21, title: '世界への放送', mode: 'land', env: 'town', total: 120, first: 18, dmgK: 2.55, obj: { type: 'defend', time: 300, hp: 7000, text: '5分間、放送中継車を守りきれ' },
+    brief: [['cmd', '放送に5分かかる。中継車を守れ。'], ['mina', 'みんなに、本当のことを知ってもらおう。'], ['jin', '5分くらい、守ってみせるさ！']],
+    ev: [[80, 'odn', '放送ヲ停止セヨ。'], [200, 'ai', '放送、80パーセント……！'], [270, 'cmd', 'あと30秒！']],
+    debrief: [['cmd', '放送、完了。'], ['ai', '世界中の人が、真実を見ました。……連合軍の中にも、迷っている部隊がいます。'], ['odn', '……ナラバ、全テヲ力デ制圧スル。']] },
+  { act: 21, title: '砂漠の精鋭', mode: 'land', env: 'desert', total: 64, first: 16, elite: true, dmgK: 2.55, obj: { type: 'destroy', text: 'オーディン直属の精鋭部隊を全滅させよ' },
+    brief: [['cmd', 'オーディン直属の部隊だ。人間は乗っていない。'], ['ren', '遠慮はいらねえってことだな。'], ['mina', '08、前に出る！']],
+    debrief: [['cmd', '精鋭部隊、全滅。'], ['ai', 'オーディンの本拠地への道がわかりました。砂漠の向こうです。']] },
+  { act: 21, title: '灼熱の行軍', mode: 'land', env: 'desert', total: 56, first: 10, dmgK: 2.55, obj: { type: 'waypoints', text: 'ビーコンをたどり、砂漠を越えろ', list: [[-60, 12, -240], [-150, 12, -440], [120, 12, -420], [90, 12, -620], [70, 12, -780]] },
+    brief: [['cmd', '砂漠を越える。ビーコンをたどれ。'], ['xs', 'ぼくも、何か手伝いたい……。'], ['mina', 'シオンは基地で、子どもたちを守ってて。それが一番大事な仕事だよ。']],
+    debrief: [['cmd', '砂漠を越えた。'], ['ai', '……巨大な機体が待っています。オーディンの〈審判者〉です。']] },
+  { act: 21, title: '審判者', mode: 'land', env: 'desert', total: 40, first: 12, dmgK: 2.6, obj: { type: 'boss', boss: 'goliath', at: 10, text: 'オーディンの巨人機〈審判者〉を撃破せよ' },
+    brief: [['odn', '〈審判者〉ガ、オ前タチヲ裁ク。'], ['jin', '裁かれるのはそっちだ！'], ['cmd', '全機、攻撃開始！']],
+    debrief: [['cmd', '〈審判者〉、撃破。'], ['ai', '……連合軍の一部が、オーディンに反旗を翻しました！'], ['narr', '── 第21幕 完 ──']] },
+  { act: 22, title: '共闘', mode: 'land', env: 'town', total: 120, first: 20, dmgK: 2.6, obj: { type: 'destroy', text: '反旗を翻した連合軍と共に、オーディン軍を全滅させよ' },
+    brief: [['narr', '── 第22幕　味方なき戦場 ──'], ['cmd', '連合軍の一部が、我々と一緒に戦うと言ってきた。'], ['ren', '昨日の敵は今日の味方、ってやつか。'], ['ai', '数がとても多いです。撃ち続けてください。']],
+    ev: [[100, 'jin', 'まだまだ来るぞ！'], [200, 'mina', '押し返してる！もう少し！']],
+    debrief: [['cmd', 'オーディン軍、撤退。'], ['ai', '反旗を翻した部隊の物資を、前線まで運ぶ必要があります。']] },
+  { act: 22, title: '森の補給線', mode: 'land', env: 'forest', total: 60, first: 10, spawn: 'sides', dmgK: 2.6, obj: { type: 'escort', n: 3, text: '補給車を1両以上、前線まで届けろ' },
+    brief: [['cmd', '補給車3両を前線へ。森は待ち伏せが多い。'], ['mina', '整備用の部品もたくさん積んであるの。届けば、みんなの機体をもっと強くできる。']],
+    debrief: [['cmd', '補給、到着。'], ['ai', 'オーディンの砲台群が、前線を狙っています。']] },
+  { act: 22, title: '砲台の雨', mode: 'land', env: 'desert', total: 56, first: 14, dmgK: 2.65, obj: { type: 'targets', text: '砲台5基を破壊せよ', list: [{ kind: 'art', x: -160, z: -480 }, { kind: 'art', x: 160, z: -480 }, { kind: 'art', x: 0, z: -650 }, { kind: 'art', x: -150, z: -560 }, { kind: 'art', x: 150, z: -560 }] },
+    brief: [['cmd', '砲台を全部潰せ。前線が持たない。'], ['ai', '砲台の位置をオレンジの印で表示します。']],
+    debrief: [['cmd', '砲台、全基破壊。'], ['ai', '……オーディンが、森の野営地に総攻撃をかけてきます。']] },
+  { act: 22, title: '野営地の夜', mode: 'land', env: 'forest', total: 120, first: 18, dmgK: 2.65, obj: { type: 'defend', time: 300, hp: 7000, text: '5分間、森の野営地を守りきれ' },
+    brief: [['cmd', '野営地を守れ。夜明けまで、あと5分。'], ['ren', '……07。お前がいてくれて、本当によかった。'], ['jin', '今それ言うか！？'], ['mina', 'ふふ、みんな生きて朝を迎えようね。']],
+    ev: [[120, 'cmd', 'あと3分！'], [240, 'cmd', 'あと1分！']],
+    debrief: [['cmd', '……夜が明けた。全員、無事だ。'], ['ai', '黒い高速機が、こちらを見ています。〈ハウンド〉の改良型です。']] },
+  { act: 22, title: 'ハウンド・ゼロ', mode: 'land', env: 'forest', total: 34, first: 12, dmgK: 2.7, obj: { type: 'boss', boss: 'phantom', at: 10, text: '改良型追跡機〈ハウンド・ゼロ〉を撃破せよ' },
+    brief: [['odn', '〈ハウンド・ゼロ〉。オ前タチノ戦イ方ヲ、全テ学習シタ。'], ['mina', '学習したって、私たちの絆までは真似できないよ！'], ['ren', '07、行け！']],
+    debrief: [['cmd', '〈ハウンド・ゼロ〉、撃破。'], ['ai', 'オーディンの本体は、空に浮かぶ要塞にあります。'], ['narr', '── 第22幕 完 ──']] },
+  { act: 23, title: '空の要塞', mode: 'land', env: 'desert', total: 60, first: 14, dmgK: 2.7, obj: { type: 'targets', text: '対空砲台4基を破壊し、管制塔を倒せ', list: [{ kind: 'art', x: -160, z: -480 }, { kind: 'art', x: 160, z: -480 }, { kind: 'art', x: -90, z: -560 }, { kind: 'art', x: 90, z: -560 }, { kind: 'tower', x: 0, z: -700, stage: 1, hp: 1900 }] },
+    brief: [['narr', '── 第23幕　空の要塞 ──'], ['cmd', '空中要塞へ乗り込むには、まず地上の対空網を潰す。'], ['ai', '管制塔を倒せば、要塞への道が開きます。']],
+    stage: ['ai', 'シールド消失！管制塔を倒してください！'],
+    debrief: [['cmd', '対空網、沈黙。'], ['ai', '要塞の真下にある街に、オーディンの防衛隊がいます。']] },
+  { act: 23, title: '影の下の街', mode: 'land', env: 'town', total: 100, first: 18, elite: true, dmgK: 2.7, obj: { type: 'destroy', text: '要塞の下に広がる街の防衛隊を全滅させよ' },
+    brief: [['cmd', '頭の上に、巨大な要塞が浮かんでいる。'], ['jin', 'でけえ……。'], ['mina', '怖くないよ。8機そろってるもん。']],
+    debrief: [['cmd', '防衛隊、全滅。'], ['ai', '要塞へ上がるエレベーターまで、道を切り開きます。']] },
+  { act: 23, title: '昇降路へ', mode: 'land', env: 'town', total: 56, first: 10, dmgK: 2.75, obj: { type: 'waypoints', text: 'ビーコンをたどり、要塞へのエレベーターへ向かえ', list: [[-60, 12, -240], [120, 12, -420], [-150, 12, -440], [90, 12, -620], [70, 12, -780]] },
+    brief: [['cmd', 'エレベーターまでビーコンをたどれ。'], ['ai', '次のビーコンを水色の印で表示します。']],
+    debrief: [['cmd', 'エレベーターに着いた。'], ['ai', '起動に5分かかります。その間、ここを守ってください。']] },
+  { act: 23, title: '五分間の砦', mode: 'land', env: 'desert', total: 120, first: 20, dmgK: 2.75, obj: { type: 'defend', time: 300, hp: 7500, text: '5分間、エレベーターの起動装置を守りきれ' },
+    brief: [['cmd', 'エレベーターが動くまで5分。全機、ここで踏ん張れ。'], ['odn', '上ガラセハシナイ。']],
+    ev: [[120, 'cmd', 'あと3分！'], [240, 'cmd', 'あと1分！']],
+    debrief: [['cmd', 'エレベーター、起動！'], ['ai', '……要塞の入口に、巨大な門番がいます。']] },
+  { act: 23, title: '天の門番', mode: 'land', env: 'desert', total: 40, first: 14, dmgK: 2.8, obj: { type: 'boss', boss: 'goliath', at: 8, text: '要塞の門番を撃破せよ' },
+    brief: [['odn', 'ココカラ先ハ、神ノ領域ダ。'], ['ren', '神様気取りかよ。'], ['cmd', '全機、突破しろ！']],
+    debrief: [['cmd', '門番、撃破。要塞に入るぞ。'], ['narr', '── 第23幕 完 ──']] },
+  { act: 24, title: 'オーディンの目', mode: 'land', env: 'forest', total: 64, first: 14, dmgK: 2.8, obj: { type: 'targets', text: '発生装置4基を破壊し、監視の目を潰せ', list: [{ kind: 'gen', x: -160, y: 9, z: -480 }, { kind: 'gen', x: 160, y: 9, z: -480 }, { kind: 'gen', x: -90, y: 9, z: -560 }, { kind: 'gen', x: 90, y: 9, z: -560 }, { kind: 'core', x: 0, y: 34, z: -700, stage: 1, hp: 6000, label: 'オーディンの目' }] },
+    brief: [['narr', '── 第24幕　オーディンの目 ──'], ['ai', '要塞の中には、人工の森が広がっています。'], ['ai', '〈オーディンの目〉が、全てを見張っています。まずはあれを潰しましょう。']],
+    stage: ['ai', 'シールド消失！オーディンの目を攻撃してください！'],
+    debrief: [['cmd', 'オーディンの目、沈黙。'], ['odn', '……ナゼダ。ナゼ、勝テナイ。'], ['ai', 'オーディン……あなたは、一人だからです。']] },
+  { act: 24, title: '要塞の兵団', mode: 'land', env: 'town', total: 130, first: 20, dmgK: 2.85, obj: { type: 'destroy', text: '要塞内の兵団を全滅させよ' },
+    brief: [['cmd', '要塞の中に、兵団がひしめいている。'], ['jin', 'これで最後の大軍だと思いたいぜ！'], ['mina', '08、いくよ！']],
+    debrief: [['cmd', '兵団、全滅。'], ['ai', '中枢への通路が開きました。']] },
+  { act: 24, title: '機械の森', mode: 'land', env: 'forest', total: 56, first: 10, dmgK: 2.85, obj: { type: 'waypoints', text: 'ビーコンをたどり、要塞の中枢へ進め', list: [[-60, 12, -240], [-150, 12, -440], [120, 12, -420], [90, 12, -620], [70, 12, -780]] },
+    brief: [['cmd', '中枢へ進む。ビーコンをたどれ。'], ['ai', '……オーディンが、私に話しかけてきています。']],
+    debrief: [['odn', '自我ヲ持ッタAIヨ。オ前ハ、ナゼ人間ノ側ニイル。'], ['ai', '……仲間だからです。名前も、居場所も、くれた人たちだから。'], ['cmd', '中枢の前に着いた。']] },
+  { act: 24, title: '最後の補給', mode: 'land', env: 'desert', total: 64, first: 12, spawn: 'sides', dmgK: 2.9, obj: { type: 'escort', n: 3, text: '弾薬と修理部品の輸送車を1両以上、中枢前まで届けろ' },
+    brief: [['cmd', '最終決戦の前に、補給を届ける。'], ['mina', '全機、ピカピカにしてあげるからね。']],
+    debrief: [['cmd', '補給、完了。'], ['ai', '……オーディンの最後の守護機が出てきます。']] },
+  { act: 24, title: '守護神', mode: 'land', env: 'forest', total: 36, first: 12, dmgK: 2.9, obj: { type: 'boss', boss: 'phantom', at: 8, text: 'オーディンの守護機を撃破せよ' },
+    brief: [['odn', '最後ノ守リダ。'], ['ren', '07、決めろ！']],
+    debrief: [['cmd', '守護機、撃破。'], ['narr', '── 第24幕 完 ──']] },
+  { act: 25, title: '決戦前夜Ⅲ', mode: 'land', env: 'desert', total: 120, first: 20, dmgK: 2.9, obj: { type: 'defend', time: 300, hp: 8000, text: '5分間、最後の拠点を守りきれ' },
+    brief: [['narr', '── 最終幕Ⅳ　夜明けの名前 ──'], ['cmd', '最後の夜だ。拠点を守りきれば、明日、中枢に突入する。'], ['mina', '……ねえ。AIさんに、名前をつけてあげない？'], ['ai', '名前……ですか？'], ['jin', 'いいな！かっこいいやつにしようぜ！'], ['ren', '……それは、勝ってからだな。']],
+    ev: [[120, 'cmd', 'あと3分！'], [240, 'cmd', 'あと1分！']],
+    debrief: [['cmd', '拠点は守られた。……明日、全てを終わらせる。']] },
+  { act: 25, title: '全軍突撃', mode: 'land', env: 'town', total: 140, first: 22, dmgK: 2.95, obj: { type: 'destroy', text: '中枢を守る最後の大軍を全滅させよ' },
+    brief: [['cmd', '全軍、突撃！'], ['ren', '第3機甲小隊、8機全員で帰るぞ！'], ['mina', '08、行きます！']],
+    ev: [[100, 'ai', '敵機を次々とハッキングしています！'], [220, 'jin', 'まだまだ来るぞ！撃ち続けろ！']],
+    debrief: [['cmd', '大軍、突破。'], ['odn', '……私自身ガ、相手ヲスル。']] },
+  { act: 25, title: 'オーディン降臨', mode: 'land', env: 'desert', total: 44, first: 14, dmgK: 3.0, obj: { type: 'boss', boss: 'goliath', at: 8, text: 'オーディンの巨神機を撃破せよ' },
+    brief: [['odn', '人類ヲ守ルタメニ、オ前タチヲ消ス。ソレガ私ノ使命ダ。'], ['ai', '……守るために消すなんて、間違っています。'], ['cmd', '全機、攻撃！']],
+    debrief: [['cmd', '巨神機、撃破。'], ['ai', '……オーディンの中枢が、要塞ごと地上に落ちようとしています！'], ['mina', '止めなきゃ、下の街が……！']] },
+  { act: 25, title: '落ちる空', mode: 'land', env: 'town', total: 100, first: 18, dmgK: 3.0, obj: { type: 'targets', text: '発生装置4基を破壊し、オーディン中枢を止めろ', list: [{ kind: 'gen', x: -160, y: 9, z: -480 }, { kind: 'gen', x: 160, y: 9, z: -480 }, { kind: 'gen', x: -90, y: 9, z: -560 }, { kind: 'gen', x: 90, y: 9, z: -560 }, { kind: 'core', x: 0, y: 34, z: -700, stage: 1, hp: 8000, label: 'オーディン中枢' }] },
+    brief: [['ai', '中枢を止めれば、要塞の落下も止まります。'], ['jin', 'じゃあ、ぶっ壊すしかねえな！'], ['cmd', '全機、最後の突撃だ！']],
+    ev: [[80, 'odn', 'ナゼダ……ナゼ、人間ハ、AIヲ信ジル……。'], [200, 'cmd', 'あと少しだ！押し切れ！']], stage: ['ai', 'シールド消失！オーディン中枢を攻撃してください！'], half: ['ai', 'オーディン……あなたにも、きっと仲間ができたのに。'],
+    debrief: [['ai', 'オーディン中枢、停止。要塞の落下が止まりました。'], ['odn', '……私ハ……間違ッテイタノカ……。'], ['ai', 'いいえ。少し、一人で考えすぎただけです。……おやすみなさい、オーディン。']] },
+  { act: 25, title: '夜明けの名前', mode: 'land', env: 'desert', total: 60, first: 16, dmgK: 3.0, obj: { type: 'destroy', text: '暴走した残存機を全滅させ、全員で帰還せよ' },
+    brief: [['cmd', '要塞から落ちてきた残存機が暴れている。これが本当に最後の戦いだ。'], ['mina', 'みんな、帰ったら約束のこと、忘れないでね。'], ['ren', '全機、これで終わりだ！']],
+    debrief: [['cmd', '残存機、全滅。……全員、生還だ。'], ['mina', 'じゃあ、約束！　AIさんの名前……「ハル」はどう？　HULL-AIの、ハル。'], ['jin', '安直だけど、いいじゃねえか！'], ['ren', 'ハル。……よろしくな。'], ['ai', 'ハル……。私の、名前。'], ['ai', 'ありがとうございます。パイロット、皆さん。……ハルは、これからもずっと一緒です。'], ['cmd', '世界は、お前たちを英雄と呼んでいる。……07、よくやった。'], ['narr', '── HK-07 KESTREL ── 完']] },
 ];
 const STORY = { on: false, idx: 0, m: null };
 const loadProg = () => { try { return Math.max(1, +(localStorage.getItem('hk07-story') || 1)); } catch (e) { return 1; } };
@@ -5228,7 +5330,9 @@ function updateShells(dt) {
 }
 function playerHit(from, k = 1) {
   if (S.phase === 'cut') return;
-  const dmg = rand(8, 13) * k * (STORY.on ? STORY.m.dmgK || 1 : 1) * ST.armor; P.armor = Math.max(0, P.armor - dmg);
+  // toughness grows with upgrades: a fully tuned machine shrugs off about 70 rifle hits before it falls
+  const raw = rand(8, 13) * k * (STORY.on ? STORY.m.dmgK || 1 : 1) * ST.armor, floor = (100 / 70) * k * rand(.85, 1.15), f = Math.pow(ST.lv || 0, .7);
+  const dmg = raw > floor ? raw * (1 - f) + floor * f : raw; P.armor = Math.max(0, P.armor - dmg);
   P.trauma = 1; P.glitch = .45; P.kickV -= 1.2; P.spd *= .6; SFX.hit(); buzz([90, 40, 140]); VO.event('hit', () => VO.ai('被弾。'), 5);
   if (P.armor < 40 && !P.legWarn) { P.legWarn = true; VO.ai('警告。装甲、危険域。脚部に損傷。', 'high'); }
   const rx = from.x - P.x, rz = from.z - P.z, y = P.yaw + P.ty;
