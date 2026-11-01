@@ -1907,36 +1907,56 @@ function updateMech(dt) {
   P.brl = Math.max(0, P.brl - dt * 1.3); ME.barrel.position.z = -2.85 + P.brl;
   ME.mg.rotation.z += dt * 28 * P.mgSpin; P.mgSpin = Math.max(0, P.mgSpin - dt * 2);
   ME.ants.forEach((a, i) => a.rotation.x = .25 + clamp(-P.bobV * .09 + P.kickV * .05 + Math.sin(T * 7 + i) * .01, -.45, .45));
-  // ---- body language: limbs flail when thrown, sprawl when down, a multi-joint get-up, arm swing and sway on the move
+  // ---- body language with weight: joints are damped springs kicked by momentum, limbs stay on the ground, a slow hydraulic get-up
   {
-    const KP = ME.kp || (ME.kp = { w: 0, c: { th: [0, 0], kn: [0, 0], ft: [0, 0], tz: [0, 0], tor: 0, tw: 0, bx: 0, bz: 0, mx: 0, mz: 0 } });
-    const want = P.knock || P.tumble > 0 ? 1 : 0; KP.w += (want - KP.w) * Math.min(1, dt * (want ? 8 : 3));
+    const KP = ME.kp || (ME.kp = { w: 0, j: null, was: false, air: false, snd: 0 });
+    if (!KP.j) { KP.j = {}; ['th0', 'th1', 'kn0', 'kn1', 'ft0', 'ft1', 'tz0', 'tz1', 'tor', 'tw', 'bx', 'bz', 'mx', 'mz'].forEach(k => KP.j[k] = { a: 0, v: 0 }); }
+    const J = KP.j, want = P.knock || P.tumble > 0 ? 1 : 0; KP.w += (want - KP.w) * Math.min(1, dt * (want ? 10 : 2.5));
     const sp2 = Math.abs(P.spd), sw = Math.sin(T * (3.4 + sp2 * .32)) * Math.min(1, sp2 / 9);
-    if (KP.w < .02) {   // ordinary motion: guns swing against the stride, the torso rolls a little, arms dip on landings
-      ME.barrel.rotation.x = sw * .07 - P.bobV * .015 + P.kick * .25; ME.barrel.rotation.z = 0;
-      ME.mg.rotation.x += -sw * .07 - P.bobV * .015; ME.torso.rotation.z += sw * .025;
+    const air = P.y - (P.gy || 0) > .5;
+    const kick = (o) => Object.entries(o).forEach(([k, v]) => { J[k].v += v * rand(.75, 1.25); });
+    // momentum: the moment it is hit, the limbs keep going while the hull is shoved back
+    if (want && !KP.was) kick({ th0: 4.5, th1: 3.2, kn0: -5, kn1: -3.5, tor: 3.5, tw: rand(-2, 2), bx: -5, bz: 3, mx: -4.5, mz: -3 });
+    if (want && KP.air && !air) { kick({ th0: 3, th1: 4, kn0: -6, kn1: -5, tor: -4, bx: 4, mx: 4, bz: -2, mz: 2 }); }   // slam into the ground
+    KP.was = !!want; KP.air = air && !!want;
+    if (KP.w < .02 && Math.abs(J.tor.a) < .01) {
+      ME.barrel.rotation.x = sw * .06 - P.bobV * .015 + P.kick * .25; ME.barrel.rotation.z = 0;
+      ME.mg.rotation.x += -sw * .06 - P.bobV * .015; ME.torso.rotation.z += sw * .02;
+      Object.values(J).forEach(q => { q.a = 0; q.v = 0; });
     } else {
-      const tt = T, gu = P.getup, air = P.y - (P.gy || 0) > .5 || P.tumble > 0, mix = (a, b, k) => a + (b - a) * k;
-      let tg;
+      const gu = P.getup, mix = (a, b, k) => a + (b - a) * k, sm = k => k * k * (3 - 2 * k);
+      let tg, K = 26, Dm = 9;                      // heavy limbs: soft springs, strong damping
+      const SPRAWL = { th0: .85, th1: .12, kn0: -1.45, kn1: -.28, ft0: .35, ft1: .05, tz0: .3, tz1: -.22, tor: -.22, tw: .25, bx: -.35, bz: .55, mx: .25, mz: -.6 };
       if (gu != null) {
-        const a = clamp(gu / .3, 0, 1), b = clamp((gu - .3) / .35, 0, 1), c = clamp((gu - .65) / .35, 0, 1), e = c * c * (3 - 2 * c);
-        const A = { th: [1.3, 1.1], kn: [-1.9, -1.7], ft: [.5, .4], tz: [.22, -.22], tor: .55, tw: .1, bx: .95, bz: .25, mx: .95, mz: -.3 };    // curl up, both arms planted
-        const B = { th: [1.35, -.3], kn: [-1.6, -1.95], ft: [.3, .95], tz: [.1, -.05], tor: .35, tw: -.18, bx: .35, bz: .1, mx: 1.15, mz: -.15 }; // kneel, left arm pushing
-        const D = { th: [.9, .15], kn: [-1.5, -.3], ft: [.3, 0], tz: [.35, -.25], tor: -.25, tw: .3, bx: -.4, bz: .6, mx: .3, mz: -.7 };        // where it lay
-        const pick = (k, i) => i == null ? mix(mix(mix(D[k], A[k], a), B[k], b), 0, e) - (k === 'tor' ? Math.sin(e * Math.PI) * .12 : 0) : mix(mix(mix(D[k][i], A[k][i], a), B[k][i], b), 0, e);
-        tg = { th: [pick('th', 0), pick('th', 1)], kn: [pick('kn', 0), pick('kn', 1)], ft: [pick('ft', 0), pick('ft', 1)], tz: [pick('tz', 0), pick('tz', 1)], tor: pick('tor'), tw: pick('tw'), bx: pick('bx'), bz: pick('bz') + Math.sin(e * Math.PI) * .2, mx: pick('mx'), mz: pick('mz') };
-      } else if (air) {   // thrown through the air: every joint whips
-        tg = { th: [.3 + .9 * Math.sin(tt * 8), .3 + .9 * Math.sin(tt * 8 + 2.2)], kn: [-1.2 - .6 * Math.sin(tt * 9), -1.2 - .6 * Math.sin(tt * 9 + 1.7)], ft: [.4 * Math.sin(tt * 10), .4 * Math.sin(tt * 10 + 1)], tz: [.35 * Math.sin(tt * 6), -.35 * Math.sin(tt * 6 + 1)], tor: .35 * Math.sin(tt * 7), tw: .4 * Math.sin(tt * 5), bx: -.8 * Math.sin(tt * 7.5), bz: .5 * Math.sin(tt * 6), mx: .8 * Math.sin(tt * 7 + 1.5), mz: -.5 * Math.sin(tt * 6.5) };
-      } else {            // down: sprawled, servos twitching
-        const tw2 = Math.sin(tt * 1.3) > .65 ? Math.sin(tt * 23) * .06 : 0;
-        tg = { th: [.9, .15 + tw2], kn: [-1.5, -.3 - tw2], ft: [.3, 0], tz: [.35, -.25], tor: -.25 + tw2, tw: .3, bx: -.4 + tw2, bz: .6, mx: .3, mz: -.7 - tw2 };
+        // staged, with holds: brace (0-.18) / curl + plant arms (.18-.38) / hold / push to a kneel (.45-.68) / hold / rise (.74-1)
+        const CURL = { th0: 1.25, th1: 1.05, kn0: -1.95, kn1: -1.8, ft0: .5, ft1: .45, tz0: .18, tz1: -.18, tor: .5, tw: .08, bx: .9, bz: .2, mx: .95, mz: -.25 };
+        const KNEEL = { th0: 1.3, th1: -.32, kn0: -1.55, kn1: -1.95, ft0: .3, ft1: 1.0, tz0: .08, tz1: -.04, tor: .32, tw: -.15, bx: .3, bz: .08, mx: 1.15, mz: -.12 };
+        const a = sm(clamp((gu - .18) / .2, 0, 1)), b = sm(clamp((gu - .45) / .23, 0, 1)), c = sm(clamp((gu - .74) / .26, 0, 1));
+        tg = {}; for (const k in SPRAWL) tg[k] = mix(mix(mix(SPRAWL[k], CURL[k], a), KNEEL[k], b), 0, c);
+        K = 34; Dm = 10;
+        // hydraulics: hiss, servo whine and steam at each stage
+        const stage = gu < .18 ? 0 : gu < .45 ? 1 : gu < .74 ? 2 : 3;
+        if (stage > KP.snd) {
+          KP.snd = stage; SFX.hiss(.9); sTone({ f: 140 + stage * 40, f2: 320 + stage * 60, dur: .7, type: 'sawtooth', gain: .05 }); sTone({ f: 70, f2: 45, dur: .25, gain: .35, at: .5 });
+          ME.legs.forEach(l => { l.knee.getWorldPosition(JV); for (let i = 0; i < 5; i++) addPart({ pos: JV.clone(), color: 0xe8e4dc, op: .5, s0: .5, s1: 2.6, life: 1.4, vel: new THREE.Vector3(rand(-2, 2), rand(2, 4), rand(-2, 2)) }); });
+          if (stage === 2) { P.trauma = Math.max(P.trauma, .35); for (let i = 0; i < 10; i++) addPart({ pos: new THREE.Vector3(P.x + rand(-3, 3), .4, P.z + rand(-3, 3)), color: 0x9a8a6c, op: .5, s0: 1, s1: 4, life: 1.3, vel: new THREE.Vector3(rand(-3, 3), 1, rand(-3, 3)) }); }
+        }
+      } else if (air || P.tumble > 0) {
+        // airborne: legs trail, arms ride up, everything loose
+        tg = { th0: .55, th1: .25, kn0: -.9, kn1: -.6, ft0: .3, ft1: .2, tz0: .15, tz1: -.15, tor: .15, tw: 0, bx: -.45, bz: .35, mx: -.4, mz: -.35 }; K = 14; Dm = 4.5; KP.snd = 0;
+      } else { tg = SPRAWL; K = 20; Dm = 8; KP.snd = 0; if (Math.sin(T * 1.4) > .8 && Math.random() < dt * 8) kick({ th1: rand(-.6, .6), kn1: rand(-.6, .6), mx: rand(-.5, .5) }); }  // servos twitch
+      const st = Math.min(dt, 1 / 30);
+      for (const k in J) { const q = J[k]; q.v += ((tg[k] - q.a) * K - q.v * Dm) * st; q.a += q.v * st; }
+      const w = KP.w;
+      ME.legs.forEach((l, i) => { l.thigh.rotation.x = mix(l.thigh.rotation.x, J['th' + i].a, w); l.knee.rotation.x = mix(l.knee.rotation.x, J['kn' + i].a, w); l.foot.rotation.x = mix(l.foot.rotation.x, J['ft' + i].a, w); l.thigh.rotation.z = mix(l.thigh.rotation.z, J['tz' + i].a, w); });
+      ME.pitch.rotation.x += J.tor.a * w; ME.torso.rotation.y += J.tw.a * w;
+      ME.barrel.rotation.x = J.bx.a * w; ME.barrel.rotation.z = J.bz.a * w; ME.mg.rotation.x += J.mx.a * w; ME.mg.rotation.y = J.mz.a * w;
+      // ground contact: knees and feet rest on the ground instead of sinking in or hovering
+      if (!air && w > .2) {
+        r.updateMatrixWorld(true); let lo = 1e9;
+        ME.legs.forEach(l => { l.foot.getWorldPosition(JV); lo = Math.min(lo, JV.y - .45); l.knee.getWorldPosition(JV); lo = Math.min(lo, JV.y - .7); });
+        const fix = clamp(-lo, -2.5, 4) * w; r.position.y += fix; r.updateMatrixWorld(true);
       }
-      const C = KP.c, r = Math.min(1, dt * (gu != null ? 10 : air ? 12 : 5)), w = KP.w;
-      ['tor', 'tw', 'bx', 'bz', 'mx', 'mz'].forEach(k => C[k] += (tg[k] - C[k]) * r);
-      ['th', 'kn', 'ft', 'tz'].forEach(k => [0, 1].forEach(i => C[k][i] += (tg[k][i] - C[k][i]) * r));
-      ME.legs.forEach((l, i) => { l.thigh.rotation.x = mix(l.thigh.rotation.x, C.th[i], w); l.knee.rotation.x = mix(l.knee.rotation.x, C.kn[i], w); l.foot.rotation.x = mix(l.foot.rotation.x, C.ft[i], w); l.thigh.rotation.z = mix(l.thigh.rotation.z, C.tz[i], w); });
-      ME.pitch.rotation.x += C.tor * w; ME.torso.rotation.y += C.tw * w;
-      ME.barrel.rotation.x = C.bx * w; ME.barrel.rotation.z = C.bz * w; ME.mg.rotation.x += C.mx * w; ME.mg.rotation.y = C.mz * w;
     }
   }
   P.dmgT = (P.dmgT || 0) - dt;
@@ -2911,7 +2931,7 @@ buildGantry();
 const TERRAIN = (() => {
   const CLEAR = [[0, -480, 46], [-160, -480, 46], [160, -480, 46], [-150, -560, 46], [150, -560, 46], [0, -650, 50], [0, -700, 60], [-180, -430, 40], [180, -430, 40], [-90, -560, 40], [90, -560, 40], [-60, -240, 30], [120, -420, 30], [-150, -440, 30], [90, -620, 30], [70, -780, 30], [-80, -260, 30]];
   const clearAt = (x, z, pad = 0) => (Math.abs(x) < 24 + pad && z < 60 && z > -900) || (Math.hypot(x, z + 20) < 75 + pad) || CLEAR.some(([cx, cz, r]) => Math.hypot(x - cx, z - cz) < r + pad);
-  const G = {}, OB = {}, SKYC = { desert: 0xa79c80, town: 0x8e8b84, forest: 0x7f8a72 }, FOGD = { desert: .0024, town: .0028, forest: .0046 };
+  const G = {}, OB = {}, SKYC = { desert: 0xa79c80, town: 0x8e8b84, forest: 0x7f8a72, sea: 0x0e4152, sky: 0x9cc6ea }, FOGD = { desert: .0024, town: .0028, forest: .0046, sea: .0078, sky: .0012 };
   let cur = 'desert';
   function winTex() {
     const c = document.createElement('canvas'); c.width = 128; c.height = 256; const x = c.getContext('2d');
@@ -2963,17 +2983,74 @@ const TERRAIN = (() => {
     for (let i = 0; i < 60; i++) { const x = rand(-500, 500), z = rand(-900, 100); if (clearAt(x, z, 4)) continue; const l = cylX(.8, rand(6, 12), trunkM, x, .8, z, g, 7); l.rotation.y = rand(0, 3); l.castShadow = true; }
     G.forest = g; OB.forest = ob; g.visible = false;
   }
-  const baseOb = () => obstacles.filter(o => !o.env);
+  // ---- underwater trench: seabed, kelp, rocks, a rippling ceiling of light, drifting bubbles
+  function buildSea() {
+    const g = new THREE.Group(); scene.add(g); const ob = [];
+    const bed = new THREE.Mesh(new THREE.PlaneGeometry(1700, 1700, 60, 60), new THREE.MeshStandardMaterial({ color: 0x3e4d48, roughness: 1 }));
+    const pa = bed.geometry.attributes.position; for (let i = 0; i < pa.count; i++) { const x = pa.getX(i), y = pa.getY(i); pa.setZ(i, clearAt(x, -y - 380, 10) ? 0 : Math.sin(x * .02) * Math.cos(y * .017) * 2.2); } bed.geometry.computeVertexNormals();
+    bed.rotation.x = -Math.PI / 2; bed.position.set(0, .05, -380); bed.receiveShadow = true; g.add(bed);
+    const kelpG = new THREE.ConeGeometry(.6, 16, 5); kelpG.translate(0, 8, 0);
+    const kelp = new THREE.InstancedMesh(kelpG, new THREE.MeshStandardMaterial({ color: 0x2f6a46, roughness: .9, flatShading: true }), 700);
+    const M4 = new THREE.Matrix4(), Q = new THREE.Quaternion(), E = new THREE.Euler(), SV = new THREE.Vector3(), PV2 = new THREE.Vector3(); let n = 0;
+    for (let i = 0; i < 3000 && n < 700; i++) { const x = rand(-620, 620), z = rand(-950, 160); if (clearAt(x, z, 4)) continue; const s = rand(.6, 1.6); Q.setFromEuler(E.set(rand(-.2, .2), rand(0, 6), rand(-.2, .2))); M4.compose(PV2.set(x, 0, z), Q, SV.set(s, s * rand(.8, 1.6), s)); kelp.setMatrixAt(n++, M4); }
+    kelp.count = n; g.add(kelp);
+    const rockM = new THREE.MeshStandardMaterial({ color: 0x4f5a58, roughness: .95, flatShading: true }), coral = new THREE.MeshStandardMaterial({ color: 0xc0705a, roughness: .8, flatShading: true });
+    for (let i = 0; i < 140; i++) { const x = rand(-560, 560), z = rand(-920, 120); if (clearAt(x, z, 8)) continue; const r = rand(2, 9); const m = new THREE.Mesh(new THREE.DodecahedronGeometry(r, 0), Math.random() < .2 ? coral : rockM); m.position.set(x, r * .4, z); m.rotation.set(rand(0, 3), rand(0, 3), rand(0, 3)); m.castShadow = m.receiveShadow = true; g.add(m); ob.push({ x, z, r: r * .9 }); }
+    const surf = new THREE.Mesh(new THREE.PlaneGeometry(1800, 1800), new THREE.MeshBasicMaterial({ color: 0x7fd0e0, transparent: true, opacity: .28, side: THREE.DoubleSide, depthWrite: false }));
+    surf.rotation.x = Math.PI / 2; surf.position.set(0, 72, -380); g.add(surf);
+    const rayM = new THREE.MeshBasicMaterial({ color: 0xa8f0ff, transparent: true, opacity: .06, blending: THREE.AdditiveBlending, depthWrite: false });
+    for (let i = 0; i < 26; i++) { const r = new THREE.Mesh(new THREE.CylinderGeometry(3, 14, 80, 8, 1, true), rayM); r.position.set(rand(-300, 300), 36, rand(-700, 60)); r.rotation.z = rand(-.25, .25); g.add(r); }
+    G.sea = g; OB.sea = ob; g.visible = false;
+  }
+  // ---- sky battleship: an armoured flying deck above a sea of cloud
+  let cloudTex = null;
+  function buildSky() {
+    const g = new THREE.Group(); scene.add(g); const ob = [];
+    const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d'); x.fillStyle = 'rgba(255,255,255,0)'; x.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 90; i++) { const px = rand(0, 256), py = rand(0, 256), r = rand(10, 46), gr = x.createRadialGradient(px, py, 0, px, py, r); gr.addColorStop(0, 'rgba(255,255,255,.85)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = gr; x.fillRect(px - r, py - r, r * 2, r * 2); }
+    cloudTex = new THREE.CanvasTexture(c); cloudTex.wrapS = cloudTex.wrapT = THREE.RepeatWrapping; cloudTex.repeat.set(6, 6);
+    const cl = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), new THREE.MeshBasicMaterial({ map: cloudTex, transparent: true, opacity: .95, depthWrite: false, fog: false })); cl.rotation.x = -Math.PI / 2; cl.position.y = -140; g.add(cl);
+    const sea = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), new THREE.MeshBasicMaterial({ color: 0x3f6f9a, fog: false })); sea.rotation.x = -Math.PI / 2; sea.position.y = -420; g.add(sea);
+    const steel = new THREE.MeshStandardMaterial({ color: 0x626a72, roughness: .55, metalness: .55 }), dark = new THREE.MeshStandardMaterial({ color: 0x2b3036, roughness: .6, metalness: .5 }), trim = new THREE.MeshStandardMaterial({ color: 0xd8b04a, roughness: .5, metalness: .3 }), glow = new THREE.MeshBasicMaterial({ color: 0x8ff0ff });
+    const deck = new THREE.Mesh(new THREE.BoxGeometry(86, 1, 420), steel); deck.position.set(0, -.5, -130); deck.receiveShadow = true; g.add(deck);
+    for (let z = -330; z < 70; z += 24) part(new THREE.BoxGeometry(86.2, .05, .6), trim, 0, .02, z, g);
+    part(new THREE.BoxGeometry(.8, .06, 400), trim, 0, .03, -130, g);
+    part(cb(94, 34, 440, 3), dark, 0, -19, -130, g);                                                   // hull
+    part(cb(60, 24, 80, 6), dark, 0, -34, -300, g, .25);                                              // prow keel
+    [-1, 1].forEach(s => { part(new THREE.BoxGeometry(.6, 1.6, 420), steel, s * 43, .8, -130, g); for (let z = -330; z < 80; z += 12) part(new THREE.BoxGeometry(.4, 1.6, .4), steel, s * 43, .8, z, g); });
+    // bridge tower on the starboard side
+    part(cb(16, 26, 34, 1), steel, 34, 13, -40, g); part(cb(12, 8, 22, 1), dark, 34, 30, -42, g); part(new THREE.BoxGeometry(12.2, 1.4, 1), glow, 34, 30, -53.2, g); cylY(.4, .5, 14, dark, 34, 40, -40, g, 6);
+    ob.push({ x: 34, z: -30, r: 11 }, { x: 34, z: -50, r: 11 });
+    // twin-gun turrets along the deck
+    [[-28, -200], [28, -200], [-28, -280], [28, 10]].forEach(([tx, tz]) => { const tu = new THREE.Group(); tu.position.set(tx, 0, tz); g.add(tu); cylY(6, 7, 3, dark, 0, 1.5, 0, tu, 16); part(cb(8, 4, 10, .8), steel, 0, 4.5, 0, tu); [-1.6, 1.6].forEach(dx2 => cyl(.6, .7, 12, dark, dx2, 4.8, -10, tu, 10)); ob.push({ x: tx, z: tz, r: 7.5 }); });
+    // stern engines
+    [-30, -10, 10, 30].forEach(ex => { cyl(5, 6, 14, dark, ex, -16, 92, g, 16); const f = new THREE.Mesh(new THREE.CircleGeometry(4.6, 18), glow); f.position.set(ex, -16, 99.2); g.add(f); });
+    g.traverse(o => { if (o.isMesh && o.material.type !== 'MeshBasicMaterial') { o.castShadow = true; o.receiveShadow = true; } });
+    G.sky = g; OB.sky = ob; g.visible = false;
+  }
+  function tick(dt) {
+    if (cur === 'sea') {
+      if (Math.random() < dt * 12) addPart({ pos: new THREE.Vector3(camera.position.x + rand(-40, 40), rand(0, 8), camera.position.z + rand(-60, 10)), color: 0xcff6ff, op: .5, s0: rand(.15, .4), s1: rand(.2, .5), life: rand(3, 6), vel: new THREE.Vector3(rand(-.3, .3), rand(2.5, 5), rand(-.3, .3)) });
+      if (S.phase === 'op' && Math.abs(P.spd) > 1 && Math.random() < dt * 8) addPart({ pos: new THREE.Vector3(P.x + rand(-2, 2), P.y + rand(3, 9), P.z + rand(-2, 2)), color: 0xe8fbff, op: .6, s0: .3, s1: .5, life: 2.5, vel: new THREE.Vector3(0, 4, 0) });
+    } else if (cur === 'sky') {
+      if (cloudTex) cloudTex.offset.y -= dt * .02;
+      if (Math.random() < dt * 10) addPart({ pos: new THREE.Vector3(camera.position.x + rand(-50, 50), rand(1, 30), camera.position.z - 80), color: 0xffffff, op: .25, s0: .15, s1: .1, life: .8, vel: new THREE.Vector3(0, 0, 160) });
+    }
+  }
+  const baseOb = () => obstacles.filter(o => !o.env && !o.sky);
+  let SAVED_BASE = null;
   function set(name) {
     if (!SKYC[name]) name = 'desert';
-    if (name !== 'desert' && !G[name]) (name === 'town' ? buildTown : buildForest)();
+    if (name !== 'desert' && !G[name]) ({ town: buildTown, forest: buildForest, sea: buildSea, sky: buildSky })[name]();
     Object.entries(G).forEach(([k, g]) => g.visible = k === name);
-    const keep = baseOb(); obstacles.length = 0; keep.forEach(o => obstacles.push(o));
+    LAND.visible = name !== 'sky';
+    if (!SAVED_BASE) SAVED_BASE = baseOb();
+    const keep = name === 'sky' ? [] : SAVED_BASE; obstacles.length = 0; keep.forEach(o => obstacles.push(o));
     if (OB[name]) OB[name].forEach(o => { o.env = name; obstacles.push(o); });
     if (S.mode === 'land') { scene.background.setHex(SKYC[name]); scene.fog.color.setHex(SKYC[name]); scene.fog.density = FOGD[name]; }
     cur = name;
   }
-  return { set, get cur() { return cur; }, clearAt };
+  return { set, tick, get cur() { return cur; }, clearAt, spd: () => cur === 'sea' ? .5 : 1 };
 })();
 // where enemies come from on each battlefield
 function envSpawnPoint(near) {
@@ -3296,7 +3373,8 @@ function updateAllies(dt) {
     if (n && hurt) { want = Math.atan2(a.x, a.z + 20); spd = Math.hypot(a.x, a.z + 20) > 30 ? 6 : 0; }
     else if (n) { want = Math.atan2(-(n.e.x - a.x), -(n.e.z - a.z)); spd = n.d > 210 ? 6 : n.d < 120 ? -2.5 : 0; a.strafeT -= dt; if (a.strafeT <= 0) { a.strafeT = rand(2.5, 5); a.strafe = -a.strafe; } if (n.d < 300) { a.x += Math.cos(a.yaw) * a.strafe * 3.2 * dt; a.z -= Math.sin(a.yaw) * a.strafe * 3.2 * dt; } allyMG(a, n.e, n.d, dt); }
     const dY = wrapA(want - a.yaw); a.yaw += clamp(dY, -.45 * dt, .45 * dt);
-    a.spd += clamp(spd * (Math.abs(dY) > 1 ? .3 : 1) - a.spd, -2.2 * dt, 2.2 * dt);
+    a.spd += clamp(spd * TERRAIN.spd() * (Math.abs(dY) > 1 ? .3 : 1) - a.spd, -2.2 * dt, 2.2 * dt);
+    if (TERRAIN.cur === 'sky') { a.x = clamp(a.x, -38, 38); a.z = clamp(a.z, -320, 60); }
     a.x += -Math.sin(a.yaw) * a.spd * dt; a.z += -Math.cos(a.yaw) * a.spd * dt;
     for (const o of obstacles) { const ox = a.x - o.x, oz = a.z - o.z, d = Math.hypot(ox, oz), m = o.r + 4; if (d < m && d > .01) { a.x = o.x + ox / d * m; a.z = o.z + oz / d * m; } }
     for (const b of allies) if (b !== a && b.alive) { const ox = a.x - b.x, oz = a.z - b.z, d = Math.hypot(ox, oz); if (d < 14 && d > .01) { a.x += ox / d * (14 - d) * .5; a.z += oz / d * (14 - d) * .5; } }
@@ -3360,6 +3438,7 @@ function spawnWave(n) {
   const sides = STORY.on && STORY.m.spawn === 'sides';
   for (let i = 0; i < n; i++) {
     let x, z, tries = 0;
+    if (TERRAIN.cur === 'sky') { const a = rand(0, TAU), R = rand(140, 260); spawnEnemy(P.x + Math.cos(a) * R, P.z - 80 + Math.sin(a) * R, Math.PI, 0, 0, rand(16, 40)); continue; }
     const ep = TERRAIN.cur === 'town' ? envSpawnPoint(false) : null;
     if (ep) { x = ep[0]; z = ep[1]; } else do { if (sides) { x = (Math.random() < .5 ? -1 : 1) * rand(150, 260); z = rand(-520, -160); } else { x = rand(-240, 240); z = rand(-470, -340); } tries++; } while (tries < 30 && obstacles.some(o => Math.hypot(o.x - x, o.z - z) < o.r + 8));
     spawnEnemy(x, z, Math.PI, x + rand(-60, 60), rand(-120, 20));
@@ -3409,6 +3488,17 @@ function enemyTargets() {
   for (const a of allies) if (a.alive) list.push({ x: a.x, z: a.z, y: 6 + a.y, vx: S.mode === 'space' ? a.v.x : -Math.sin(a.yaw) * a.spd, vz: S.mode === 'space' ? a.v.z : -Math.cos(a.yaw) * a.spd, a });
   return list;
 }
+function skyFly(e, dt) {   // hover-jet raiders circle the battleship and dive in
+  if (e.orb == null) { e.orb = Math.atan2(e.z - (P.z - 80), e.x - P.x); e.orR = rand(70, 160); e.alt = rand(14, 40) * (e.boss ? 1.25 : 1); e.odir = Math.random() < .5 ? -1 : 1; if (!e.y) e.y = e.alt; }
+  e.orb += dt * .1 * e.odir * (e.boss ? .6 : 1);
+  const tx = P.x + Math.cos(e.orb) * e.orR, tz = P.z - 80 + Math.sin(e.orb) * e.orR, dx = tx - e.x, dz = tz - e.z, d = Math.hypot(dx, dz) || 1, sp = Math.min(22, d * .8) * (e.spdK || 1);
+  if (!e.dash) { e.x += dx / d * sp * dt; e.z += dz / d * sp * dt; }
+  e.y += ((e.alt + Math.sin(T * .9 + e.seed) * 3) - e.y) * Math.min(1, dt * .8);
+  const face = Math.atan2(-(P.x - e.x), -(P.z - e.z)); e.yaw += clamp(wrapA(face - e.yaw), -1.2 * dt, 1.2 * dt); e.spd = 0;
+  e.g.position.set(e.x, e.y - .18, e.z); e.g.rotation.set(.12, e.yaw, Math.sin(T * 1.3 + e.seed) * .08); e.g.updateMatrixWorld(true);
+  e.legs.forEach((l, i) => { l.thigh.rotation.x = i ? .55 : .3; l.thigh.rotation.z = 0; l.knee.rotation.x = i ? -1.1 : -.7; l.foot.rotation.x = .4; }); e.gait.init = false;
+  if (Math.random() < dt * 12) addPart({ pos: new THREE.Vector3(e.x + rand(-.6, .6), e.y + 3.4, e.z + rand(-.6, .6)), color: 0xffb070, add: true, s0: 1, s1: .3, life: .25, vel: new THREE.Vector3(0, -16, 0) });
+}
 function updateEnemies(dt) {
   if (S.mode === 'space') return updateEnemiesSpace(dt, T);
   const battle = BATTLE(), tg = battle ? enemyTargets() : [];
@@ -3435,9 +3525,12 @@ function updateEnemies(dt) {
     }
     if (e.saved) { spd = 0; want = e.yaw; }
     if (e.cutHold) { spd = e.cutSpd || 0; want = e.cutYaw ?? e.yaw; }
+    const flying = TERRAIN.cur === 'sky' && !e.saved && !e.dummy;
+    if (flying) skyFly(e, dt);
+    else {
     const dYaw = wrapA(want - e.yaw);
     e.yaw += clamp(dYaw, -.5 * dt, .5 * dt);
-    e.spd += clamp(spd * (Math.abs(dYaw) > 1 ? .3 : 1) - e.spd, -2 * dt, 2 * dt);
+    e.spd += clamp(spd * TERRAIN.spd() * (Math.abs(dYaw) > 1 ? .3 : 1) - e.spd, -2 * dt, 2 * dt);
     e.x += -Math.sin(e.yaw) * e.spd * dt; e.z += -Math.cos(e.yaw) * e.spd * dt;
     if (e.boss && e.kind && !e.cutHold) bossMoves(e, dt);
     for (const o of obstacles) { const ox = e.x - o.x, oz = e.z - o.z, d = Math.hypot(ox, oz), m = o.r + 4.5; if (d < m && d > .01) { e.x = o.x + ox / d * m; e.z = o.z + oz / d * m; e.wx = rand(-200, 200); e.wz = rand(-300, 0); } }
@@ -3448,6 +3541,7 @@ function updateEnemies(dt) {
       e.g.updateMatrixWorld(true);
       gaitStep(G, dt, e.x, e.z, e.yaw, evx, evz, () => { if (hd < 160) { const k = clamp(1 - hd / 160, 0, 1); SFX.step(.12 + k * .35); if (S.phase === 'op' && hd < 45) P.trauma = Math.min(1, P.trauma + .1 * k); } });
       solveLegs(G); e.tur.rotation.z = G.twist * -.5;
+    }
     }
     const tWant = e.alert && t ? Math.atan2(-dx, -dz) - e.yaw : 0;
     const dT = wrapA(tWant - e.tur.rotation.y);
@@ -4449,6 +4543,16 @@ const MISSIONS = [
     brief: [['cmd', '要塞から落ちてきた残存機が暴れている。これが本当に最後の戦いだ。'], ['mina', 'みんな、帰ったら約束のこと、忘れないでね。'], ['ren', '全機、これで終わりだ！']],
     debrief: [['cmd', '残存機、全滅。……全員、生還だ。'], ['mina', 'じゃあ、約束！　AIさんの名前……「ハル」はどう？　HULL-AIの、ハル。'], ['jin', '安直だけど、いいじゃねえか！'], ['ren', 'ハル。……よろしくな。'], ['ai', 'ハル……。私の、名前。'], ['ai', 'ありがとうございます。パイロット、皆さん。……ハルは、これからもずっと一緒です。'], ['cmd', '世界は、お前たちを英雄と呼んでいる。……07、よくやった。'], ['narr', '── HK-07 KESTREL ── 完']] },
 ];
+// new battlefields woven through the whole campaign: underwater trenches and the deck of a flying battleship
+MISSIONS.forEach((m, i) => {
+  if (m.kidnap) return;
+  const ty = m.obj.type;
+  if (i % 6 === 2 && ty !== 'escort') m.env = 'sea';
+  else if (i % 6 === 4 && ['destroy', 'defend', 'boss'].includes(ty)) m.env = 'sky';
+  const at = Math.max(0, m.brief.findIndex(l => l[0] !== 'narr'));
+  if (m.env === 'sea') m.brief.splice(at, 0, ['ai', '水中での戦闘です。水の抵抗で、こちらも敵も動きが半分の速さになります。ジャンプはふわりと浮きます。']);
+  if (m.env === 'sky') m.brief.splice(at, 0, ['ai', '空中戦艦〈アルバトロス〉の甲板が戦場です。敵は空を飛んで襲ってきます。甲板から落ちないように。']);
+});
 const STORY = { on: false, idx: 0, m: null };
 const loadProg = () => { try { return Math.max(1, +(localStorage.getItem('hk07-story') || 1)); } catch (e) { return 1; } };
 const saveProg = n => { try { if (n > loadProg()) localStorage.setItem('hk07-story', String(n)); } catch (e) {} };
@@ -5089,7 +5193,7 @@ function bossMoves(e, dt) {
     }
   } else if (e.kind === 'phantom') {
     if (e.dash > 0) {
-      e.dash -= dt; e.x += e.dashDir.x * 52 * dt; e.z += e.dashDir.z * 52 * dt; e.yaw = Math.atan2(-e.dashDir.x, -e.dashDir.z);
+      e.dash -= dt; e.x += e.dashDir.x * 52 * TERRAIN.spd() * dt; e.z += e.dashDir.z * 52 * TERRAIN.spd() * dt; e.yaw = Math.atan2(-e.dashDir.x, -e.dashDir.z);
       addPart({ pos: new THREE.Vector3(e.x, 5, e.z), color: 0x9fd8ff, add: true, s0: 1.3, s1: .2, life: .3 });
       if (!e.hitP && Math.hypot(P.x - e.x, P.z - e.z) < 8.5) { e.hitP = true; playerHit(new THREE.Vector3(e.x, 5, e.z), 2.2); knockPlayer(e.dashDir.x, e.dashDir.z, 24, .7); explosion(new THREE.Vector3(P.x, 6, P.z), 2); say('体当たりを受けた！', 'r', 1.6); }
       return;
@@ -5225,6 +5329,7 @@ function killEnemy(e, byPlayer = true) {
   e.tur.rotation.x = rand(-.3, .3);
   explosion(new THREE.Vector3(e.x, (e.cy || E_CY) + (e.y || 0), e.z), e.boss ? 4 : 1.6);
   const big = !!e.boss, sz = e.boss ? 11 : 5;
+  if (TERRAIN.cur === 'sky' && (e.y || 0) > 2) { const c = new THREE.Vector3(e.x, e.y + (e.cy || E_CY), e.z); explosion(c, sz * 1.1); setTimeout(() => explosion(c.clone().add(new THREE.Vector3(rand(-2, 2), -3, rand(-2, 2))), sz * .7), 160); e.g.visible = false; e.deadT = 13; } else
   WRECK.start(e.g, { legs: e.legs, h: (e.cy || E_CY) * 1.1, size: sz, big, drop: big ? 2.6 : 1.2, onBoom: () => { if (big) for (let i = 1; i < 5; i++) setTimeout(() => explosion(new THREE.Vector3(e.x + rand(-6, 6), (e.cy || E_CY) * rand(.2, .8), e.z + rand(-6, 6)), 6), i * 260); } });
   if (wasA) { if (S.phase === 'op') { say('味方化した機体が撃破された', 'r', 1.6); VO.event('hackdie', () => VO.ai('こちらに付いた機体が、落とされました。'), 20); } } else {
   if (S.phase === 'op') say(byPlayer ? 'TARGET DESTROYED' : '友軍が敵機を撃破', byPlayer ? 'a' : 'g', 1.6);
@@ -5239,14 +5344,15 @@ function updatePlayer(dt) {
   // throttle by keys (pushing the lever)
   if (ctl) { if (keys.w) setThr(P.thr + 0.7 * dt, false); if (keys.s) setThr(P.thr - 0.7 * dt, false); } else if (S.phase === 'launch') P.thr = 0;
   const turnIn = ctl ? ((keys.a || btn.l) ? 1 : 0) - ((keys.d || btn.r) ? 1 : 0) : 0;
-  const maxSpd = 10 * ST.spd * (P.armor < 40 ? .7 : 1) * (P.over ? .6 : 1);
+  const maxSpd = 10 * ST.spd * (P.armor < 40 ? .7 : 1) * (P.over ? .6 : 1) * TERRAIN.spd();
   const target = ctl ? P.thr * maxSpd : 0;
-  const accel = ((Math.abs(target) > Math.abs(P.spd) && Math.sign(target || 1) === Math.sign(P.spd || target || 1)) ? 2.1 : 3.0) * ST.accel;
+  const accel = ((Math.abs(target) > Math.abs(P.spd) && Math.sign(target || 1) === Math.sign(P.spd || target || 1)) ? 2.1 : 3.0) * ST.accel * TERRAIN.spd();
   { const ac = accel * (P.y > .3 ? .15 : 1); P.spd += clamp(target - P.spd, -ac * dt, ac * dt); }
-  const maxT = 0.42 * ST.turn * (1 - .35 * Math.abs(P.spd) / (14 * ST.spd));
+  const maxT = 0.42 * ST.turn * (1 - .35 * Math.abs(P.spd) / (14 * ST.spd)) * (TERRAIN.cur === 'sea' ? .65 : 1);
   P.turn += clamp(turnIn * maxT - P.turn, -.75 * ST.turn * dt, .75 * ST.turn * dt);
   P.yaw += P.turn * dt;
   P.x += -Math.sin(P.yaw) * P.spd * dt; P.z += -Math.cos(P.yaw) * P.spd * dt;
+  if (TERRAIN.cur === 'sky') { P.x = clamp(P.x, -40, 40); P.z = clamp(P.z, -326, 66); }
   if (P.kbx || P.kbz) { P.x += P.kbx * dt; P.z += P.kbz * dt; const kk = Math.exp(-3.2 * dt); P.kbx *= kk; P.kbz *= kk; if (Math.hypot(P.kbx, P.kbz) < .4) P.kbx = P.kbz = 0; P.spd *= .9; }
   if (P.tumble > 0) { P.tumble = Math.max(0, P.tumble - dt); const q = Math.sin(P.tumble / .9 * Math.PI); P.fallZ = q * (P.tumbleK || .4) * (P.tumbleDir || 1); P.fallX = q * .2; if (P.tumble === 0) P.fallX = P.fallZ = 0; }
   // jump jets: a heavy machine needs a moment to spool up before it leaves the ground
@@ -5257,7 +5363,7 @@ function updatePlayer(dt) {
   else { P.fuelCd -= dt; if (P.fuelCd <= 0 && P.y <= 0) P.fuel = Math.min(100, P.fuel + 24 * dt); }
   if (P.fuel <= 1 && boostIn && !P.fuelWarn) { P.fuelWarn = true; say('BOOST 残量なし', 'r', 1.2); SFX.alarm(); VO.event('fuel', () => VO.ai('ブースター、燃料切れ。'), 8); }
   if (P.fuel > 20) P.fuelWarn = false;
-  P.vy = Math.min(13 * ST.jet, P.vy + (P.thrust * 28 * ST.jet - 16) * dt);
+  { const wet = TERRAIN.cur === 'sea'; P.vy = Math.min(13 * ST.jet * (wet ? .6 : 1), P.vy + (P.thrust * (wet ? 15 : 28) * ST.jet - (wet ? 6 : 16)) * dt); }
   if (P.y > .3 && P.thrust > .1 && P.thr >= 0) P.spd = Math.min(maxSpd * 1.35, P.spd + 5 * P.thrust * dt);
   P.y += P.vy * dt;
   if (P.y <= 0) {
@@ -5363,8 +5469,8 @@ function updateShells(dt) {
 }
 function playerHit(from, k = 1) {
   if (S.phase === 'cut') return;
-  // toughness grows with upgrades: a fully tuned machine shrugs off about 70 rifle hits before it falls
-  const raw = rand(8, 13) * k * (STORY.on ? STORY.m.dmgK || 1 : 1) * ST.armor, floor = (100 / 70) * k * rand(.85, 1.15), f = Math.pow(ST.lv || 0, .7);
+  // toughness grows with upgrades: a fully tuned machine shrugs off about 200 rifle hits before it falls
+  const raw = rand(8, 13) * k * (STORY.on ? STORY.m.dmgK || 1 : 1) * ST.armor, floor = (100 / 200) * k * rand(.85, 1.15), f = Math.pow(ST.lv || 0, .7);
   const dmg = raw > floor ? raw * (1 - f) + floor * f : raw; P.armor = Math.max(0, P.armor - dmg);
   P.trauma = 1; P.glitch = .45; P.kickV -= 1.2; P.spd *= .6; SFX.hit(); buzz([90, 40, 140]); VO.event('hit', () => VO.ai('被弾。'), 5);
   if (P.armor < 40 && !P.legWarn) { P.legWarn = true; VO.ai('警告。装甲、危険域。脚部に損傷。', 'high'); }
@@ -5968,18 +6074,18 @@ function frameBody(now) {
   const live = S.phase === 'op' || S.phase === 'end' || S.phase === 'launch' || S.phase === 'drop' || S.phase === 'cut';
   if (!live) { P.bobV += (-60 * P.bobY - 9 * P.bobV) * dt; P.bobY += P.bobV * dt; P.trauma = Math.max(0, P.trauma - .9 * dt); }
   if (live) {
-    if (S.phase === 'cut') CUT.update(dt); else if (S.phase === 'drop') DROP.update(dt); else { updatePlayer(dt); DROP.update(dt); } updateMech(dt); followSun();
+    if (S.phase === 'cut') CUT.update(dt); else if (S.phase === 'drop') DROP.update(dt); else { updatePlayer(dt); DROP.update(dt); } updateMech(dt); followSun(); TERRAIN.tick(dt);
     if (S.phase === 'op' && allDestroyedWins() && S.spawned >= ENEMY_TOTAL && !enemies.some(e => e.alive && !e.ally)) endGame(true);
     MIS.update(dt, T); dangerMusic(dt);
     if (S.phase === 'op' && !P.dead) { S.cmdT -= dt; if (S.cmdT <= 0) { S.cmdT = rand(30, 46); const CL = CMD_LINES[S.mode]; VO.radio('司令部', CL[Math.random() * CL.length | 0], 0, .7); } } updateGantry(dt, T); updateEnemies(dt); updateAllies(dt); updateShells(dt); updateParts(dt); if (S.phase !== 'cut') updateCamera(T, dt);
     if (CK.combatOn) CK.update(dt, T);
     lodPass(); updatePistons(); renderer.render(scene, camera); CK.renderCombat(); drawLever();
   } else if (S.phase === 'title' || S.phase === 'movie' || S.phase === 'ignite') {
-    DROP.update(dt); updateMech(dt); followSun(); updateGantry(dt, T); updateEnemies(dt); updateAllies(dt); updateShells(dt); updateParts(dt); MOV.update(dt); lodPass(); updatePistons(); renderer.render(scene, camera);
+    DROP.update(dt); updateMech(dt); followSun(); TERRAIN.tick(dt); updateGantry(dt, T); updateEnemies(dt); updateAllies(dt); updateShells(dt); updateParts(dt); MOV.update(dt); lodPass(); updatePistons(); renderer.render(scene, camera);
   } else if (S.phase === 'walk') {
-    updateMech(dt); followSun(); updateGantry(dt, T); updateParts(dt); WALK.update(dt); renderer.render(scene, camera);
+    updateMech(dt); followSun(); TERRAIN.tick(dt); updateGantry(dt, T); updateParts(dt); WALK.update(dt); renderer.render(scene, camera);
   } else if (S.phase === 'hatch' || S.phase === 'cam') {
-    CK.update(dt, T); DROP.update(dt); updateMech(dt); followSun(); updateGantry(dt, T); updateParts(dt); updateCamera(T, dt); renderer.render(scene, camera);
+    CK.update(dt, T); DROP.update(dt); updateMech(dt); followSun(); TERRAIN.tick(dt); updateGantry(dt, T); updateParts(dt); updateCamera(T, dt); renderer.render(scene, camera);
   }
   { const sh = P.trauma * P.trauma; mon.style.transform = sh > .01 ? `translate(${(Math.random() - .5) * sh * 4}px,${(Math.random() - .5) * sh * 4}px)` : ''; }
   drawHUD(dt, T); drawGauges(dt, T); if (PNL) PNL.update(dt, T);
