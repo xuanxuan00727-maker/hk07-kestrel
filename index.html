@@ -994,7 +994,7 @@ function resetPlayer() {
   if (S.viewSave) { S.view = S.viewSave; S.viewSave = null; }
   Object.assign(P, { x: 0, z: 0, yaw: 0, spd: 0, turn: 0, thr: 0, ty: 0, tp: 0, tyT: 0, tpT: 0, armor: 100, heat: 0, over: false,
     main: 6, mainRes: 24, reload: 0, sub: 400, mgCd: 0, mainCd: 0, mgN: 0, phase: 0, stepN: 0, side: 1,
-    gy: 0, fallX: 0, fallZ: 0, knock: false, kbx: 0, kbz: 0, tumble: 0, bobY: 0, bobV: 0, kick: 0, kickV: 0, trauma: 0, glitch: 0, flash: 0, dead: false, hits: [], servo: 0, bumpCd: 0, fired: 0, hitsLanded: 0,
+    gy: 0, fallX: 0, fallZ: 0, knock: false, getup: null, kbx: 0, kbz: 0, tumble: 0, bobY: 0, bobV: 0, kick: 0, kickV: 0, trauma: 0, glitch: 0, flash: 0, dead: false, hits: [], servo: 0, bumpCd: 0, fired: 0, hitsLanded: 0,
     brl: 0, mgSpin: 0, vel: new THREE.Vector3(), pitchS: 0, cat: 0, onDeck: true, crouch: .22, acc: 0, lastSpd: 0, lean: 0, y: 0, vy: 0, thrust: 0, fuel: 100, fuelCd: 0, jetT: 0, fuelWarn: false, aimO: new THREE.Vector3(0, 7.9, 0), aimD: new THREE.Vector3(0, 0, -1) });
   if (window.__dropPlace) window.__dropPlace();
 }
@@ -1907,6 +1907,38 @@ function updateMech(dt) {
   P.brl = Math.max(0, P.brl - dt * 1.3); ME.barrel.position.z = -2.85 + P.brl;
   ME.mg.rotation.z += dt * 28 * P.mgSpin; P.mgSpin = Math.max(0, P.mgSpin - dt * 2);
   ME.ants.forEach((a, i) => a.rotation.x = .25 + clamp(-P.bobV * .09 + P.kickV * .05 + Math.sin(T * 7 + i) * .01, -.45, .45));
+  // ---- body language: limbs flail when thrown, sprawl when down, a multi-joint get-up, arm swing and sway on the move
+  {
+    const KP = ME.kp || (ME.kp = { w: 0, c: { th: [0, 0], kn: [0, 0], ft: [0, 0], tz: [0, 0], tor: 0, tw: 0, bx: 0, bz: 0, mx: 0, mz: 0 } });
+    const want = P.knock || P.tumble > 0 ? 1 : 0; KP.w += (want - KP.w) * Math.min(1, dt * (want ? 8 : 3));
+    const sp2 = Math.abs(P.spd), sw = Math.sin(T * (3.4 + sp2 * .32)) * Math.min(1, sp2 / 9);
+    if (KP.w < .02) {   // ordinary motion: guns swing against the stride, the torso rolls a little, arms dip on landings
+      ME.barrel.rotation.x = sw * .07 - P.bobV * .015 + P.kick * .25; ME.barrel.rotation.z = 0;
+      ME.mg.rotation.x += -sw * .07 - P.bobV * .015; ME.torso.rotation.z += sw * .025;
+    } else {
+      const tt = T, gu = P.getup, air = P.y - (P.gy || 0) > .5 || P.tumble > 0, mix = (a, b, k) => a + (b - a) * k;
+      let tg;
+      if (gu != null) {
+        const a = clamp(gu / .3, 0, 1), b = clamp((gu - .3) / .35, 0, 1), c = clamp((gu - .65) / .35, 0, 1), e = c * c * (3 - 2 * c);
+        const A = { th: [1.3, 1.1], kn: [-1.9, -1.7], ft: [.5, .4], tz: [.22, -.22], tor: .55, tw: .1, bx: .95, bz: .25, mx: .95, mz: -.3 };    // curl up, both arms planted
+        const B = { th: [1.35, -.3], kn: [-1.6, -1.95], ft: [.3, .95], tz: [.1, -.05], tor: .35, tw: -.18, bx: .35, bz: .1, mx: 1.15, mz: -.15 }; // kneel, left arm pushing
+        const D = { th: [.9, .15], kn: [-1.5, -.3], ft: [.3, 0], tz: [.35, -.25], tor: -.25, tw: .3, bx: -.4, bz: .6, mx: .3, mz: -.7 };        // where it lay
+        const pick = (k, i) => i == null ? mix(mix(mix(D[k], A[k], a), B[k], b), 0, e) - (k === 'tor' ? Math.sin(e * Math.PI) * .12 : 0) : mix(mix(mix(D[k][i], A[k][i], a), B[k][i], b), 0, e);
+        tg = { th: [pick('th', 0), pick('th', 1)], kn: [pick('kn', 0), pick('kn', 1)], ft: [pick('ft', 0), pick('ft', 1)], tz: [pick('tz', 0), pick('tz', 1)], tor: pick('tor'), tw: pick('tw'), bx: pick('bx'), bz: pick('bz') + Math.sin(e * Math.PI) * .2, mx: pick('mx'), mz: pick('mz') };
+      } else if (air) {   // thrown through the air: every joint whips
+        tg = { th: [.3 + .9 * Math.sin(tt * 8), .3 + .9 * Math.sin(tt * 8 + 2.2)], kn: [-1.2 - .6 * Math.sin(tt * 9), -1.2 - .6 * Math.sin(tt * 9 + 1.7)], ft: [.4 * Math.sin(tt * 10), .4 * Math.sin(tt * 10 + 1)], tz: [.35 * Math.sin(tt * 6), -.35 * Math.sin(tt * 6 + 1)], tor: .35 * Math.sin(tt * 7), tw: .4 * Math.sin(tt * 5), bx: -.8 * Math.sin(tt * 7.5), bz: .5 * Math.sin(tt * 6), mx: .8 * Math.sin(tt * 7 + 1.5), mz: -.5 * Math.sin(tt * 6.5) };
+      } else {            // down: sprawled, servos twitching
+        const tw2 = Math.sin(tt * 1.3) > .65 ? Math.sin(tt * 23) * .06 : 0;
+        tg = { th: [.9, .15 + tw2], kn: [-1.5, -.3 - tw2], ft: [.3, 0], tz: [.35, -.25], tor: -.25 + tw2, tw: .3, bx: -.4 + tw2, bz: .6, mx: .3, mz: -.7 - tw2 };
+      }
+      const C = KP.c, r = Math.min(1, dt * (gu != null ? 10 : air ? 12 : 5)), w = KP.w;
+      ['tor', 'tw', 'bx', 'bz', 'mx', 'mz'].forEach(k => C[k] += (tg[k] - C[k]) * r);
+      ['th', 'kn', 'ft', 'tz'].forEach(k => [0, 1].forEach(i => C[k][i] += (tg[k][i] - C[k][i]) * r));
+      ME.legs.forEach((l, i) => { l.thigh.rotation.x = mix(l.thigh.rotation.x, C.th[i], w); l.knee.rotation.x = mix(l.knee.rotation.x, C.kn[i], w); l.foot.rotation.x = mix(l.foot.rotation.x, C.ft[i], w); l.thigh.rotation.z = mix(l.thigh.rotation.z, C.tz[i], w); });
+      ME.pitch.rotation.x += C.tor * w; ME.torso.rotation.y += C.tw * w;
+      ME.barrel.rotation.x = C.bx * w; ME.barrel.rotation.z = C.bz * w; ME.mg.rotation.x += C.mx * w; ME.mg.rotation.y = C.mz * w;
+    }
+  }
   P.dmgT = (P.dmgT || 0) - dt;
   if (P.armor < 60 && P.dmgT <= 0 && S.phase !== 'hatch') { P.dmgT = P.armor < 35 ? .12 : .35; ME.torso.getWorldPosition(JV); JV.y += 2; addPart({ pos: JV.clone().add(new THREE.Vector3(rand(-1, 1), 0, rand(0, 1.5))), color: 0x2e2a26, op: .5, s0: .8, s1: 4, life: 2.2, vel: new THREE.Vector3(rand(-1, 1), 3, rand(-1, 1)) }); if (P.armor < 35) addPart({ pos: JV.clone().add(new THREE.Vector3(rand(-1.5, 1.5), rand(-1, 1), rand(-.5, 1))), color: 0xffc070, add: true, s0: .15, s1: .05, life: .5, grav: 8, vel: new THREE.Vector3(rand(-4, 4), rand(1, 5), rand(-4, 4)) }); }
   ME.body.visible = (S.view !== 'fp' || S.phase === 'title' || S.phase === 'movie' || S.phase === 'ignite' || S.phase === 'walk') && S.phase !== 'hatch';
@@ -4773,7 +4805,7 @@ const CUT = (() => {
   function end() {
     on = false; S.phase = 'op'; S.view = saveView || S.view; P.ty = P.tp = 0; caption('');
     cine.hidden = true; document.body.classList.remove('cine'); skipB.style.display = '';
-    $('#controls').hidden = false; $('#obj').style.visibility = ''; P.thrust = 0; P.reach = 0; P.knock = false; P.fallX = P.fallZ = 0; P.vy = 0; P.y = Math.max(0, P.y); P.spd = 0;
+    $('#controls').hidden = false; $('#obj').style.visibility = ''; P.thrust = 0; P.reach = 0; P.getup = null; P.knock = false; P.fallX = P.fallZ = 0; P.vy = 0; P.y = Math.max(0, P.y); P.spd = 0;
     if (d && d.wall) { const w = d.wall; setTimeout(() => scene.remove(w), 9000); }
     if (d && d.boss) { d.boss.cutHold = false; d.boss.alert = true; d.boss.cd = 1.5; }
     camera.near = .5; camera.updateProjectionMatrix(); window.dispatchEvent(new Event('resize'));
@@ -4839,18 +4871,18 @@ const CUT = (() => {
       P.x += D.b.x * D.vb * dt; P.z += D.b.z * D.vb * dt; P.vy -= 20 * dt; P.y = Math.max(0, P.y + P.vy * dt); knockPose(dt, .6, .1, 6);
       if (Math.hypot(P.x - D.x0, P.z - D.z0) > 12.8) { D.hit = true; D.vb = 0; crash(D.wallAt.clone().setY(4)); P.trauma = 1; D.wall.children[0].scale.y = .45; D.wall.children[0].position.y = 2.6; D.wall.children[1].visible = false; D.wall.rotation.x = .12; }
     }
-    if (D.imp) shot(base.clone().addScaledVector(D.r, 15).addScaledVector(D.f, 6).setY(6), base.clone().setY(4), dt, 2.5);
+    if (D.imp) shot(base.clone().addScaledVector(D.r, t > 4 ? 12 : 15).addScaledVector(D.f, t > 4 ? 5 : 6).setY(t > 4 ? 4.5 : 6), base.clone().setY(t > 4 ? 3.5 : 4), dt, 2.5);
     if (D.hit && t < 4.2) { P.vy -= 20 * dt; P.y = Math.max(0, P.y + P.vy * dt); knockPose(dt, .8, .15, 4); if (Math.random() < dt * 6) sparks(base.clone().setY(3)); }
     if (t > 3 && !D.v1) { D.v1 = true; VO.ai('機体、損傷軽微。……立ち上がります！'); }
-    if (t >= 4.2) { const k = ez(seg(4.2, 5.4)); P.fallX = .8 * (1 - k); P.fallZ = .15 * (1 - k); P.crouch = 1.1 - .8 * k; if (k >= 1) P.knock = false; }
-    if (t > 5) {
+    if (t >= 4.2) { const g = seg(4.2, 6.2), k = ez(clamp((g - .2) / .8, 0, 1)); P.getup = g < 1 ? g : null; P.fallX = .8 * (1 - k); P.fallZ = .15 * (1 - k); P.crouch = 1.25 - .95 * k; if (g >= 1) P.knock = false; }
+    if (t > 6.1) {
       if (!D.rv) { D.rv = true; e.cutSpd = 4; reveal(e); }
       shot(base.clone().addScaledVector(D.b, 12).addScaledVector(D.r, 5).setY(9), new THREE.Vector3(e.x, (e.cy || E_CY) + 2, e.z), dt, 1.8);
     }
     if (t < 1.6) povAt(dt, base.clone().addScaledVector(D.f, 60).setY(6));
     else if (D.hit && t > 2.7 && t < 4.2) povAt(dt, base.clone().addScaledVector(D.f, 18).setY(34));
     else if (t > 5.1 && t < 6.7) povAt(dt, new THREE.Vector3(e.x, (e.cy || E_CY) + 2, e.z));
-    if (t > 8.6) end();
+    if (t > 9.6) end();
   }
 
   // --- boss entrance 2: fast assault machine. Walking, it rams in from the side and sends you tumbling
@@ -4883,13 +4915,13 @@ const CUT = (() => {
       if (!D.stop) { const sp = Math.max(0, 75 - (t - D.it) * 60); e.x += D.dir.x * sp * dt; e.z += D.dir.z * sp * dt; if (sp <= 0) { D.stop = true; } }
       else { const w = Math.atan2(-(P.x - e.x), -(P.z - e.z)); e.yaw += clamp(wrapA(w - e.yaw), -2 * dt, 2 * dt); e.cutYaw = e.yaw; e.y = Math.max(0, (e.y || 0) - dt * 2); }
       shot(base.clone().addScaledVector(D.r, 14 * D.side).addScaledVector(D.f, 8).setY(7), base.clone().setY(3), dt, 2.5);
-      if (t > 3.9) { const k = ez(seg(3.9, 5.1)); P.fallX = .3 * (1 - k); P.fallZ = 1.25 * D.side * (1 - k); P.crouch = 1.1 - .8 * k; if (k >= 1) P.knock = false; }
-      if (t > 4.6) {
+      if (t > 3.9) { const g = seg(3.9, 5.9), k = ez(clamp((g - .15) / .85, 0, 1)); P.getup = g < 1 ? g : null; P.fallX = .3 * (1 - k); P.fallZ = 1.25 * D.side * (1 - k); P.crouch = 1.25 - .95 * k; if (g >= 1) P.knock = false; }
+      if (t > 5.8) {
         if (!D.rv) { D.rv = true; const dv = new THREE.Vector3(e.x - P.x, 0, e.z - P.z), dl = dv.length() || 1; if (dl < 44) { e.x = P.x + dv.x / dl * 44; e.z = P.z + dv.z / dl * 44; e.gait.init = false; } e.y = 0; reveal(e); P.yaw = Math.atan2(-(e.x - P.x), -(e.z - P.z)); }
         const bb = new THREE.Vector3(P.x - e.x, 0, P.z - e.z).normalize();
         const eb = new THREE.Vector3(e.x, 0, e.z); shot(eb.clone().add(new THREE.Vector3(bb.x * 16 - bb.z * 7, 4.5, bb.z * 16 + bb.x * 7)), new THREE.Vector3(e.x, (e.cy || E_CY) + 1.5, e.z), dt, 2.2);
       }
-      if (t > 8) { e.y = 0; end(); }
+      if (t > 9.2) { e.y = 0; end(); }
     }
     if (on) {
       if (!D.imp && t < .9) povAt(dt, base.clone().addScaledVector(D.f, 60).setY(6));
