@@ -3634,7 +3634,7 @@ function updateEnemies(dt) {
     }
     if (e.saved) { spd = 0; want = e.yaw; }
     if (e.cutHold) { spd = e.cutSpd || 0; want = e.cutYaw ?? e.yaw; }
-    const flying = TERRAIN.cur === 'sky' && !e.saved && !e.dummy;
+    const flying = TERRAIN.cur === 'sky' && !e.saved && !e.dummy && !e.cutHold;
     if (flying) skyFly(e, dt);
     else {
     const dYaw = wrapA(want - e.yaw);
@@ -4998,7 +4998,7 @@ function beginMission(i) {
 /* ================= CUTSCENES: boss entrances and story moments ================= */
 const CUT_SLOW = .5, CUT_POV = false;
 const CUT = (() => {
-  let on = false, t = 0, kind = '', d = null, done = null, saveView = null, mgT = 0;
+  let on = false, t = 0, kind = '', d = null, done = null, saveView = null, mgT = 0, slowK = 1;
   const cine = $('#cine'), cap = $('#cap'), skipB = $('#movieSkip');
   const CP = new THREE.Vector3(), CL = new THREE.Vector3(), LK = new THREE.Vector3(), V = new THREE.Vector3();
   const ez = k => k * k * (3 - 2 * k), seg = (a, b) => clamp((t - a) / (b - a), 0, 1);
@@ -5017,7 +5017,7 @@ const CUT = (() => {
     return true;
   }
   function end() {
-    on = false; S.phase = 'op'; S.view = saveView || S.view; P.ty = P.tp = 0; caption('');
+    on = false; slowK = 1; S.phase = 'op'; S.view = saveView || S.view; P.ty = P.tp = 0; caption('');
     cine.hidden = true; document.body.classList.remove('cine'); skipB.style.display = '';
     $('#controls').hidden = false; $('#obj').style.visibility = ''; P.thrust = 0; P.reach = 0; P.getup = null; P.knock = false; P.fallX = P.fallZ = 0; P.vy = 0; P.y = Math.max(0, P.y); P.spd = 0;
     if (d && d.wall) { const w = d.wall; setTimeout(() => scene.remove(w), 9000); }
@@ -5113,6 +5113,7 @@ const CUT = (() => {
       shot(base.clone().addScaledVector(D.f, 15).addScaledVector(D.r, -7 * D.side).setY(6), base.clone().setY(6), dt);
       if (t > .9) {
         if (!D.dir) { D.dir = new THREE.Vector3(P.x - e.x, 0, P.z - e.z).normalize(); sNoise({ dur: 1, f: 300, f2: 3000, gain: .5 }); sTone({ f: 200, f2: 900, dur: .9, type: 'sawtooth', gain: .08 }); }
+        { const hx = P.x - e.x, hz = P.z - e.z, hl = Math.hypot(hx, hz) || 1; D.dir.set(hx / hl, 0, hz / hl); }   // homing: wherever 07 is
         e.x += D.dir.x * 75 * dt; e.z += D.dir.z * 75 * dt; e.yaw = Math.atan2(-D.dir.x, -D.dir.z); e.cutYaw = e.yaw;
         addPart({ pos: new THREE.Vector3(e.x, 5, e.z), color: 0x9fd8ff, add: true, s0: 1.4, s1: .2, life: .35 });
         if (Math.hypot(P.x - e.x, P.z - e.z) < 8) {
@@ -5143,7 +5144,8 @@ const CUT = (() => {
       else if (D.land && t > 2.9 && t < 3.9) povAt(dt, base.clone().addScaledVector(D.f, 10).setY(32));
       else if (D.rv && t > 4.7 && t < 6.3) povAt(dt, new THREE.Vector3(e.x, (e.cy || E_CY) + 1, e.z));
     }
-    if (t > 5 && !D.imp) end();   // safety: never hang if the boss misses
+    if (t > 3.2 && !D.imp && D.dir) { e.x = P.x - D.dir.x * 7.5; e.z = P.z - D.dir.z * 7.5; }   // guarantee the hit
+    if (t > 6 && !D.imp) end();   // safety: never hang
   }
 
   // --- story: an enemy machine snatches an escort truck and runs off with it
@@ -5200,12 +5202,22 @@ const CUT = (() => {
           }
         }
         for (let q = C.trc.length - 1; q >= 0; q--) { const tr = C.trc[q]; tr.t += dt / .32; tr.m.position.lerpVectors(tr.from, tr.to, Math.min(1, tr.t)); if (tr.t >= 1) { scene.remove(tr.m); C.trc.splice(q, 1); explosion(tr.to.clone(), tr.miss ? 1.3 : 2); if (!tr.miss) { P.trauma = Math.min(1, P.trauma + .4); sparks(tr.to.clone()); } } }
-        if (bk > 1.05 && !C.armOff) { C.armOff = true; C.gst = bk; BREAK.off(ME.mg, .9); P.reachArm = 'R'; P.reach = .25; VO.ai('左腕、被弾！ 脱落！', 'high'); setTimeout(() => VO.say('mina', '07！！ もういい、逃げて！'), 700); }
-        if (C.gst != null && bk - C.gst > .25 && bk - C.gst < 1.7) {   // cut to the ground: the gunners firing up in desperation
-          const ir = C.guns[0], back = new THREE.Vector3(ir.x - P.x, 0, ir.z - P.z).normalize();
-          shot(new THREE.Vector3(ir.x + back.x * 9 - back.z * 4, 2.6, ir.z + back.z * 9 + back.x * 4), new THREE.Vector3(P.x, P.y + 5, P.z), dt, 40);
+        const armMat = (() => { let mm = null; ME.mg.traverse(o => { if (!mm && o.isMesh && o.material && o.material.color) mm = o.material; }); return mm || burnt; })();
+        const at = (o) => { o.updateMatrixWorld(true); return o.getWorldPosition(new THREE.Vector3()); };
+        if (bk > .9 && !C.h1) { C.h1 = true; slowK = .4; C.fst = bk; explosion(at(ME.mg), 1.6); BREAK.chunk(at(ME.mg), 4, armMat, 1); BREAK.chunk(at(ME.mg), 3, burnt, .8, .5); P.trauma = .8; VO.ai('左腕に被弾！', 'high'); }
+        if (bk > 1.25 && !C.h2) { C.h2 = true; explosion(at(ME.mg).add(new THREE.Vector3(0, 1, 0)), 1.8); BREAK.chunk(at(ME.mg), 5, armMat, 1.1); BREAK.chunk(at(ME.pitch), 3, armMat, .9); P.trauma = .9; sTone({ f: 200, f2: 60, dur: .6, type: 'square', gain: .08 }); }
+        if (bk > 1.6 && !C.armOff) { C.armOff = true; C.gst = bk; BREAK.off(ME.mg, .7); BREAK.chunk(at(ME.pitch), 6, armMat, 1.2); P.reachArm = 'R'; P.reach = .25; VO.ai('左腕、脱落！ 配線、露出！', 'high'); setTimeout(() => VO.say('mina', '07！！ もういい、逃げて！'), 900); }
+        if (C.fst != null && bk - C.fst < 2.5 && (C.trick = (C.trick || 0) - dt) < 0) { C.trick = .22; BREAK.chunk(at(ME.pitch).add(new THREE.Vector3(rand(-2, 2), rand(-2, 2), rand(-2, 2))), 1, Math.random() < .5 ? armMat : burnt, .5, .45); }
+        if (C.fst != null && bk - C.fst < 2.6) {   // camera in front of the machine: watch it come apart
+          const fw = new THREE.Vector3(ux, 0, uz), sdv = new THREE.Vector3(-uz, 0, ux);
+          shot(pp.clone().addScaledVector(fw, 15).addScaledVector(sdv, -4).add(new THREE.Vector3(0, 1.5, 0)), pp.clone().add(new THREE.Vector3(0, 5.5, 0)).addScaledVector(sdv, -1.5), dt, 6);
         }
-        if (!C.sh && C.armOff && (dl < 22 || bk > 2.9)) {      // a gunner on the ground draws a bead
+        if (C.fst != null && bk - C.fst > 2.6 && slowK < 1) slowK = 1;
+        if (C.gst != null && bk - C.gst > 1.0 && bk - C.gst < 2.4) {   // cut to the ground: the gunners firing up in desperation
+          const ir = C.guns[0], back = new THREE.Vector3(ir.x - P.x, 0, ir.z - P.z).normalize();
+          shot(new THREE.Vector3(ir.x + back.x * 26 - back.z * 12, 5, ir.z + back.z * 26 + back.x * 12), new THREE.Vector3((ir.x + P.x) / 2, P.y * .55 + 3, (ir.z + P.z) / 2), dt, 40);
+        }
+        if (!C.sh && C.armOff && bk - C.gst > 2.4 && (dl < 22 || bk > 4.2)) {      // a gunner on the ground draws a bead
           const ir = makeEnemy(); ir.gait = makeGait(ir.g, ir.legs, { hipX: [1.5, -1.5], hipY: 4.2, l1: 1.9, l2: 1.8, ankle: .5, lift: .7, sway: .2 });
           Object.assign(ir, { x: P.x - side.x * 55 - ux * 20, z: P.z - side.z * 55 - uz * 20, y: 0, yaw: 0, spd: 0 }); ir.yaw = Math.atan2(-(P.x - ir.x), -(P.z - ir.z)); stepR(ir, dt, 0, 0); C.sh = ir; C.st = bk;
         }
@@ -5226,7 +5238,7 @@ const CUT = (() => {
       const side = new THREE.Vector3(-uz * C.sg, 0, ux * C.sg);
       shot(pp.clone().addScaledVector(side, 13).add(new THREE.Vector3(ux * 5, 3, uz * 5)), pp.clone().lerp(tp, .4).add(new THREE.Vector3(0, 4, 0)), dt, 4);
       if (S2.t >= 1) {
-        scene.remove(S2.m); C.ph = 'fall'; C.hitT = t; P.knock = true; P.thrust = 0; BREAK.off(ME.legs[0].thigh, 1.1); setTimeout(() => VO.ai('右脚、損失……！ 機体、制御不能！', 'high'), 900); C.vx = -ux * 9 + side.x * 7; C.vz = -uz * 9 + side.z * 7; P.vy = 4; C.sg = -C.sg;
+        scene.remove(S2.m); C.ph = 'fall'; C.hitT = t; P.knock = true; P.thrust = 0; BREAK.off(ME.legs[0].thigh, 1.1); slowK = .45; { const pm = ME.pitch.getWorldPosition(new THREE.Vector3()); BREAK.chunk(pm, 8, burnt, 1.3); } setTimeout(() => VO.ai('右脚、損失……！ 機体、制御不能！', 'high'), 900); C.vx = -ux * 9 + side.x * 7; C.vz = -uz * 9 + side.z * 7; P.vy = 4; C.sg = -C.sg;
         explosion(new THREE.Vector3(P.x, P.y + 6, P.z), 3.2); sTone({ f: 85, f2: 28, dur: 1, gain: 1 }); sNoise({ dur: .8, f: 1600, f2: 200, gain: .85 });
         P.trauma = 1; P.glitch = .8; buzz([320, 60, 260]); VO.ai('被弾！ 推進器、損傷……！', 'high'); setTimeout(() => VO.say('mina', 'いやあっ……07！！'), 400);
       }
@@ -5237,7 +5249,8 @@ const CUT = (() => {
         P.x += C.vx * dt; P.z += C.vz * dt; P.vy -= 22 * dt; P.y += P.vy * dt; P.reach = Math.max(0, (P.reach || 0) - dt * .8); knockPose(dt, .9, .5 * C.sg, 3.5);
         if (Math.random() < .6) addPart({ pos: pp.clone().add(new THREE.Vector3(0, 6, 0)), color: 0x2f2b26, op: .6, s0: 1, s1: 4, life: 1.6, vel: new THREE.Vector3(0, 2, 0) });
         if (Math.random() < .3) sparks(pp.clone().add(new THREE.Vector3(0, 5, 0)));
-        if (P.y <= 0) { P.y = 0; C.land = t; crash(new THREE.Vector3(P.x, 1, P.z), 20); P.trauma = 1; P.glitch = .5; knockPose(1, 1.35, .3 * C.sg, 1); setTimeout(() => VO.say('jin', '07！！大丈夫か！？'), 500); }
+        if ((C.trick2 = (C.trick2 || 0) - dt) < 0) { C.trick2 = .18; BREAK.chunk(pp.clone().add(new THREE.Vector3(rand(-2, 2), rand(3, 8), rand(-2, 2))), 1, burnt, .4, .5); }
+        if (P.y <= 0) { P.y = 0; C.land = t; slowK = 1; crash(new THREE.Vector3(P.x, 1, P.z), 20); P.trauma = 1; P.glitch = .5; knockPose(1, 1.35, .3 * C.sg, 1); setTimeout(() => VO.say('jin', '07！！大丈夫か！？'), 500); }
       } else {
         C.vx *= Math.exp(-5 * dt); C.vz *= Math.exp(-5 * dt); P.x += C.vx * dt; P.z += C.vz * dt; knockPose(dt, 1.35, .3 * C.sg, 4); P.reach = 0;
         if (Math.random() < dt * 5) sparks(pp.clone().add(new THREE.Vector3(0, 2.5, 0)));
@@ -5245,7 +5258,8 @@ const CUT = (() => {
       }
       const side = new THREE.Vector3(-Math.sin(P.yaw + Math.PI / 2), 0, -Math.cos(P.yaw + Math.PI / 2));
       // look past the fallen machine at the truck shrinking into the sky
-      shot(pp.clone().addScaledVector(side, C.land < 0 ? 16 : 10).add(new THREE.Vector3(0, C.land < 0 ? 4 : 2.5, 0)), C.land < 0 ? pp.clone().add(new THREE.Vector3(0, 3, 0)) : tp.clone(), dt, 2);
+      if (C.land < 0) { const fw = new THREE.Vector3(-Math.sin(P.yaw), 0, -Math.cos(P.yaw)); shot(pp.clone().addScaledVector(fw, 16).add(new THREE.Vector3(0, -1, 0)), pp.clone().add(new THREE.Vector3(0, 4, 0)), dt, 4); }
+      else shot(pp.clone().addScaledVector(side, 10).add(new THREE.Vector3(0, 2.5, 0)), tp.clone(), dt, 2);
       if (C.land > 0 && t - C.land > 3.6) { if (C.sh) scene.remove(C.sh.g); C.sh = null; (C.guns || []).forEach(ir => scene.remove(ir.g)); (C.trc || []).forEach(tr => scene.remove(tr.m)); P.reach = 0; P.reachArm = 'L'; end(); }
     }
     if (on) {
@@ -5292,7 +5306,7 @@ const CUT = (() => {
     if (on) shake(dt);
   }
   function boss(e) { if (!e || S.phase !== 'op') return; (e.kind === 'phantom' ? bossRam : bossShell)(e); }
-  return { boss, grab, update, get on() { return on; } };
+  return { boss, grab, update, get on() { return on; }, get k() { return slowK; } };
 })();
 
 /* ---------- boss fighting styles: the giant shells and stomps, the wraith charges and rams ---------- */
@@ -5326,6 +5340,7 @@ function bossMoves(e, dt) {
     }
   } else if (e.kind === 'phantom') {
     if (e.dash > 0) {
+      { const hx = P.x - e.x, hz = P.z - e.z, hl = Math.hypot(hx, hz) || 1, k = Math.min(1, dt * 4); e.dashDir.x += (hx / hl - e.dashDir.x) * k; e.dashDir.z += (hz / hl - e.dashDir.z) * k; e.dashDir.normalize(); }
       e.dash -= dt; e.x += e.dashDir.x * 52 * TERRAIN.spd() * dt; e.z += e.dashDir.z * 52 * TERRAIN.spd() * dt; e.yaw = Math.atan2(-e.dashDir.x, -e.dashDir.z);
       addPart({ pos: new THREE.Vector3(e.x, 5, e.z), color: 0x9fd8ff, add: true, s0: 1.3, s1: .2, life: .3 });
       if (!e.hitP && Math.hypot(P.x - e.x, P.z - e.z) < 8.5) { e.hitP = true; playerHit(new THREE.Vector3(e.x, 5, e.z), 2.2); knockPlayer(e.dashDir.x, e.dashDir.z, 24, .7); explosion(new THREE.Vector3(P.x, 6, P.z), 2); say('体当たりを受けた！', 'r', 1.6); }
@@ -5333,7 +5348,7 @@ function bossMoves(e, dt) {
     }
     e.chT = (e.chT ?? 5) - dt;
     if (e.chT <= 0 && dp < 260 && dp > 30) {
-      e.chT = rand(7, 10); e.dash = Math.min(1.6, dp / 52 + .4); e.hitP = false;
+      e.chT = rand(7, 10); e.dash = Math.min(2.4, dp / 40 + .8); e.hitP = false;
       e.dashDir = new THREE.Vector3(P.x - e.x, 0, P.z - e.z).normalize();
       say('高速接近！ 突進してくるぞ', 'r', 1.8); sNoise({ dur: .9, f: 400, f2: 3000, gain: .45 });
     }
@@ -5367,14 +5382,47 @@ const BREAK = (() => {
     list.push({ m: c, v: out.multiplyScalar(rand(8, 14) * power).add(new THREE.Vector3(0, rand(8, 14) * power, 0)), av: new THREE.Vector3(rand(-6, 6), rand(-6, 6), rand(-6, 6)), life: 14, rest: false });
     explosion(WP.clone(), 2.6 * power);
     for (let i = 0; i < 30; i++) addPart({ pos: WP.clone(), color: Math.random() < .7 ? 0xfff0b0 : 0x9fd8ff, add: true, s0: rand(.12, .25), s1: .02, life: rand(.4, 1), grav: 16, vel: new THREE.Vector3(rand(-1, 1), rand(.2, 1.4), rand(-1, 1)).multiplyScalar(rand(6, 16)) });
-    if (keepStump) { const a = new THREE.Object3D(); obj.parent.add(a); a.position.copy(obj.position); stumps.push({ a, t: 0 }); }
+    if (keepStump) { const a = new THREE.Object3D(); obj.parent.add(a); a.position.copy(obj.position); stumps.push({ a, t: 0 }); if (obj.userData.wires !== false) wires(a); }
     P.trauma = 1; P.glitch = Math.max(P.glitch, .6); buzz([200, 60, 160]);
   }
+  // torn armour plates and bolts: real pieces of the machine's paint
+  function chunk(pos, n = 3, mat = burnt, power = 1, big = 1) {
+    for (let i = 0; i < n; i++) {
+      const w = rand(.3, 1.3) * big, geo = Math.random() < .7 ? new THREE.BoxGeometry(w, rand(.08, .25) * big, w * rand(.5, 1)) : new THREE.CylinderGeometry(.12 * big, .12 * big, .3 * big, 6);
+      const m = new THREE.Mesh(geo, mat); m.position.copy(pos).add(new THREE.Vector3(rand(-.6, .6), rand(-.6, .6), rand(-.6, .6))); m.rotation.set(rand(0, 3), rand(0, 3), rand(0, 3)); m.castShadow = true; scene.add(m);
+      const out = new THREE.Vector3(rand(-1, 1), rand(.2, 1), rand(-1, 1)).normalize();
+      list.push({ m, v: out.multiplyScalar(rand(4, 11) * power), av: new THREE.Vector3(rand(-9, 9), rand(-9, 9), rand(-9, 9)), life: 10, rest: false, small: true });
+    }
+  }
+  // exposed wiring: a bundle of cables hanging out of the stump, swaying and arcing
+  const WCOL = [0xc8302a, 0xe0b020, 0x1c1c1c, 0x2a5ac8, 0xd0d0d0, 0x2a8a3a];
+  function wires(anchor) {
+    const g = new THREE.Group(); anchor.add(g); const tips = [];
+    for (let i = 0; i < 9; i++) {
+      const pts = [new THREE.Vector3(rand(-.35, .35), rand(-.25, .25), rand(-.35, .35))]; let p = pts[0].clone();
+      const dir = new THREE.Vector3(rand(-1, 1), rand(-1.4, -.4), rand(-1, 1)).normalize();
+      for (let k = 0; k < 4; k++) { p = p.clone().addScaledVector(dir, rand(.35, .7)).add(new THREE.Vector3(rand(-.2, .2), -k * .18, rand(-.2, .2))); pts.push(p); }
+      const tube = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 12, rand(.04, .085), 5), new THREE.MeshStandardMaterial({ color: WCOL[i % WCOL.length], roughness: .55, metalness: .1 }));
+      tube.castShadow = true; g.add(tube); const tip = new THREE.Object3D(); tip.position.copy(p); g.add(tip); tips.push(tip);
+    }
+    // a frayed hydraulic line and a bent strut
+    const hose = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(0, 0, 0), new THREE.Vector3(.4, -.5, .2), new THREE.Vector3(.2, -1.2, .5)]), 10, .12, 6), new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: .8 })); g.add(hose);
+    const strut = new THREE.Mesh(new THREE.BoxGeometry(.18, 1.3, .18), new THREE.MeshStandardMaterial({ color: 0x6a6a6a, roughness: .5, metalness: .7 })); strut.position.set(-.3, -.5, 0); strut.rotation.set(.5, 0, .7); g.add(strut);
+    wireSets.push({ g, tips, ph: rand(0, 6) });
+  }
+  const wireSets = [];
+  function wiresUpdate(dt) {
+    for (const w of wireSets) {
+      if (!w.g.parent) continue; w.ph += dt; w.g.rotation.x = Math.sin(w.ph * 2.2) * .12; w.g.rotation.z = Math.sin(w.ph * 1.7 + 1) * .1;
+      if (Math.random() < dt * 9) { const tip = w.tips[(Math.random() * w.tips.length) | 0]; tip.getWorldPosition(WP); for (let k = 0; k < 5; k++) addPart({ pos: WP.clone(), color: Math.random() < .6 ? 0xfff2b0 : 0x9fd8ff, add: true, s0: rand(.08, .18), s1: .02, life: rand(.25, .6), grav: 18, vel: new THREE.Vector3(rand(-1, 1), rand(-.2, 1), rand(-1, 1)).multiplyScalar(rand(3, 8)) }); if (Math.random() < .3) sNoise({ dur: .05, type: 'highpass', f: 4500, gain: .12 }); }
+    }
+  }
   function update(dt) {
+    wiresUpdate(dt);
     for (let i = list.length - 1; i >= 0; i--) {
       const d = list[i]; d.life -= dt; if (d.life <= 0) { scene.remove(d.m); list.splice(i, 1); continue; }
       if (!d.rest) { d.v.y -= 24 * dt; d.m.position.addScaledVector(d.v, dt); d.m.rotation.x += d.av.x * dt; d.m.rotation.y += d.av.y * dt; d.m.rotation.z += d.av.z * dt; if (d.m.position.y < .6) { d.m.position.y = .6; d.v.multiplyScalar(.35); d.v.y = Math.abs(d.v.y) * .4; d.av.multiplyScalar(.5); if (d.v.length() < 1.5) d.rest = true; addPart({ pos: d.m.position.clone(), color: 0x9a8a6c, op: .5, s0: 1, s1: 3.5, life: 1, vel: new THREE.Vector3(0, 1, 0) }); } }
-      if (Math.random() < dt * 3) addPart({ pos: d.m.position.clone(), color: 0x2b2723, op: .5, s0: .6, s1: 3, life: 2, vel: new THREE.Vector3(.4, 2.4, 0) });
+      if (!d.small && Math.random() < dt * 3) addPart({ pos: d.m.position.clone(), color: 0x2b2723, op: .5, s0: .6, s1: 3, life: 2, vel: new THREE.Vector3(.4, 2.4, 0) });
     }
     for (const s of stumps) {   // torn wiring sparks and oily smoke from the stumps
       if (!s.a.parent) continue; s.a.getWorldPosition(WP);
@@ -5384,10 +5432,10 @@ const BREAK = (() => {
   }
   function restore() {   // a fresh sortie: every part back on, wreckage cleared
     list.forEach(d => scene.remove(d.m)); list.length = 0;
-    stumps.forEach(s => { if (s.a.parent) s.a.parent.remove(s.a); }); stumps.length = 0;
+    stumps.forEach(s => { if (s.a.parent) s.a.parent.remove(s.a); }); stumps.length = 0; wireSets.length = 0;
     if (typeof ME !== 'undefined' && ME) { [ME.barrel, ME.mg, ME.head].forEach(o => { if (o) o.visible = true; }); (ME.legs || []).forEach(l => { if (l.thigh) l.thigh.visible = true; }); }
   }
-  return { off, update, restore };
+  return { off, update, restore, chunk };
 })();
 // damage thresholds: half armour costs the main gun, a third costs the head (and the main camera starts to fail)
 function checkBreaks() {
@@ -6312,7 +6360,7 @@ function recoverFrame() {
 }
 function frameBody(now) {
   let dt = Math.min(.05, Math.max(0, (now - last) / 1000) || 0); last = now;
-  if (S.phase === 'cut') dt *= CUT_SLOW;   // cutscenes run in slow motion so every beat reads clearly
+  if (S.phase === 'cut') dt *= CUT_SLOW * (CUT.k || 1);   // cutscenes run in slow motion so every beat reads clearly
   T += dt;
   mMark.emissiveIntensity = (T % 1.6) < .14 ? 3.2 : .25;
   QA.acc += dt; QA.n++;
