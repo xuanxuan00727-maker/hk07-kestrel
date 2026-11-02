@@ -1666,6 +1666,16 @@ function newFrameNote(prevProg) {
 }
 
 let BOSS_READY = false;
+// garage paint on a captured machine: dark metal → base colour, light plates → panel colour, coloured trim → accent (glowing parts untouched)
+function paintBoss(root) {
+  if (!PAINTS[GAR.paint] || GAR.paint === 'std') return; const c = PAINTS[GAR.paint].c, map = new Map(), hsl = {};
+  root.traverse(o => {
+    if (!o.isMesh || !o.material || Array.isArray(o.material) || !o.material.color || o.material === flameMat || o.material === flameCore) return;
+    const m0 = o.material; if (m0.blending === THREE.AdditiveBlending || m0.transparent || (m0.emissive && m0.emissiveIntensity > .2 && m0.emissive.getHex() !== 0)) return;
+    let m = map.get(m0); if (!m) { m0.color.getHSL(hsl); m = m0.clone(); m.color.setHex(hsl.s > .4 && hsl.l > .2 ? c[2] : hsl.l < .22 ? c[0] : c[1]); if (hsl.l < .08) m.color.multiplyScalar(.45); map.set(m0, m); }
+    o.material = m; o.userData.mat = m;
+  });
+}
 function buildBossHero(kind) {
   const sc = kind === 'goliath' ? 2.0 : 1.45, t = makeEnemy(kind);
   const vis = t.glow;
@@ -1677,6 +1687,7 @@ function buildBossHero(kind) {
   const ants = [t.ant];
   const k = { root: t.g, legs: t.legs, torso: t.tur, pitch: t.tur, body: t.tur, barrel: new THREE.Object3D(), mg: new THREE.Object3D(), mMain: t.muzzle, mSub, flames, nozzles, pack: t.tur, visor: vis, eye, ants: ants.length ? ants : [new THREE.Object3D()], eyeH: (4.7 + (kind === 'goliath' ? 2.62 : 2.45)) * sc, boss: kind };
   k.gait = makeGait(t.g, t.legs, { hipX: [1.5, -1.5], hipY: 4.2, l1: 1.9, l2: 1.8, ankle: .5, lift: .7 * sc, sway: .2 * sc * (kind === 'goliath' ? 1.4 : .7), scale: sc });
+  paintBoss(t.g);
   return k;
 }
 function makeHero() {
@@ -2486,8 +2497,44 @@ const CK = (() => {
     goliath: { wall: 0x3e2a22, frame: 0x24150f, pad: 0x170e0b, door: 0x5a3426, doorIn: 0x3a2018, panel: 0x3a2620, edge: 0xff3a1a, work: 0xff7a50, red: 0xff1a08, lamp: [0xff3a14, 0xff8a20, 0xff3a14] },
     phantom: { wall: 0x1c1f33, frame: 0x14152a, pad: 0x0e0f1c, door: 0x262a48, doorIn: 0x1a1c33, panel: 0x22253c, edge: 0x9a6bff, work: 0x7a9cff, red: 0x8a4cff, lamp: [0x40e8ff, 0x9a6bff, 0x40e8ff] },
   };
+  const themeKey = () => FRAMES[GAR.frame] && FRAMES[GAR.frame].boss && frameOwned(GAR.frame) ? GAR.frame : 'std';
+  /* --- each captured machine has its own cabin: Goliath is a cramped furnace room, Phantom a sleek glass cell --- */
+  const KIT = { goliath: new THREE.Group(), phantom: new THREE.Group() }; g.add(KIT.goliath, KIT.phantom);
+  {
+    const G = KIT.goliath, iron = std(0x2b1d17, .7, .6), rust = std(0x5a3424, .85, .3), stripe = mHaz, riv = std(0x8a6a50, .4, .8);
+    [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(([sx, sy]) => { const m = part(B(1.0, .26, .34), iron, sx * 1.26, sy * .74, -1.6, G); m.rotation.z = sx * sy * .7; });   // corner gussets
+    for (let i = 0; i < 9; i++) part(new THREE.CylinderGeometry(.035, .035, .05, 6), riv, -1.2 + i * .3, .82, -1.46, G).rotation.x = Math.PI / 2;
+    [-1, 1].forEach(s => { for (let i = 0; i < 3; i++) part(B(.22, 2.6, .3), iron, s * 1.7, 0, -1.35 + i * .7, G); part(B(.06, .5, 1.6), stripe, s * 1.76, -.85, -.7, G); });
+    // the reactor furnace on the left wall
+    part(B(.55, .7, .62), rust, -1.5, -.42, -.95, G); const grM = new THREE.MeshStandardMaterial({ color: 0x110805, emissive: 0xff4a10, emissiveIntensity: 0, roughness: .6 });
+    for (let i = 0; i < 5; i++) part(B(.02, .46, .05), grM, -1.215, -.42, -1.15 + i * .1, G);
+    const fd = new THREE.Group(); fd.position.set(-1.21, -.42, -1.26); G.add(fd); part(B(.04, .5, .5), iron, 0, 0, .25, fd);
+    const fl = new THREE.PointLight(0xff5a1a, 0, 3, 2); fl.position.set(-1.0, -.4, -.95); G.add(fl);
+    // twin hydraulic rams in the front corners
+    const rams = [-1, 1].map(s => { part(new THREE.CylinderGeometry(.13, .13, 1.1, 14), iron, s * 1.36, .35, -1.42, G); const rod = part(new THREE.CylinderGeometry(.065, .065, 1, 12), std(0xb0b0a8, .25, .9), s * 1.36, -.2, -1.42, G); return rod; });
+    KIT.gfx = { grM, fd, fl, rams };
+  }
+  {
+    const G = KIT.phantom, slim = std(0x15162a, .3, .8), edge = new THREE.MeshStandardMaterial({ color: 0x0a0a12, emissive: 0x9a6bff, emissiveIntensity: 1.2, roughness: .3 });
+    [-1, 1].forEach(sy => part(B(2.8, .025, .03), edge, 0, sy * .73, -1.55, G));
+    [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(([sx, sy]) => { const m = part(B(.7, .05, .08), slim, sx * 1.28, sy * .62, -1.56, G); m.rotation.z = -sx * sy * .55; part(B(.6, .015, .02), edge, sx * 1.28, sy * .62, -1.51, G).rotation.z = -sx * sy * .55; });
+    const ringM = new THREE.MeshBasicMaterial({ color: 0x6fe8ff, transparent: true, opacity: .55, blending: THREE.AdditiveBlending, depthWrite: false });
+    const rings = [.95, 1.12].map((r, i) => { const m = new THREE.Mesh(new THREE.TorusGeometry(r, .008, 6, 90), i ? ringM : ringM.clone()); m.position.set(0, -.05, -1.05); G.add(m); return m; });
+    rings[1].material.color.setHex(0x9a6bff);
+    const blades = []; [-1, 1].forEach(s => [.45, -.45].forEach(y => { const h = new THREE.Group(); h.position.set(s * 1.72, y, -1.35); G.add(h); part(B(.04, .55, .7), slim, 0, 0, .35, h); part(B(.045, .02, .7), edge, 0, .28 * Math.sign(y), .35, h); h.userData.s = s; blades.push(h); }));
+    const hM = new THREE.MeshBasicMaterial({ color: 0x7ad8ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+    const holos = [[-.72, -.12, -1.12, .5], [.72, -.12, -1.12, -.5], [0, .52, -1.3, 0]].map(([x, y, z, ry]) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(.46, .26), hM); m.position.set(x, y, z); m.rotation.y = ry; G.add(m); const f = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(.46, .26)), new THREE.LineBasicMaterial({ color: 0x9fe8ff, transparent: true, opacity: 0 })); m.add(f); m.userData.f = f; return m; });
+    KIT.pfx = { rings, blades, hM, holos, edge };
+  }
+  function kitApply(T) {
+    const tk = themeKey(); KIT.goliath.visible = tk === 'goliath'; KIT.phantom.visible = tk === 'phantom';
+    if (tk === 'goliath') { const k = KIT.gfx, fk = st.furn * (.75 + .25 * Math.sin(T * 17) * Math.sin(T * 5.3)); k.grM.emissiveIntensity = fk * 2.6; k.fl.intensity = fk * 2.2; k.fd.rotation.y = -st.furnDoor * 1.7;
+      k.rams.forEach((r, i) => { const len = .25 + .7 * st.ram + .18 * st.ramP; r.scale.y = len; r.position.y = -.2 - len / 2 + .15 + (i ? .03 * Math.sin(T * 2) * st.ram : 0); }); }
+    if (tk === 'phantom') { const k = KIT.pfx; k.rings.forEach((r, i) => { const sc = Math.max(.001, st.ring); r.scale.setScalar(sc); r.rotation.x = (i ? -1 : 1) * T * .7 * st.ring + .35; r.rotation.y = (i ? 1 : -1) * T * 1.1 * st.ring; r.material.opacity = .55 * st.ring; });
+      k.blades.forEach(b => b.rotation.y = -b.userData.s * st.blades * .75); const hk = st.holo * (.85 + .15 * Math.sin(T * 23)); k.hM.opacity = hk * .22; k.holos.forEach(h => h.userData.f.material.opacity = hk * .8); k.edge.emissiveIntensity = .4 + .9 * Math.min(1, st.ring + st.holo); }
+  }
   function theme() {
-    const k = FRAMES[GAR.frame] && FRAMES[GAR.frame].boss && frameOwned(GAR.frame) ? GAR.frame : 'std', T2 = THEMES[k];
+    const k = themeKey(), T2 = THEMES[k];
     wall.color.setHex(T2.wall); frameM.color.setHex(T2.frame); padM.color.setHex(T2.pad); doorM.color.setHex(T2.door); doorIn.color.setHex(T2.doorIn); panelM.color.setHex(T2.panel); red.color.setHex(T2.red); work.color.setHex(T2.work);
     if (typeof CM !== 'undefined' && CM.edgeM) CM.edgeM.emissive.setHex(T2.edge);
     lampMats.forEach((m, i) => m.emissive.setHex(T2.lamp[i % 3]));
@@ -2497,6 +2544,7 @@ const CK = (() => {
 
   /* --- animation state + timeline helpers --- */
   const st = { radar: 0, bel: 0, ctr: 0, strobe: 0, weld: 0, val: 0, tube: 0, chain: 0, cells: 0, leds: 0, shut: 0, jack: 0, tog: 0, brk: 0, dials: 0, fan: 0, drum: 0, acc: 0, mask: 0, cart: 0, peri: 0, gyro: 0, belt: 0, black: 0, env: 1, door: 1.5, bolt: 0, arm: -1.55, con: 0, red: 0, work: 0, sky: 1, seatZ: 0, seatY: 0, bars: 0, lids: 0, sticks: 0, r1: 0, r2: 0, sides: 0, lou: 0, cool: 0, scan: -1, glassY: 0, beacon: 0, gearSpd: 0, pist: 0, gauge: 0 };
+  Object.assign(st, { furn: 0, furnDoor: 0, ram: 0, ramP: 0, ring: 0, blades: 0, holo: 0 });
   let lamps = false, speed = 1, vent = 0;
   const ST0 = Object.assign({}, st);
   const tweens = [];
@@ -2535,7 +2583,7 @@ const CK = (() => {
     XM.dial.forEach((d, i) => d.rotation.z = -st.dials * (2.4 + i * 1.3));
     XM.acc.forEach((f, i) => { const k = clamp(st.acc * 1.3 - i * .15, .01, 1) * (.8 + .15 * Math.sin(T * 2 + i)); f.scale.y = k; f.position.y = -.69 + .19 * k; });
     XM.mask.rotation.z = lerp(-1.5, .35, st.mask);
-    XM.cart.position.y = lerp(.7, .3, st.cart); XM.cartM.emissiveIntensity = st.cart > .98 ? 1.5 : 0;
+    XM.cart.position.y = lerp(.7, .3, st.cart); XM.cartM.emissiveIntensity = st.cart > .98 ? 1.5 : 0; kitApply(T);
     XM.peri.position.y = lerp(2.6, .85, st.peri); XM.peri.rotation.y = Math.sin(T * .8) * .5 * st.peri;
     XM.gyCore.emissiveIntensity = st.gyro * 1.5;
     X2.dish.rotation.z = lerp(1.5, 0, st.radar);
@@ -2603,7 +2651,7 @@ const CK = (() => {
   apply(0);
 
   async function close() {
-    const SL = .7, tw = (k, to, d, e) => tween(k, to, d * SL, e), ps = d => pause(d * SL);
+    const TK = themeKey(), SL = TK === 'phantom' ? .45 : TK === 'goliath' ? .95 : .7, tw = (k, to, d, e) => tween(k, to, d * SL, e), ps = d => pause(d * SL);
     const sv = (f0, f1, d, gn) => servo(f0, f1, d * SL, gn);
     // 1. the hatch drops from above
     SFX.relay(); SFX.hiss(2.6);
@@ -2636,118 +2684,196 @@ const CK = (() => {
     await pause(1.2);
     setBootMsg('機体システム展開中…（早送りボタンでスキップ）');
     snd(() => VO.ai('機体システムの展開を開始します。全工程を自動で実行します。'));
-    snd(() => VO.ai('ハッチ、ロック。'));
-    // 5. locks and beacon
-    for (let i = 0; i < 4; i++) clank(i * .2);
-    buzz([40, 100, 40, 100, 40, 100, 40]);
-    await tw('bolt', 1, .55, outBack);
-    tw('beacon', 1, .4); tw('strobe', 1, .3);
-    snd(() => { sTone({ f: 700, dur: .3, type: 'square', gain: .03 }); sTone({ f: 520, dur: .3, type: 'square', gain: .03, at: .35 }); });
-    await ps(.6);
-    snd(() => VO.ai('一次回路、オン。'));
-    // overhead toggle bank flips one by one
-    for (let i = 1; i <= 8; i++) { st.tog = i; snd(() => { sTone({ f: 1900, dur: .02, type: 'square', gain: .03 }); sNoise({ dur: .03, type: 'highpass', f: 3000, gain: .15 }); }); await ps(.25); }
-    await ps(.4);
-    snd(() => VO.ai('ブレーカー、投入。'));
-    // breakers thrown
-    for (let i = 1; i <= 4; i++) { st.brk = i; snd(() => { SFX.clunk(); sTone({ f: 80, dur: .4, type: 'sawtooth', gain: .04 }); }); buzz(40); P.trauma = Math.max(P.trauma, .2); await ps(.5); }
-    // dials spin to their settings
-    snd(() => { for (let i = 0; i < 14; i++) sTone({ f: 3200, dur: .015, type: 'square', gain: .015, at: i * .18 }); });
-    await tw('dials', 1, 1.5, inOut);
-    await ps(.4);
-    snd(() => VO.ai('与圧を開始します。'));
-    // 6. pressurisation: vents steam, pistons pump, gears turn, gauges come alive
-    snd(() => { sNoise({ dur: 3.2 * SL, type: 'highpass', f: 2200, gain: .16, a: .2 }); sTone({ f: 55, dur: 3.2 * SL, type: 'sawtooth', gain: .06, a: .4 }); });
-    vent = 3.4 * SL; tw('bel', 1, .5); tw('val', 1, .8); tw('chain', 1, 1); st.tube = 1; snd(() => { for (let i = 0; i < 8; i++) sNoise({ dur: .35, type: 'lowpass', f: 500, gain: .1, at: i * .45 }); }); tw('pist', 1, .8); tw('gearSpd', 1, 1.2); tw('gauge', 1, 2.5, inOut); P.trauma = .3;
-    for (let i = 0; i < 9; i++) clank(.4 + i * .6);
-    await ps(3.4);
-    snd(() => VO.ai('冷却ファン、起動。'));
-    // cooling fan spins up while the cable drums reel in
-    snd(() => { sTone({ f: 60, f2: 240, dur: 2 * SL, type: 'sawtooth', gain: .03 }); sNoise({ dur: 3 * SL, type: 'bandpass', f: 600, q: 1, gain: .06, a: 1 }); });
-    tw('fan', 1, 2); await tw('drum', 1, .6); await ps(1.6); tw('drum', 0, .6); clank();
-    snd(() => VO.ai('油圧蓄圧器、充填中。'));
-    // hydraulic accumulators fill
-    snd(() => { sNoise({ dur: 2.5 * SL, type: 'lowpass', f: 400, gain: .12, a: .5 }); sTone({ f: 90, f2: 140, dur: 2.5 * SL, type: 'sine', gain: .06 }); });
-    await tw('acc', 1, 2.5, inOut); clank(); await ps(.4);
-    // power cells drop into their sockets one by one
-    snd(() => VO.ai('パワーセル、装填。'));
-    for (let i = 1; i <= 4; i++) { await tw('cells', i / 4, .45, inOut); clank(); snd(() => sTone({ f: 700 + i * 220, dur: .08, type: 'square', gain: .03 })); }
-    await ps(.3);
-    snd(() => VO.ai('シート位置を調整します。'));
-    // 7. seat forward and up, harness bars down
-    sv(90, 160, 1.8, .05); snd(() => SFX.hiss(2)); tw('ctr', 1, 3.4); snd(() => { for (let i = 0; i < 30; i++) sTone({ f: 2800, dur: .012, type: 'square', gain: .012, at: i * .17 }); });
-    await tw('seatZ', .32, 1.8, inOut); clank();
-    sv(120, 200, 1.2, .05);
-    await tw('seatY', .14, 1.2, inOut); clank(); buzz(60);
-    snd(() => VO.ai('安全バー、固定。'));
-    sv(260, 420, 1.3, .04);
-    await tw('bars', 1, 1.3, outBack); snd(() => { SFX.clunk(); sTone({ f: 1800, dur: .04, type: 'square', gain: .03, at: .1 }); }); P.trauma = .3; buzz(80);
-    await ps(.6);
-    snd(() => VO.ai('酸素供給テスト。呼吸を確認してください。'));
-    // O2 mask swings to the face, three breaths, swings away
-    sv(300, 450, 1.2, .035); await tw('mask', 1, 1.2, outBack);
-    snd(() => { for (let i = 0; i < 3; i++) sNoise({ dur: .7, type: 'bandpass', f: 1200, q: .8, gain: .12, a: .25, at: i * 1.0 }); });
-    await ps(1.6); sv(450, 300, 1.2, .03); await tw('mask', 0, 1.2, inOut); clank(); await ps(.3);
-    snd(() => VO.ai('操作卓、展開。'));
-    // 8. consoles slide in, lids open, sticks rise
-    sv(180, 420, 1.5, .045); snd(() => SFX.hiss(2));
-    await tw('con', 1, 1.5, inOut); clank(); clank(.12);
-    snd(() => VO.ai('操作卓、リフトアップ。')); sv(150, 260, .9, .05); snd(() => SFX.hiss(1.2)); await tw('jack', 1, .9, outBack); clank(); P.trauma = .2;
-    sv(400, 600, .8, .03);
-    await tw('lids', 1, .8, outBack); snd(() => SFX.clunk());
-    sv(300, 520, .9, .035);
-    await tw('sticks', 1, .9, outBack); clank(); lamps = true; buzz(50);
-    await ps(.5);
-    snd(() => VO.ai('起動キー、認証。'));
-    // key cartridge drops into the left console
-    sv(500, 300, 1.0, .03); await tw('cart', 1, 1.0, inOut);
-    snd(() => { SFX.clunk(); for (let i = 0; i < 4; i++) sTone({ f: 1500 + i * 300, dur: .05, type: 'square', gain: .025, at: .2 + i * .09 }); }); buzz(50); await ps(.6);
-    snd(() => VO.ai('潜望鏡、展開。'));
-    // periscope drops and sweeps
-    sv(200, 340, 1.4, .04); await tw('peri', 1, 1.4, outBack); clank(); await ps(1.4);
-    snd(() => VO.ai('ジャイロ、回転数上昇。'));
-    // gyro spins up
-    snd(() => sTone({ f: 200, f2: 1600, dur: 2.2 * SL, type: 'sine', gain: .03 })); await tw('gyro', 1, 2.2, inOut); await ps(.3);
-    // radar dish lowers from the ceiling and starts sweeping
-    snd(() => VO.ai('レーダー、展開。')); sv(240, 380, 1.1, .04); await tw('radar', 1, 1.1, outBack); clank(); await ps(.3);
-    snd(() => VO.ai('弾薬の給弾を確認。'));
-    // ammo belt feeds through
-    snd(() => { for (let i = 0; i < 22; i++) clank(i * .25); }); await tw('belt', 1, .5); await ps(2.8); tw('belt', 0, .5); await ps(.4);
-    // maintenance arm makes a final weld on the frame
-    snd(() => VO.ai('最終溶接を実行します。')); sv(260, 420, 1.2, .04);
-    await tw('weld', 1, 1.2, inOut); X2.weldOn = true; snd(() => { sNoise({ dur: 2.6, type: 'highpass', f: 3500, gain: .14, a: .05 }); for (let i = 0; i < 14; i++) sTone({ f: rand(2000, 5000), dur: .03, type: 'square', gain: .015, at: rand(0, 2.6) }); });
-    await ps(1.8); X2.weldOn = false; sv(420, 260, 1.1, .04); await tw('weld', 0, 1.1, inOut); clank(); await ps(.3);
-    snd(() => VO.ai('メインモニターを展開します。'));
-    // 9. ceiling robot arm brings the (still dark) main monitor down
-    sv(220, 480, 1.4, .04);
-    await Promise.all([tw('r1', 1, 1.4, inOut), tw('r2', 1, 1.6, inOut)]); clank();
-    snd(() => { sTone({ f: 3000, f2: 1200, dur: .15, type: 'square', gain: .025 }); sNoise({ dur: .2, type: 'highpass', f: 4000, gain: .1 }); });
-    await ps(.3);
-    sv(160, 380, 1.8, .05);
-    await tw('arm', 0, 1.8, outBack); snd(() => SFX.clunk()); P.trauma = .35; buzz(60);
-    tw('r1', 0, 1.2, inOut); tw('r2', 0, 1.2, inOut); sv(400, 200, 1.2, .03);
-    await ps(.5);
-    snd(() => VO.ai('サブモニター、展開。'));
-    // 10. side screens fold out (dark)
-    sv(300, 500, 1.2, .04);
-    await tw('sides', 1, 1.2, outBack); clank(); clank(.15);
-    sv(500, 300, .7, .03); await tw('shut', 1, .7, inOut); clank();
-    await ps(.6);
-    snd(() => VO.ai('冷却液、循環開始。機内をスキャンします。'));
-    // 11. louvers open on the coolant lines, scan bar sweeps twice
-    sv(500, 700, 1.0, .03);
-    tw('lou', 1, 1.2); tw('leds', 1, .5); await tw('cool', 1, 1.0);
-    snd(() => sNoise({ dur: 2.8, type: 'bandpass', f: 900, q: 1.5, gain: .08, a: .3 }));
-    await ps(.4);
-    snd(() => sTone({ f: 300, f2: 1400, dur: 1.4 * SL, type: 'sine', gain: .04 }));
-    await tw('scan', 1, 1.4); st.scan = -1;
-    snd(() => sTone({ f: 1400, f2: 300, dur: 1.2 * SL, type: 'sine', gain: .04 }));
-    await tween('scan', 0, .01); await tw('scan', 1, 1.2); st.scan = -1;
-    snd(() => VO.ai('異常なし。ヘッドアップディスプレイ、展開。'));
-    // 12. HUD glass drops
-    sv(350, 250, 1.0, .03);
-    await tw('glassY', 1, 1.0, outBack); clank();
-    await ps(.6);
+    const STEP = {};
+    STEP.locks = async () => {
+      snd(() => VO.ai('ハッチ、ロック。'));
+      // 5. locks and beacon
+      for (let i = 0; i < 4; i++) clank(i * .2);
+      buzz([40, 100, 40, 100, 40, 100, 40]);
+      await tw('bolt', 1, .55, outBack);
+      tw('beacon', 1, .4); tw('strobe', 1, .3);
+      snd(() => { sTone({ f: 700, dur: .3, type: 'square', gain: .03 }); sTone({ f: 520, dur: .3, type: 'square', gain: .03, at: .35 }); });
+      await ps(.6);
+    };
+    STEP.toggles = async () => {
+      snd(() => VO.ai('一次回路、オン。'));
+      // overhead toggle bank flips one by one
+      for (let i = 1; i <= 8; i++) { st.tog = i; snd(() => { sTone({ f: 1900, dur: .02, type: 'square', gain: .03 }); sNoise({ dur: .03, type: 'highpass', f: 3000, gain: .15 }); }); await ps(.25); }
+      await ps(.4);
+    };
+    STEP.breakers = async () => {
+      snd(() => VO.ai('ブレーカー、投入。'));
+      // breakers thrown
+      for (let i = 1; i <= 4; i++) { st.brk = i; snd(() => { SFX.clunk(); sTone({ f: 80, dur: .4, type: 'sawtooth', gain: .04 }); }); buzz(40); P.trauma = Math.max(P.trauma, .2); await ps(.5); }
+    };
+    STEP.dials = async () => {
+      // dials spin to their settings
+      snd(() => { for (let i = 0; i < 14; i++) sTone({ f: 3200, dur: .015, type: 'square', gain: .015, at: i * .18 }); });
+      await tw('dials', 1, 1.5, inOut);
+      await ps(.4);
+    };
+    STEP.press = async () => {
+      snd(() => VO.ai('与圧を開始します。'));
+      // 6. pressurisation: vents steam, pistons pump, gears turn, gauges come alive
+      snd(() => { sNoise({ dur: 3.2 * SL, type: 'highpass', f: 2200, gain: .16, a: .2 }); sTone({ f: 55, dur: 3.2 * SL, type: 'sawtooth', gain: .06, a: .4 }); });
+      vent = 3.4 * SL; tw('bel', 1, .5); tw('val', 1, .8); tw('chain', 1, 1); st.tube = 1; snd(() => { for (let i = 0; i < 8; i++) sNoise({ dur: .35, type: 'lowpass', f: 500, gain: .1, at: i * .45 }); }); tw('pist', 1, .8); tw('gearSpd', 1, 1.2); tw('gauge', 1, 2.5, inOut); P.trauma = .3;
+      for (let i = 0; i < 9; i++) clank(.4 + i * .6);
+      await ps(3.4);
+    };
+    STEP.fan = async () => {
+      snd(() => VO.ai('冷却ファン、起動。'));
+      // cooling fan spins up while the cable drums reel in
+      snd(() => { sTone({ f: 60, f2: 240, dur: 2 * SL, type: 'sawtooth', gain: .03 }); sNoise({ dur: 3 * SL, type: 'bandpass', f: 600, q: 1, gain: .06, a: 1 }); });
+      tw('fan', 1, 2); await tw('drum', 1, .6); await ps(1.6); tw('drum', 0, .6); clank();
+    };
+    STEP.acc = async () => {
+      snd(() => VO.ai('油圧蓄圧器、充填中。'));
+      // hydraulic accumulators fill
+      snd(() => { sNoise({ dur: 2.5 * SL, type: 'lowpass', f: 400, gain: .12, a: .5 }); sTone({ f: 90, f2: 140, dur: 2.5 * SL, type: 'sine', gain: .06 }); });
+      await tw('acc', 1, 2.5, inOut); clank(); await ps(.4);
+    };
+    STEP.cells = async () => {
+      // power cells drop into their sockets one by one
+      snd(() => VO.ai('パワーセル、装填。'));
+      for (let i = 1; i <= 4; i++) { await tw('cells', i / 4, .45, inOut); clank(); snd(() => sTone({ f: 700 + i * 220, dur: .08, type: 'square', gain: .03 })); }
+      await ps(.3);
+    };
+    STEP.seat = async () => {
+      snd(() => VO.ai('シート位置を調整します。'));
+      // 7. seat forward and up, harness bars down
+      sv(90, 160, 1.8, .05); snd(() => SFX.hiss(2)); tw('ctr', 1, 3.4); snd(() => { for (let i = 0; i < 30; i++) sTone({ f: 2800, dur: .012, type: 'square', gain: .012, at: i * .17 }); });
+      await tw('seatZ', .32, 1.8, inOut); clank();
+      sv(120, 200, 1.2, .05);
+      await tw('seatY', .14, 1.2, inOut); clank(); buzz(60);
+      snd(() => VO.ai('安全バー、固定。'));
+      sv(260, 420, 1.3, .04);
+      await tw('bars', 1, 1.3, outBack); snd(() => { SFX.clunk(); sTone({ f: 1800, dur: .04, type: 'square', gain: .03, at: .1 }); }); P.trauma = .3; buzz(80);
+      await ps(.6);
+    };
+    STEP.mask = async () => {
+      snd(() => VO.ai('酸素供給テスト。呼吸を確認してください。'));
+      // O2 mask swings to the face, three breaths, swings away
+      sv(300, 450, 1.2, .035); await tw('mask', 1, 1.2, outBack);
+      snd(() => { for (let i = 0; i < 3; i++) sNoise({ dur: .7, type: 'bandpass', f: 1200, q: .8, gain: .12, a: .25, at: i * 1.0 }); });
+      await ps(1.6); sv(450, 300, 1.2, .03); await tw('mask', 0, 1.2, inOut); clank(); await ps(.3);
+    };
+    STEP.con = async () => {
+      snd(() => VO.ai('操作卓、展開。'));
+      // 8. consoles slide in, lids open, sticks rise
+      sv(180, 420, 1.5, .045); snd(() => SFX.hiss(2));
+      await tw('con', 1, 1.5, inOut); clank(); clank(.12);
+      snd(() => VO.ai('操作卓、リフトアップ。')); sv(150, 260, .9, .05); snd(() => SFX.hiss(1.2)); await tw('jack', 1, .9, outBack); clank(); P.trauma = .2;
+      sv(400, 600, .8, .03);
+      await tw('lids', 1, .8, outBack); snd(() => SFX.clunk());
+      sv(300, 520, .9, .035);
+      await tw('sticks', 1, .9, outBack); clank(); lamps = true; buzz(50);
+      await ps(.5);
+    };
+    STEP.cart = async () => {
+      snd(() => VO.ai('起動キー、認証。'));
+      // key cartridge drops into the left console
+      sv(500, 300, 1.0, .03); await tw('cart', 1, 1.0, inOut);
+      snd(() => { SFX.clunk(); for (let i = 0; i < 4; i++) sTone({ f: 1500 + i * 300, dur: .05, type: 'square', gain: .025, at: .2 + i * .09 }); }); buzz(50); await ps(.6);
+    };
+    STEP.peri = async () => {
+      snd(() => VO.ai('潜望鏡、展開。'));
+      // periscope drops and sweeps
+      sv(200, 340, 1.4, .04); await tw('peri', 1, 1.4, outBack); clank(); await ps(1.4);
+    };
+    STEP.gyro = async () => {
+      snd(() => VO.ai('ジャイロ、回転数上昇。'));
+      // gyro spins up
+      snd(() => sTone({ f: 200, f2: 1600, dur: 2.2 * SL, type: 'sine', gain: .03 })); await tw('gyro', 1, 2.2, inOut); await ps(.3);
+    };
+    STEP.radar = async () => {
+      // radar dish lowers from the ceiling and starts sweeping
+      snd(() => VO.ai('レーダー、展開。')); sv(240, 380, 1.1, .04); await tw('radar', 1, 1.1, outBack); clank(); await ps(.3);
+    };
+    STEP.belt = async () => {
+      snd(() => VO.ai('弾薬の給弾を確認。'));
+      // ammo belt feeds through
+      snd(() => { for (let i = 0; i < 22; i++) clank(i * .25); }); await tw('belt', 1, .5); await ps(2.8); tw('belt', 0, .5); await ps(.4);
+    };
+    STEP.weld = async () => {
+      // maintenance arm makes a final weld on the frame
+      snd(() => VO.ai('最終溶接を実行します。')); sv(260, 420, 1.2, .04);
+      await tw('weld', 1, 1.2, inOut); X2.weldOn = true; snd(() => { sNoise({ dur: 2.6, type: 'highpass', f: 3500, gain: .14, a: .05 }); for (let i = 0; i < 14; i++) sTone({ f: rand(2000, 5000), dur: .03, type: 'square', gain: .015, at: rand(0, 2.6) }); });
+      await ps(1.8); X2.weldOn = false; sv(420, 260, 1.1, .04); await tw('weld', 0, 1.1, inOut); clank(); await ps(.3);
+    };
+    STEP.monitor = async () => {
+      snd(() => VO.ai('メインモニターを展開します。'));
+      // 9. ceiling robot arm brings the (still dark) main monitor down
+      sv(220, 480, 1.4, .04);
+      await Promise.all([tw('r1', 1, 1.4, inOut), tw('r2', 1, 1.6, inOut)]); clank();
+      snd(() => { sTone({ f: 3000, f2: 1200, dur: .15, type: 'square', gain: .025 }); sNoise({ dur: .2, type: 'highpass', f: 4000, gain: .1 }); });
+      await ps(.3);
+      sv(160, 380, 1.8, .05);
+      await tw('arm', 0, 1.8, outBack); snd(() => SFX.clunk()); P.trauma = .35; buzz(60);
+      tw('r1', 0, 1.2, inOut); tw('r2', 0, 1.2, inOut); sv(400, 200, 1.2, .03);
+      await ps(.5);
+    };
+    STEP.sides = async () => {
+      snd(() => VO.ai('サブモニター、展開。'));
+      // 10. side screens fold out (dark)
+      sv(300, 500, 1.2, .04);
+      await tw('sides', 1, 1.2, outBack); clank(); clank(.15);
+      sv(500, 300, .7, .03); await tw('shut', 1, .7, inOut); clank();
+      await ps(.6);
+    };
+    STEP.scan = async () => {
+      snd(() => VO.ai('冷却液、循環開始。機内をスキャンします。'));
+      // 11. louvers open on the coolant lines, scan bar sweeps twice
+      sv(500, 700, 1.0, .03);
+      tw('lou', 1, 1.2); tw('leds', 1, .5); await tw('cool', 1, 1.0);
+      snd(() => sNoise({ dur: 2.8, type: 'bandpass', f: 900, q: 1.5, gain: .08, a: .3 }));
+      await ps(.4);
+      snd(() => sTone({ f: 300, f2: 1400, dur: 1.4 * SL, type: 'sine', gain: .04 }));
+      await tw('scan', 1, 1.4); st.scan = -1;
+      snd(() => sTone({ f: 1400, f2: 300, dur: 1.2 * SL, type: 'sine', gain: .04 }));
+      await tween('scan', 0, .01); await tw('scan', 1, 1.2); st.scan = -1;
+    };
+    STEP.hud = async () => {
+      snd(() => VO.ai('異常なし。ヘッドアップディスプレイ、展開。'));
+      // 12. HUD glass drops
+      sv(350, 250, 1.0, .03);
+      await tw('glassY', 1, 1.0, outBack); clank();
+      await ps(.6);
+    };
+
+    // ---- steps only the captured machines have ----
+    STEP.furnace = async () => {
+      snd(() => VO.ai('リアクター炉、点火。')); sv(70, 110, 1.2, .07); snd(() => SFX.hiss(1.5)); await tw('furnDoor', 1, 1.0, outBack); clank(); P.trauma = .3;
+      snd(() => { sNoise({ dur: 3.2 * SL, type: 'lowpass', f: 300, gain: .3, a: .4 }); sTone({ f: 38, dur: 3.2 * SL, type: 'sawtooth', gain: .12, a: .6 }); for (let i = 0; i < 18; i++) sNoise({ dur: .05, type: 'highpass', f: 2500, gain: .1, at: rand(.3, 3) }); });
+      await tw('furn', 1, 2.6, inOut); buzz([80, 60, 120]); P.trauma = .5; await ps(.5);
+      sv(110, 60, 1.0, .07); await tw('furnDoor', 0, .8, p => p * p); snd(() => { SFX.clunk(); sTone({ f: 55, f2: 30, dur: .6, gain: .5 }); }); P.trauma = .6; buzz(140); await ps(.5);
+    };
+    STEP.rams = async () => {
+      snd(() => VO.ai('主油圧ラム、作動。')); sv(50, 90, 2.0, .09); snd(() => SFX.hiss(2.5));
+      await tw('ram', 1, 2.0, inOut);
+      for (let i = 0; i < 3; i++) { await tw('ramP', 1, .25, p => p * p * p); snd(() => { sTone({ f: 60, f2: 24, dur: .7, gain: 1 }); sNoise({ dur: .4, f: 900, f2: 120, gain: .6 }); }); P.trauma = .8; buzz(180); await tw('ramP', 0, .7, inOut); }
+      await ps(.4);
+    };
+    STEP.rings = async () => {
+      snd(() => VO.ai('慣性制御リング、起動。')); snd(() => { sTone({ f: 180, f2: 2200, dur: 1.6 * SL, type: 'sine', gain: .05 }); sNoise({ dur: 1.6 * SL, type: 'bandpass', f: 3000, q: 4, gain: .05, a: .8 }); });
+      await tw('ring', 1, 1.6, outBack); snd(() => SFX.beep(1800)); await ps(.4);
+    };
+    STEP.blades = async () => {
+      snd(() => VO.ai('センサーブレード、展開。'));
+      for (let i = 1; i <= 4; i++) { snd(() => { sNoise({ dur: .25, type: 'bandpass', f: 1800 + i * 300, q: 2, gain: .14 }); sTone({ f: 900 + i * 200, f2: 1600 + i * 200, dur: .2, type: 'sine', gain: .03 }); }); await tw('blades', i / 4, .3, outBack); }
+      await ps(.3);
+    };
+    STEP.holo = async () => {
+      snd(() => VO.ai('ホロ表示、投影。'));
+      for (const [k, d] of [[.5, .05], [0, .08], [.8, .05], [.2, .1], [1, .2]]) { st.holo = k; snd(() => sTone({ f: 3400, dur: .03, type: 'sine', gain: .02 })); await pause(d); }
+      await ps(.3);
+    };
+    const ORDER = {
+      std: ['locks', 'toggles', 'breakers', 'dials', 'press', 'fan', 'acc', 'cells', 'seat', 'mask', 'con', 'cart', 'peri', 'gyro', 'radar', 'belt', 'weld', 'monitor', 'sides', 'scan', 'hud'],
+      goliath: ['locks', 'furnace', 'breakers', 'press', 'rams', 'acc', 'seat', 'con', 'belt', 'weld', 'monitor', 'sides', 'scan', 'hud'],
+      phantom: ['rings', 'con', 'toggles', 'holo', 'seat', 'blades', 'monitor', 'sides', 'gyro', 'radar', 'peri', 'hud', 'scan'],
+    };
+    for (const k of ORDER[TK]) await STEP[k]();
+
     // 13. screens power on one at a time: static first, then data
     sideOn = 1; snd(() => SFX.static(.8)); await ps(.6);
     sideOn = 2; snd(() => { for (let i = 0; i < 8; i++) sTone({ f: 900 + i * 120, dur: .04, type: 'square', gain: .02, at: i * .08 }); });
@@ -2759,7 +2885,9 @@ const CK = (() => {
     speed = 1;
   }
   function fast() { speed = 10; }
-  function instant() { Object.assign(st, { radar: 1, bel: 1, ctr: 1, strobe: 0, weld: 0, val: 0, tube: 1, chain: .2, cells: 1, leds: 1, shut: 1, jack: 1, tog: 8, brk: 4, dials: 1, fan: .3, drum: 0, acc: 1, mask: 0, cart: 1, peri: 1, gyro: 1, belt: 0, door: 0, bolt: 1, arm: 0, con: 1, red: .3, work: 1, sky: .06, seatZ: .32, seatY: .14, bars: 1, lids: 1, sticks: 1, r1: 0, r2: 0, sides: 1, lou: 1, cool: 1, scan: -1, glassY: 1, beacon: 0, gearSpd: .15, pist: .2, gauge: 1 }); st.black = 0; st.env = 1; lamps = true; sideOn = 2; drawScreen(['HULL-OS', 'QUICK START']); apply(0); }
+  function instant() { Object.assign(st, { radar: 1, bel: 1, ctr: 1, strobe: 0, weld: 0, val: 0, tube: 1, chain: .2, cells: 1, leds: 1, shut: 1, jack: 1, tog: 8, brk: 4, dials: 1, fan: .3, drum: 0, acc: 1, mask: 0, cart: 1, peri: 1, gyro: 1, belt: 0, door: 0, bolt: 1, arm: 0, con: 1, red: .3, work: 1, sky: .06, seatZ: .32, seatY: .14, bars: 1, lids: 1, sticks: 1, r1: 0, r2: 0, sides: 1, lou: 1, cool: 1, scan: -1, glassY: 1, beacon: 0, gearSpd: .15, pist: .2, gauge: 1 }); st.black = 0; st.env = 1; const tk = themeKey(); Object.assign(st, { furn: tk === 'goliath' ? 1 : 0, ram: tk === 'goliath' ? 1 : 0, ring: tk === 'phantom' ? 1 : 0, blades: tk === 'phantom' ? 1 : 0, holo: tk === 'phantom' ? 1 : 0, furnDoor: 0, ramP: 0 });
+    if (tk === 'goliath') Object.assign(st, { tog: 0, dials: 0, cells: 0, cart: 0, peri: 0, gyro: 0, radar: 0 }); if (tk === 'phantom') Object.assign(st, { bolt: 0, brk: 0, dials: 0, cells: 0, acc: 0, cart: 0, tube: 0, chain: 0, pist: 0, gearSpd: 0 });
+    lamps = true; sideOn = 2; drawScreen(['HULL-OS', 'QUICK START']); apply(0); }
   // ---- combat mode: cockpit stays around the pilot, the hatch opening turns into a big screen ----
   const ckScene = new THREE.Scene(), ckCam = new THREE.Object3D(); ckScene.add(ckCam);
   ckScene.add(new THREE.HemisphereLight(0xdfe8f0, 0x3a3428, .55)); const ckSun = new THREE.DirectionalLight(0xfff0d2, .5); ckSun.position.set(.4, 1, .3); ckScene.add(ckSun);
