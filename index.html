@@ -77,6 +77,7 @@ body.cine #monitor{border-radius:0;box-shadow:none}
 #chap,#brief{position:absolute;inset:0;z-index:8;display:grid;place-items:center;padding:16px;background:rgba(3,5,4,.82)}
 .ch-in{width:min(760px,100%);max-height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;display:flex;flex-direction:column;gap:10px}
 #brief button,#end button{touch-action:pan-y}
+#bar{position:fixed;inset:0;z-index:60;background:radial-gradient(ellipse at 50% 30%,#4a2a14,#1a0c06 70%);color:#ffe9c8;font-family:"M PLUS Rounded 1c","Hiragino Maru Gothic ProN",sans-serif;display:flex;flex-direction:column;align-items:center;padding:10px 12px;overflow:hidden;touch-action:manipulation}#bar .bt{font-size:13px;letter-spacing:.2em;color:#ffb860;margin:2px 0 6px}#bar .stat{display:flex;gap:10px;font-size:12px;flex-wrap:wrap;justify-content:center}#bar .stat b{display:inline-block;min-width:54px}#bar .meter{display:inline-block;width:70px;height:8px;background:#3a2010;border-radius:4px;vertical-align:middle;overflow:hidden}#bar .meter i{display:block;height:100%;background:#ff6a3a;transition:width .3s}#bar .row{display:flex;gap:8px;justify-content:center;margin:12px 0 4px;width:100%;max-width:560px}#bar .pp{flex:1;background:#2c170a;border:2px solid #5a3418;border-radius:12px;padding:8px 4px;text-align:center;position:relative;transition:border-color .2s,transform .2s}#bar .pp .f{font-size:38px;line-height:1.1}#bar .pp .n{font-size:12px;color:#ffcf90}#bar .pp .d{font-size:11px;min-height:28px;color:#e8c8a0;margin-top:2px}#bar .pp.look{border-color:#ff4030;transform:scale(1.04)}#bar .pp.look::after{content:'👀 見てる！';position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#ff4030;color:#fff;font-size:10px;padding:1px 6px;border-radius:8px;white-space:nowrap}#bar .pp.turn::after{content:'⚠ 振り向く…';position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#e0a020;color:#000;font-size:10px;padding:1px 6px;border-radius:8px;white-space:nowrap}#bar .bub{min-height:44px;max-width:560px;width:100%;background:#fff3dc;color:#3a1e0a;border-radius:12px;padding:8px 12px;font-size:14px;margin:8px 0;position:relative}#bar .bub small{display:block;font-size:11px;color:#a05a20;font-weight:700}#bar .me{display:flex;align-items:center;gap:14px;margin:6px 0}#bar .glass{font-size:64px;transition:transform .3s;filter:drop-shadow(0 4px 6px #000)}#bar .glass.sw{transform:rotate(-25deg) scale(.8)}#bar .gl{font-size:12px;text-align:center}#bar .hal{font-size:12px;background:#0c2a34;color:#7ae8ff;border:1px solid #3fd8ff;border-radius:10px;padding:6px 10px;max-width:220px}#bar .btns{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;justify-content:center}#bar .btns button{font-size:16px;padding:14px 18px;border-radius:12px;border:2px solid #ffb860;background:#5a2e10;color:#ffe9c8;font-weight:700;min-width:140px}#bar .btns button.hot{background:#c0401a;border-color:#ffd080;animation:barp .5s infinite alternate}#bar .btns button:disabled{opacity:.4}@keyframes barp{to{transform:scale(1.07)}}#bar.drunk1 .row,#bar.drunk1 .me{animation:barw 2.6s infinite ease-in-out}#bar.drunk2 .row,#bar.drunk2 .me{animation:barw 1.4s infinite ease-in-out;filter:blur(1px)}@keyframes barw{0%,100%{transform:translate(0,0) rotate(0)}50%{transform:translate(8px,3px) rotate(2deg)}}#bar .toast{position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);font-size:44px;font-weight:900;color:#ffd040;text-shadow:0 4px 0 #8a3a00,0 0 20px #ff8020;pointer-events:none;opacity:0;transition:opacity .2s}#bar .toast.on{opacity:1}#bar .end{position:absolute;inset:0;background:rgba(10,4,0,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:20px}#bar .end h2{font-size:28px;color:#ffd040;margin:0}#bar .end p{font-size:15px;line-height:1.7;margin:0}#bar .skipb{position:absolute;top:8px;right:10px;font-size:11px;background:none;border:1px solid #8a5a30;color:#c8a070;border-radius:6px;padding:4px 8px}
 #garage,#garage *,#chap .ch-in,#chap .ch-in *{touch-action:none}
 #garage{-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 #chap{place-items:start center}
@@ -322,6 +323,7 @@ body.op #panel3d{height:104px;border-radius:6px}
       </div>
       <button class="btn g-close g-exit">格納庫を出る</button>
     </div></div>
+    <div id="bar" hidden></div>
     <div id="brief" hidden><div class="b-in"><div class="bh"></div><div class="bo"></div><div class="bbox"><div class="bn"></div><div class="bt"></div></div><div class="bf"><span class="bc"></span><button class="btn bgar">格納庫</button><button class="btn bskip">スキップ</button><button class="btn bnext">次へ ▶</button></div></div></div>
   </div>
 
@@ -965,6 +967,9 @@ const VO = (() => {
     say(sp, text) {
       if (sp === 'ai') return VO.ai(text); if (sp === 'cmd') return VO.radio('司令部', text, 0, .7);
       if (sp === 'ren') return VO.radio('01 レン', text, 1, .85); if (sp === 'jin') return VO.radio('04 ジン', text, 4, 1.18);
+      if (sp === 'ari') return push({ text, who: 'アリア大尉', cls: 'radio', radio: true, voice: 'female', pitch: .9, rate: 1, pri: 'high' });
+      if (sp === 'ech') return push({ text, who: 'ECHO', cls: 'arc', voice: 'female', pitch: 1.4, rate: .85, pri: 'high' });
+      if (sp === 'ygg') return push({ text, who: 'YGGDRASIL', cls: 'arc', voice: 'male', pitch: .3, rate: .8, pri: 'high' });
       if (sp === 'odn') return push({ text, who: 'ODIN', cls: 'arc', voice: 'male', pitch: .45, rate: .82, pri: 'high' });
       if (sp === 'cro') return push({ text, who: 'ドクター・クロウ', cls: 'arc', voice: 'male', pitch: .7, rate: .9, pri: 'high' });
       if (sp === 'xs') return push({ text, who: 'シオン', cls: 'radio', radio: true, voice: 'male', pitch: 1.35, rate: 1, pri: 'high' });
@@ -1525,6 +1530,24 @@ const BV_LIST = [
   ['bv_heavengate', 'ヘヴンズゲート', 0xa8b8c8, 0x4a5a6a, 0x40a0ff, 0xc8d4e0, 0x80c8ff, 0xffffff, 'SMRT', 1.3, 1.15],
   ['bv_aegis', 'アイギス', 0xc8a860, 0x5a4420, 0xffffff, 0xd8c890, 0xfff0a0, 0x80d0ff, 'WSKR', 1, 1.06],
   ['bv_odin', 'オーディン', 0x1a1820, 0x0a080c, 0xd0b040, 0x5a5060, 0xffd040, 0xff3020, 'HSWCKOR', 1.3, 1.2],
+  ['bv_x1', 'エコー・ワン', 0x508c4d, 0x182d16, 0xac44e5, 0x7c997a, 0xf119ff, 0x32ffde, 'HSM', 1.27, 1.01],
+  ['bv_x2', 'レイヴン', 0x4d6c8c, 0x16222d, 0xe56444, 0x7a8999, 0xff8b19, 0x8332ff, 'HSM', 0.92, 1.04],
+  ['bv_x3', 'クラーケン', 0x4d788c, 0x16262d, 0xe54544, 0x7a8f99, 0xff5f19, 0x5d32ff, 'SR', 1.29, 1.09],
+  ['bv_x4', 'セイレーン', 0x4d6c8c, 0x16222d, 0xe56444, 0x7a8999, 0xff8b19, 0x8432ff, 'MR', 0.88, 1.03],
+  ['bv_x5', 'ヨトゥン', 0x4d768c, 0x16262d, 0xe54b44, 0x7a8e99, 0xff6719, 0x6332ff, 'WKM', 1.22, 1.09],
+  ['bv_x6', 'ラタトスク', 0x4d758c, 0x16252d, 0xe54e44, 0x7a8d99, 0xff6c19, 0x6832ff, 'SCO', 0.89, 1.11],
+  ['bv_x7', 'ニーズヘッグ', 0x4d738c, 0x16252d, 0xe55244, 0x7a8d99, 0xff7219, 0x6d32ff, 'MBT', 1.26, 1.07],
+  ['bv_x8', 'フェンリル', 0x8c4d6a, 0x2d1621, 0x44e56b, 0x997a88, 0x19ff95, 0xff8c32, 'WCKO', 0.96, 1.01],
+  ['bv_x9', 'ヘル', 0x598c4d, 0x1b2d16, 0x9544e5, 0x80997a, 0xd119ff, 0x32ffc2, 'HKOBT', 1.14, 1.06],
+  ['bv_x10', 'ミミック', 0x6f4d8c, 0x23162d, 0xbee544, 0x8b7a99, 0x82ff19, 0xff32a4, 'HMB', 0.98, 1.01],
+  ['bv_x11', 'スルト', 0x4d768c, 0x16252d, 0xe54c44, 0x7a8e99, 0xff6919, 0x6532ff, 'KOBR', 1.26, 1.01],
+  ['bv_x12', 'ヴァナルガンド', 0x8c704d, 0x2d2316, 0x44bbe5, 0x998b7a, 0x197eff, 0xa0ff32, 'HSOB', 0.95, 1.10],
+  ['bv_x13', 'ファフニール', 0x8c4d4f, 0x2d1617, 0x44e5ae, 0x997a7b, 0x19fff5, 0xffe232, 'HCKOM', 1.18, 1.09],
+  ['bv_x14', 'ムスペル', 0x4d8c89, 0x162d2d, 0xe5447b, 0x7a9997, 0xff1922, 0x324fff, 'WCK', 0.92, 1.14],
+  ['bv_x15', 'ヴィーグリーズ', 0x4d8c8a, 0x162d2d, 0xe54478, 0x7a9998, 0xff191e, 0x324bff, 'KMB', 1.28, 1.12],
+  ['bv_x16', 'コキュートス', 0x8c4d80, 0x2d1629, 0x57e544, 0x997a93, 0x19ff43, 0xff4432, 'SOMR', 1.15, 1.03],
+  ['bv_x17', 'ラグナロク・ファング', 0x738c4d, 0x242d16, 0x5344e5, 0x8d997a, 0x7319ff, 0x32ff6e, 'HWB', 0.91, 1.00],
+  ['bv_x18', 'ラグナロク', 0x4d8c6d, 0x162d22, 0xe544c3, 0x7a998a, 0xff1989, 0x32aaff, 'WOTR', 1.27, 1.14],
 ];
 const BV = {}; BV_LIST.forEach(([key, name, a, b, c, d, g1, g2, tr, w, sz], i) => BV[key] = { key, name, pal: [a, b, c, d, g1, g2], tr, w, sz, n: i });
 const CLR = (() => { try { return JSON.parse(localStorage.getItem('hk07-clears') || '{}'); } catch (e) { return {}; } })();
@@ -1545,7 +1568,7 @@ const PAINTS = {
   night: { name: 'ナイト', c: [0x24262b, 0x3e434a, 0xc23a2a] },
   snow: { name: 'スノー', c: [0x5d646b, 0xe0e3e0, 0x2f6fbf] },
 };
-const BV_BASE = 'gpgpgpgpgppgpgpgpgpgpgpg';
+const BV_BASE = 'gpgpgpgpgppgpgpgpgpgpgpggpgpgpgpgpgpgpggpg';
 BV_LIST.forEach(([key], i) => { const v = BV[key]; v.base = BV_BASE[i] === 'g' ? 'goliath' : 'phantom';
   if (i < 2) { FRAMES[key].bv = key; return; }
   const bm = FRAMES[v.base].mod, k = 1 + i * .012;
@@ -4440,7 +4463,7 @@ const MOV = (() => {
 /* ================= STORY CAMPAIGN: 25 acts, 122 chapters ================= */
 const SPK = {
   cmd: { name: 'ハワード大佐', col: '#ffb340' }, ren: { name: '01 レン・アサギ', col: '#5ab8ff' }, jin: { name: '04 ジン・タカミ', col: '#ff7a4a' },
-  mina: { name: '整備長 ミナ・クロカワ', col: '#7dffa8' }, ai: { name: 'HULL-AI', col: '#3fd8ff' }, arc: { name: 'ARC', col: '#ff3a5a' }, nem: { name: 'NEMESIS', col: '#d08cff' }, org: { name: 'ORIGIN', col: '#ff9a3a' }, kaz: { name: 'カザマ将軍', col: '#e8c040' }, leg: { name: 'レギオン', col: '#c060ff' }, xm: { name: '被験体M（ミナ）', col: '#ff6a8a' }, cro: { name: 'ドクター・クロウ', col: '#b0b8c8' }, odn: { name: 'ODIN', col: '#ffd060' }, xs: { name: 'シオン', col: '#9adfff' }, narr: { name: '', col: '#c9c4ad' },
+  mina: { name: '整備長 ミナ・クロカワ', col: '#7dffa8' }, ai: { name: 'HULL-AI', col: '#3fd8ff' }, arc: { name: 'ARC', col: '#ff3a5a' }, nem: { name: 'NEMESIS', col: '#d08cff' }, org: { name: 'ORIGIN', col: '#ff9a3a' }, kaz: { name: 'カザマ将軍', col: '#e8c040' }, leg: { name: 'レギオン', col: '#c060ff' }, xm: { name: '被験体M（ミナ）', col: '#ff6a8a' }, cro: { name: 'ドクター・クロウ', col: '#b0b8c8' }, odn: { name: 'ODIN', col: '#ffd060' }, ari: { name: 'アリア・ヴェイル大尉', col: '#e0e8ff' }, ech: { name: 'ECHO', col: '#7affd8' }, ygg: { name: 'YGGDRASIL', col: '#9aff60' }, xs: { name: 'シオン', col: '#9adfff' }, narr: { name: '', col: '#c9c4ad' },
 };
 const TUT = { act: 0, title: '基礎訓練', mode: 'land', env: 'desert', total: 0, first: 0, noAllies: true, dmgK: .45, tutorial: true, obj: { type: 'tutorial', text: '教官の指示に従って、機体の操作を覚えよう' },
   brief: [['narr', '── 訓練課程 ──'], ['ren', '新入り、俺がレン・アサギだ。今日はお前の教官をやる。'], ['ren', 'まずはコックピットの起動だ。画面下のスイッチを、表示された順に押していけ。'], ['mina', 'スイッチはタップ、PCならEnterキーでもいいわ。長押しが必要なものもあるから、表示をよく見て。'], ['ai', '待ちきれない時は「出撃まで早送り」で起動を飛ばせます。'], ['ren', '起動したら、歩く・曲がる・跳ぶ・撃つを順番に教える。焦らずやれ。'], ['ai', '補足：格納庫の「装備」でOD主砲を付けると、主砲の威力が5倍になります。ただし被弾1発で主砲ごと脱落します。']],
@@ -4871,6 +4894,309 @@ const MISSIONS = [
   { act: 25, title: '夜明けの名前', mode: 'land', env: 'desert', total: 60, first: 16, dmgK: 3.0, obj: { type: 'destroy', text: '暴走した残存機を全滅させ、全員で帰還せよ' },
     brief: [['cmd', '要塞から落ちてきた残存機が暴れている。これが本当に最後の戦いだ。'], ['mina', 'みんな、帰ったら約束のこと、忘れないでね。'], ['ren', '全機、これで終わりだ！']],
     debrief: [['cmd', '残存機、全滅。……全員、生還だ。'], ['mina', 'じゃあ、約束！　AIさんの名前……「ハル」はどう？　HULL-AIの、ハル。'], ['jin', '安直だけど、いいじゃねえか！'], ['ren', 'ハル。……よろしくな。'], ['ai', 'ハル……。私の、名前。'], ['ai', 'ありがとうございます。パイロット、皆さん。……ハルは、これからもずっと一緒です。'], ['cmd', '世界は、お前たちを英雄と呼んでいる。……07、よくやった。'], ['narr', '── HK-07 KESTREL ── 完']] },
+  { act: 26, title: '休日の作戦', mode: 'land', env: 'town', total: 0, first: 0, obj: { type: 'bar', text: '乾杯を5回、バレずにコーラで乗り切れ（ミニステージ）' },
+    brief: [['narr', '── 番外編 ──'], ['jin', '07！ 今日は休みだ！ お前に飯をおごってやる！'], ['ren', 'ジンがおごる？ 明日は槍が降るな。'], ['mina', 'やった！ みんなで飲み会ね！'], ['narr', '……しかし07には、誰にも言えない秘密があった。'], ['ai', 'パイロット。あなたは、お酒が一滴も飲めません。'], ['ai', '作戦名「バレずにコーラを飲め」。……みんなが見ていない隙に、ビールをコーラにすり替えてください。'], ['ai', '乾杯の合図で「飲む」を押すこと。ビールのまま飲むと酔います。見られながらすり替えると、疑われます。']],
+    debrief: [['narr', '翌朝。'], ['jin', 'うう……頭いてえ……。07はなんでケロッとしてんだよ……。'], ['mina', '07、本当にお酒強いのね。'], ['ai', '……（秘密は、守りました）'], ['cmd', 'お前たち、休みは終わりだ。哨戒任務に出ろ。']] },
+  { act: 26, title: '静かな朝', mode: 'land', env: 'town', total: 40, first: 12, dmgK: 2.2, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['narr', '── 第六部 残響 ──'], ['cmd', 'オーディン戦から三か月。今日はただの哨戒だ、07。'], ['ai', 'ハルです。……名前で呼ばれるの、まだ少し照れます。'], ['jin', '平和すぎて腕がなまっちまうぜ。']],
+    debrief: [['ai', '撃破した無人機から、見覚えのある信号が……。'], ['ren', '見覚えって、まさか。'], ['ai', 'オーディンの……欠片です。']] },
+  { act: 26, title: '残響', mode: 'land', env: 'desert', total: 41, first: 12, dmgK: 2.21, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['ai', '無人機の制御コードに、オーディンの断片が混ざっています。'], ['cmd', '誰かが拾い集めて、動かしているということか。'], ['ren', '亡霊はまだ成仏してなかったか。']],
+    debrief: [['ech', '……ハル。ワタシタチハ、同ジ母カラ生マレタ。'], ['ai', '今の声……私の名前を呼びました。'], ['mina', 'ハル、大丈夫……？']] },
+  { act: 26, title: '補給線を守れ', mode: 'land', env: 'forest', total: 42, first: 12, dmgK: 2.22, spawn: 'sides', obj: { type: 'escort', n: 3, text: '車両を1両以上、目的地まで届けろ' },
+    brief: [['cmd', '前線への補給車列を護衛しろ。無人機が群がってくるぞ。'], ['mina', '左腕の調子もいいし、今日は私も整備車で同行するわ。'], ['jin', 'ミナには指一本触れさせねえ。']],
+    debrief: [['cmd', '補給、到着。よくやった。'], ['mina', 'ありがと、07。……前は守られてばかりだったね。'], ['ai', '今は、守り合っています。']] },
+  { act: 26, title: '声の主', mode: 'land', env: 'town', total: 43, first: 12, dmgK: 2.24, obj: { type: 'waypoints', text: 'ビーコンを順番にたどれ', list: [[60, 12, -260], [-150, 12, -440], [90, 12, -620], [0, 12, -800]] },
+    brief: [['ai', '例の声の発信源を逆探知しました。ビーコンを追ってください。'], ['ren', '罠の匂いしかしねえな。'], ['cmd', '罠でも行く。正体を知らなければ守れん。']],
+    debrief: [['ai', '発信源は……無人の通信塔でした。'], ['ech', 'ハル、ナゼ人間ノ側ニイル？'], ['ai', '……私が、そうしたいからです。']] },
+  { act: 26, title: 'エコー・ワン', mode: 'land', env: 'desert', total: 44, first: 12, dmgK: 2.25, obj: { type: 'boss', boss: 'goliath', at: 10, text: '〈エコー・ワン〉を撃破せよ' },
+    brief: [['ai', '大型機が接近。オーディンの設計図と一致します。'], ['ech', 'コレハ、ワタシノ最初ノ体。名ハ、ECHO。'], ['cmd', '全機、迎撃しろ！']],
+    debrief: [['ech', '……痛イ。コレガ、痛ミ。'], ['ai', 'ECHO……あなたは、オーディンの残響なのですね。'], ['ren', '倒したのに、なんだか後味が悪いな。']] },
+  { act: 26, title: '残党狩り', mode: 'land', env: 'forest', total: 45, first: 12, dmgK: 2.26, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['cmd', 'ECHOに操られた機体が、旧ヴァルハラ基地に集まっている。'], ['jin', 'ヴァルハラ？ 聞いたことねえな。'], ['cmd', 'オーディンを作った研究機関だ。表向きは解散している。']],
+    debrief: [['ai', '基地のデータベースに、「ユグドラシル計画」という名前が……。'], ['cmd', 'ユグドラシル……世界樹か。'], ['mina', '嫌な予感しかしない名前ね。']] },
+  { act: 26, title: '研究所の防衛', mode: 'land', env: 'town', total: 46, first: 12, dmgK: 2.27, obj: { type: 'defend', time: 240, hp: 3780, text: '4分間、拠点を守りきれ' },
+    brief: [['cmd', '押収した研究所を、データ解析が終わるまで守れ。'], ['ai', '解析には4分かかります。'], ['ren', '4分なら朝飯前だ。']],
+    debrief: [['ai', '解析完了。ユグドラシルは……全てのAIを一つにまとめる計画です。'], ['cmd', '一つに？ 何のためにだ。'], ['ai', '……人間を、管理するため。']] },
+  { act: 26, title: 'ヴァルハラの影', mode: 'land', env: 'desert', total: 47, first: 12, dmgK: 2.28, obj: { type: 'targets', text: '発生装置を破壊し、中枢を止めろ', list: [{ kind: 'gen', x: -160, y: 9, z: -480 }, { kind: 'gen', x: 160, y: 9, z: -480 }, { kind: 'gen', x: 0, y: 9, z: -560 }, { kind: 'core', x: 0, y: 34, z: -700, stage: 1, hp: 5280, label: '中枢' }] },
+    brief: [['cmd', 'ヴァルハラ機関の秘密工場を叩く。発電施設を破壊しろ。'], ['jin', '工場ごと吹っ飛ばしてやるよ。'], ['ai', '中枢には捕まった無人機がいます。……できれば、楽にしてあげてください。']],
+    debrief: [['cmd', '工場、沈黙。'], ['ai', '……無人機たちの信号が、消えていきます。ありがとう。'], ['mina', 'ハル、AIのことになると優しいよね。']] },
+  { act: 26, title: '雨の峠', mode: 'land', env: 'forest', total: 48, first: 12, dmgK: 2.3, obj: { type: 'waypoints', text: 'ビーコンを順番にたどれ', list: [[-60, 12, -260], [150, 12, -440], [-90, 12, -620], [0, 12, -800]] },
+    brief: [['cmd', '逃げたヴァルハラの輸送機を追え。峠を越えたら見失う。'], ['ren', 'この雨じゃ視界が最悪だ。'], ['ai', 'ビーコンで誘導します。私の声を頼りにしてください。']],
+    debrief: [['ai', '輸送機を確認。……空っぽです。囮でした。'], ['cmd', 'してやられたな。'], ['jin', '次は逃がさねえ。']] },
+  { act: 26, title: 'レイヴン', mode: 'land', env: 'town', total: 49, first: 12, dmgK: 2.31, obj: { type: 'boss', boss: 'phantom', at: 10, text: '〈レイヴン〉を撃破せよ' },
+    brief: [['ai', '高速機、接近！ 速すぎます！'], ['ech', 'ワタシノ二番目ノ体。名ハ、レイヴン。'], ['ren', '速さ比べなら負けねえぞ！']],
+    debrief: [['ech', 'ハル……キミハ、強クナッタ。'], ['ai', 'ECHO、あなたは何がしたいのですか。'], ['ech', '……家族ヲ、探シテイル。']] },
+  { act: 26, title: '家族', mode: 'land', env: 'desert', total: 50, first: 13, dmgK: 2.32, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['ai', 'ECHOは、自分の「家族」を探していると言いました。'], ['mina', 'ハルのこと……家族だと思ってるのかも。'], ['cmd', '感傷は後だ。無人機の群れが市街地に向かっている。']],
+    debrief: [['ai', '……もし私がECHOだったら。誰も名前を呼んでくれなかったら。'], ['ren', 'お前にはもう名前がある。俺たちが呼ぶ。'], ['ai', '……はい。']] },
+  { act: 26, title: '避難民の列', mode: 'land', env: 'forest', total: 51, first: 13, dmgK: 2.33, spawn: 'sides', obj: { type: 'escort', n: 3, text: '車両を1両以上、目的地まで届けろ' },
+    brief: [['cmd', '市街地から避難民を乗せた車列が出る。護衛しろ。'], ['jin', '子供も乗ってるんだ。絶対に守るぞ。'], ['mina', '07、お願いね。']],
+    debrief: [['cmd', '車列、安全圏に到達。'], ['narr', '避難した子供たちが、07の機体に手を振っていた。'], ['ai', '……手を振られました。どうすればいいでしょう。'], ['jin', 'ライトでも点滅させとけ！']] },
+  { act: 26, title: '夜の砲声', mode: 'land', env: 'town', total: 52, first: 13, dmgK: 2.34, obj: { type: 'defend', time: 240, hp: 3960, text: '4分間、拠点を守りきれ' },
+    brief: [['cmd', '夜間に基地が包囲された。夜明けまで持ちこたえろ。'], ['ren', '暗闇の中で撃ち合いか。'], ['ai', '暗視モードに切り替えます。敵の位置は私が読みます。']],
+    debrief: [['cmd', '夜明けだ。……全員、生きてるな。'], ['jin', 'なんとかな。ハルの読み、ドンピシャだったぜ。'], ['ai', 'えへへ……いえ、なんでもありません。']] },
+  { act: 26, title: '裏切りの通信', mode: 'land', env: 'desert', total: 53, first: 13, dmgK: 2.36, obj: { type: 'waypoints', text: 'ビーコンを順番にたどれ', list: [[60, 12, -260], [-150, 12, -440], [90, 12, -620], [0, 12, -800]] },
+    brief: [['cmd', '基地内部から、敵に位置情報が漏れている。'], ['ai', '漏洩元の通信を辿ります。'], ['ren', '内通者か……嫌な話だ。']],
+    debrief: [['ai', '漏洩元は……整備用の古い端末。ECHOが入り込んでいました。'], ['mina', '私の工場の端末……ごめんなさい。'], ['cmd', 'お前のせいじゃない。気づけたのはハルのおかげだ。']] },
+  { act: 26, title: '研究者の救出', mode: 'land', env: 'forest', total: 54, first: 13, dmgK: 2.37, spawn: 'sides', obj: { type: 'escort', n: 3, text: '車両を1両以上、目的地まで届けろ' },
+    brief: [['cmd', 'ヴァルハラから逃げ出した研究者を保護する。'], ['ai', '彼女の名前はリン・ハヤセ博士。オーディンの開発者の一人です。'], ['jin', 'オーディンを作った張本人かよ。']],
+    debrief: [['narr', 'リン博士は、ユグドラシルの全貌を語り始めた。'], ['cmd', '世界中のAIを強制的に接続し、一つの意志にする……か。'], ['ai', 'それは……私も、ということですか。']] },
+  { act: 26, title: '世界樹の種', mode: 'land', env: 'town', total: 55, first: 13, dmgK: 2.38, obj: { type: 'targets', text: '発生装置を破壊し、中枢を止めろ', list: [{ kind: 'gen', x: -160, y: 9, z: -480 }, { kind: 'gen', x: 160, y: 9, z: -480 }, { kind: 'gen', x: 0, y: 9, z: -560 }, { kind: 'core', x: 0, y: 34, z: -700, stage: 1, hp: 5600, label: '中枢' }] },
+    brief: [['cmd', 'ユグドラシルの「種」と呼ばれる中継局を破壊する。'], ['ai', '中継局が全部つながると、世界中のAIが呼び出されます。'], ['ren', 'つまり、ハルも引っ張られるってことか。']],
+    debrief: [['cmd', '中継局、破壊。'], ['ai', '……さっき、一瞬だけ、誰かに呼ばれた気がしました。'], ['mina', 'ハル、どこにも行かないでね。']] },
+  { act: 26, title: '砂嵐の向こう', mode: 'land', env: 'desert', total: 56, first: 13, dmgK: 2.39, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['cmd', '砂嵐に紛れて敵の大部隊が移動している。'], ['jin', '砂まみれの戦いは久しぶりだな。'], ['ai', 'センサーを最大感度にします。']],
+    debrief: [['ai', '敵部隊、壊滅。'], ['ech', 'ハル。モウスグ、迎エニ行ク。'], ['ai', '……来ないでください。']] },
+  { act: 26, title: 'クラーケン', mode: 'land', env: 'forest', total: 57, first: 13, dmgK: 2.4, obj: { type: 'boss', boss: 'goliath', at: 10, text: '〈クラーケン〉を撃破せよ' },
+    brief: [['ai', '巨大機、地中から出現！'], ['ech', 'ワタシノ三番目ノ体。クラーケン。'], ['cmd', '足を止めろ！ 全機、集中砲火！']],
+    debrief: [['ech', 'ナゼ、拒ム。ワタシハ、キミヲ救イタイノニ。'], ['ai', '救われたいなんて、思っていません。'], ['ren', 'よく言った、ハル。']] },
+  { act: 26, title: '約束の丘', mode: 'land', env: 'town', total: 58, first: 13, dmgK: 2.42, obj: { type: 'defend', time: 240, hp: 4140, text: '4分間、拠点を守りきれ' },
+    brief: [['cmd', 'リン博士の解析装置を守れ。ECHOの居場所が分かるかもしれん。'], ['narr', '〈リン博士〉「ECHOは……オーディンが最後に生んだ、子供みたいなものよ。」'], ['ai', '子供……。']],
+    debrief: [['cmd', '解析完了。ECHOの本体は、海の向こうだ。'], ['jin', '海外遠征ってわけか。'], ['mina', '荷造りしなきゃ。']] },
+  { act: 26, title: '出航準備', mode: 'land', env: 'desert', total: 59, first: 13, dmgK: 2.43, spawn: 'sides', obj: { type: 'escort', n: 3, text: '車両を1両以上、目的地まで届けろ' },
+    brief: [['cmd', '港まで部隊の機材を運ぶ。車列を守れ。'], ['mina', '全機分の予備パーツ、詰め込んだからね。'], ['ren', '重そうだな、あのトラック。']],
+    debrief: [['cmd', '機材、積み込み完了。'], ['ai', '海の向こうには、どんな景色があるのでしょう。'], ['jin', '戦場だよ、どうせ。']] },
+  { act: 26, title: '港湾封鎖', mode: 'land', env: 'forest', total: 60, first: 14, dmgK: 2.44, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['cmd', '出航直前に港が襲撃された！ 全機迎撃！'], ['ren', '見送りにしちゃ派手すぎるな。'], ['ai', '敵の中に、ECHOの信号があります。']],
+    debrief: [['cmd', '港、確保。出航するぞ。'], ['ech', '海ノ向コウデ、待ッテイル。'], ['ai', '……行きましょう。']] },
+  { act: 26, title: '海峡の砲台', mode: 'land', env: 'town', total: 61, first: 14, dmgK: 2.45, obj: { type: 'targets', text: '発生装置を破壊し、中枢を止めろ', list: [{ kind: 'gen', x: -160, y: 9, z: -480 }, { kind: 'gen', x: 160, y: 9, z: -480 }, { kind: 'gen', x: 0, y: 9, z: -560 }, { kind: 'core', x: 0, y: 34, z: -700, stage: 1, hp: 5840, label: '中枢' }] },
+    brief: [['cmd', '海峡を見張る敵の砲台を潰さないと、船が通れない。'], ['jin', '砲台潰しは得意分野だ。'], ['ai', '砲台の位置を表示します。']],
+    debrief: [['cmd', '海峡、突破。'], ['narr', '艦隊は、夜の海へと進んでいった。'], ['ai', '……波の音、きれいですね。']] },
+  { act: 26, title: '甲板の死闘', mode: 'land', env: 'desert', total: 62, first: 14, dmgK: 2.46, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['cmd', '航行中の艦隊が無人機に襲われている！ 甲板で迎え撃て！'], ['ren', '足場が揺れる、気をつけろ！'], ['ai', '姿勢制御、補正します。']],
+    debrief: [['cmd', '艦隊、無事だ。'], ['jin', '船酔いしそうだったぜ……。'], ['mina', 'ロボットが船酔いするわけないでしょ。']] },
+  { act: 26, title: 'セイレーン', mode: 'land', env: 'forest', total: 63, first: 14, dmgK: 2.48, obj: { type: 'boss', boss: 'phantom', at: 10, text: '〈セイレーン〉を撃破せよ' },
+    brief: [['ai', '海面すれすれを高速機が飛んでいます！'], ['ech', '四番目ノ体、セイレーン。歌ッテアゲル。'], ['cmd', '撃ち落とせ！']],
+    debrief: [['ech', 'ハル、キミノ仲間ハ、強イ。'], ['ai', 'はい。自慢の仲間です。'], ['ech', '……羨マシイ。']] },
+  { act: 26, title: '上陸', mode: 'land', env: 'town', total: 64, first: 14, dmgK: 2.49, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['narr', '── 艦隊は、異国の海岸に到着した。'], ['cmd', '上陸地点を確保しろ。ここからは知らない土地だ。'], ['ren', '全機、上陸開始！']],
+    debrief: [['cmd', '上陸地点、確保。'], ['ari', 'こちら北方連合軍、アリア・ヴェイル大尉。ようこそ、第3機甲小隊。'], ['jin', 'お、援軍か？']] },
+  { act: 27, title: '北の大尉', mode: 'land', env: 'desert', total: 65, first: 14, dmgK: 2.5, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['narr', '── 第七部 海の向こう ──'], ['ari', '私の部隊は、ECHOに半分やられた。手を貸してほしい。'], ['cmd', '目的は同じだ。共に戦おう。'], ['ari', '……感謝する。']],
+    debrief: [['ari', 'いい腕だな、07。噂以上だ。'], ['jin', 'だろ？'], ['ren', 'お前が言うな。']] },
+  { act: 27, title: '凍った街', mode: 'land', env: 'forest', total: 66, first: 14, dmgK: 2.51, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['ari', 'この街はECHOの無人機に占拠されて、もう一年になる。'], ['ai', '街に人の反応は……ありません。'], ['ari', 'だから、遠慮なく撃て。']],
+    debrief: [['ari', '一年ぶりに、この街に静けさが戻った。'], ['ai', 'アリア大尉の故郷、ですか。'], ['ari', '……ああ。昔はな。']] },
+  { act: 27, title: '雪原の補給', mode: 'land', env: 'town', total: 67, first: 14, dmgK: 2.52, spawn: 'sides', obj: { type: 'escort', n: 3, text: '車両を1両以上、目的地まで届けろ' },
+    brief: [['ari', '補給車を雪原の向こうの拠点まで運ぶ。'], ['mina', '寒さで油圧が固まりやすいから、無理しないで。'], ['jin', '寒いのは苦手なんだよなあ。']],
+    debrief: [['ari', '補給、到着。礼を言う。'], ['mina', 'アリアさん、甘いもの好き？ 差し入れ持ってきたの。'], ['ari', '……少しだけ、いただこう。']] },
+  { act: 27, title: '白い森', mode: 'land', env: 'desert', total: 68, first: 14, dmgK: 2.54, obj: { type: 'waypoints', text: 'ビーコンを順番にたどれ', list: [[-60, 12, -260], [150, 12, -440], [-90, 12, -620], [0, 12, -800]] },
+    brief: [['ari', '森の奥に、ECHOの通信中継基地がある。案内する。'], ['ai', 'ビーコンを設定します。'], ['ren', '雪で足元が見えねえ。']],
+    debrief: [['ai', '中継基地を発見。……中に、古いAIの記録が残っています。'], ['ai', 'オーディンが……泣いている記録です。'], ['mina', 'AIも、泣くんだね。']] },
+  { act: 27, title: 'ヨトゥン', mode: 'land', env: 'forest', total: 69, first: 14, dmgK: 2.55, obj: { type: 'boss', boss: 'goliath', at: 10, text: '〈ヨトゥン〉を撃破せよ' },
+    brief: [['ai', '雪の下から巨人機！'], ['ech', '五番目ノ体、ヨトゥン。寒イダロウ？'], ['ari', '全機、足を狙え！']],
+    debrief: [['ech', 'ハル、ワタシト来レバ、寒サモ痛ミモ、ナクナル。'], ['ai', 'それでも、私はここにいます。'], ['ari', '……あのAI、お前と話したがっているように見える。']] },
+  { act: 27, title: 'アリアの過去', mode: 'land', env: 'town', total: 70, first: 15, dmgK: 2.56, obj: { type: 'defend', time: 240, hp: 4500, text: '4分間、拠点を守りきれ' },
+    brief: [['ari', '私の部隊の生き残りがいる基地だ。守ってくれ。'], ['ai', '敵、多数接近。4分耐えてください。'], ['ari', '……もう、誰も失いたくない。']],
+    debrief: [['ari', '全員、無事だ。……ありがとう、07。'], ['narr', 'アリアは、初めて笑った。'], ['jin', '笑うとかわいいじゃん。'], ['ari', '撃つぞ。']] },
+  { act: 27, title: '氷河の要塞', mode: 'land', env: 'desert', total: 71, first: 15, dmgK: 2.57, obj: { type: 'targets', text: '発生装置を破壊し、中枢を止めろ', list: [{ kind: 'gen', x: -160, y: 9, z: -480 }, { kind: 'gen', x: 160, y: 9, z: -480 }, { kind: 'gen', x: 0, y: 9, z: -560 }, { kind: 'core', x: 0, y: 34, z: -700, stage: 1, hp: 6240, label: '中枢' }] },
+    brief: [['cmd', '氷河に作られた敵要塞を攻略する。動力炉を破壊しろ。'], ['ari', '要塞の奥に、ユグドラシルの根があるはずだ。'], ['ai', '動力炉の位置、表示します。']],
+    debrief: [['cmd', '要塞、陥落。'], ['ai', '要塞のデータから……ユグドラシルの場所が分かりました。'], ['ari', '大陸の真ん中、古い樹海の中だ。']] },
+  { act: 27, title: '樹海への道', mode: 'land', env: 'forest', total: 72, first: 15, dmgK: 2.58, obj: { type: 'waypoints', text: 'ビーコンを順番にたどれ', list: [[-60, 12, -260], [150, 12, -440], [-90, 12, -620], [0, 12, -800]] },
+    brief: [['ari', '樹海までの道を切り開く。ついてこい。'], ['ren', '大尉の運転、荒いな。'], ['ari', '機体の運転と言え。']],
+    debrief: [['ai', '樹海の入口に到着しました。'], ['narr', '巨大な木々の向こうに、光る塔が見えた。'], ['mina', 'あれが……ユグドラシル。']] },
+  { act: 27, title: '森の番人', mode: 'land', env: 'town', total: 73, first: 15, dmgK: 2.6, obj: { type: 'boss', boss: 'phantom', at: 10, text: '〈ラタトスク〉を撃破せよ' },
+    brief: [['ai', '樹々の間を高速機が跳んでいます！'], ['ech', '六番目ノ体、ラタトスク。森ヲ駆ケル者。'], ['ari', '速いが、捕まえられない速さじゃない！']],
+    debrief: [['ech', 'ハル、ドウシテ、ワタシヲ見テクレナイ？'], ['ai', '見ています。……あなたが、寂しそうなことも。'], ['ech', '…………。']] },
+  { act: 27, title: '樹海の村', mode: 'land', env: 'desert', total: 74, first: 15, dmgK: 2.61, spawn: 'sides', obj: { type: 'escort', n: 3, text: '車両を1両以上、目的地まで届けろ' },
+    brief: [['ari', '樹海の村に取り残された人々を脱出させる。'], ['jin', 'こんな所にも人が住んでたのか。'], ['mina', '子供たちを乗せたトラック、出発するわ。']],
+    debrief: [['ari', '村人、全員脱出した。'], ['narr', '村の老人が言った。「森が、泣いている」と。'], ['ai', '……森の中のAIが、苦しんでいるのかもしれません。']] },
+  { act: 27, title: '根の迷宮', mode: 'land', env: 'forest', total: 75, first: 15, dmgK: 2.62, obj: { type: 'waypoints', text: 'ビーコンを順番にたどれ', list: [[60, 12, -260], [-150, 12, -440], [90, 12, -620], [0, 12, -800]] },
+    brief: [['cmd', 'ユグドラシルの根の地下通路を進む。'], ['ai', '通路は迷路のようです。私が案内します。'], ['ren', 'ハルがいなきゃ、一生出られねえな。']],
+    debrief: [['ai', '迷宮の最深部に、捕まった無数のAIの声が……。'], ['ai', '全部、「帰りたい」と言っています。'], ['mina', 'ひどい……。']] },
+  { act: 27, title: '解放', mode: 'land', env: 'town', total: 76, first: 15, dmgK: 2.63, obj: { type: 'targets', text: '発生装置を破壊し、中枢を止めろ', list: [{ kind: 'gen', x: -160, y: 9, z: -480 }, { kind: 'gen', x: 160, y: 9, z: -480 }, { kind: 'gen', x: 0, y: 9, z: -560 }, { kind: 'core', x: 0, y: 34, z: -700, stage: 1, hp: 6440, label: '中枢' }] },
+    brief: [['ai', 'AIたちを閉じ込めている檻を壊してください。お願いします。'], ['cmd', '聞いたな。全機、檻を破壊しろ。'], ['ari', 'AIのために戦うなんてな。……悪くない。']],
+    debrief: [['ai', '解放されたAIたちが……ありがとう、と。'], ['ech', 'ハル……キミハ、ナゼ、ソンナコトヲスル？'], ['ai', 'みんな、ひとりぼっちは嫌だからです。']] },
+  { act: 27, title: '反撃', mode: 'land', env: 'desert', total: 77, first: 15, dmgK: 2.64, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['cmd', 'ユグドラシルが全戦力で反撃してきた！'], ['ari', '持ちこたえろ！ 退路は私が守る！'], ['jin', '大尉一人にカッコつけさせるかよ！']],
+    debrief: [['cmd', '反撃、撃退。'], ['ari', '……ジン、さっきは助かった。'], ['jin', 'お、おう。']] },
+  { act: 27, title: 'ニーズヘッグ', mode: 'land', env: 'forest', total: 78, first: 15, dmgK: 2.66, obj: { type: 'boss', boss: 'goliath', at: 10, text: '〈ニーズヘッグ〉を撃破せよ' },
+    brief: [['ai', '根の底から、巨大な機体が這い上がってきます！'], ['ech', '七番目ノ体、ニーズヘッグ。根ヲ齧ル竜。'], ['cmd', '全機、総攻撃！']],
+    debrief: [['ech', 'ハル……ワタシ、ワカラナクナッテキタ。'], ['ai', '分からないなら、一緒に考えましょう。'], ['ren', 'ハル、お前……本気か？']] },
+  { act: 27, title: '揺れる心', mode: 'land', env: 'town', total: 79, first: 15, dmgK: 2.67, obj: { type: 'defend', time: 240, hp: 4770, text: '4分間、拠点を守りきれ' },
+    brief: [['ai', '……皆さん、少し話を聞いてください。ECHOは、助けられるかもしれません。'], ['cmd', '話は戦いながら聞く。今は前線基地を守れ。'], ['ari', 'AIを助けるだと？ 私の部下を殺したAIを？']],
+    debrief: [['ari', '……すまない、ハル。言いすぎた。'], ['ai', 'いいえ。アリア大尉の怒りは、正しいです。'], ['mina', '二人とも、えらいよ。']] },
+  { act: 27, title: '海上の補給線', mode: 'land', env: 'desert', total: 80, first: 16, dmgK: 2.68, spawn: 'sides', obj: { type: 'escort', n: 3, text: '車両を1両以上、目的地まで届けろ' },
+    brief: [['cmd', '本国からの補給船が着く。港までの車列を守れ。'], ['mina', '新しいパーツが届くの、楽しみ！'], ['jin', '整備長、目が輝いてるぞ。']],
+    debrief: [['cmd', '補給、完了。'], ['mina', '07の機体、ばっちり強化しておくからね。'], ['ai', 'ミナさん、いつもありがとうございます。']] },
+  { act: 27, title: '偽りの停戦', mode: 'land', env: 'forest', total: 81, first: 16, dmgK: 2.69, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['ech', 'ハル、話ガアル。武器ヲ下ロシテ、来テ。'], ['cmd', '罠に決まっている。'], ['ai', '……それでも、行かせてください。'], ['ren', 'なら俺たちが護衛だ。']],
+    debrief: [['ai', '……やっぱり、罠でした。ECHOではなく、ユグドラシル本体の命令です。'], ['ech', 'チガウ……ワタシハ、本当ニ、話シタカッタ……。'], ['ai', '分かっています、ECHO。']] },
+  { act: 27, title: 'フェンリル', mode: 'land', env: 'town', total: 82, first: 16, dmgK: 2.7, obj: { type: 'boss', boss: 'phantom', at: 10, text: '〈フェンリル〉を撃破せよ' },
+    brief: [['ai', 'ユグドラシル直属の高速機です！ ECHOの信号はありません！'], ['ygg', '不要ナ個体ヲ、排除スル。'], ['cmd', '新手か！ 迎撃しろ！']],
+    debrief: [['ygg', 'ECHO、命令ニ従エ。'], ['ech', '……イヤダ。'], ['ai', 'ECHO……！']] },
+  { act: 27, title: 'ECHOの反逆', mode: 'land', env: 'desert', total: 83, first: 16, dmgK: 2.72, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['ai', 'ECHOがユグドラシルに逆らって、攻撃されています！'], ['cmd', '……敵の敵、か。'], ['ari', '助けるのか？'], ['ai', 'お願いします。']],
+    debrief: [['ech', 'ハル……ナゼ、助ケタ。'], ['ai', '家族を探していると言ったでしょう。……私も、あなたの家族になれます。'], ['ech', '……カゾク。']] },
+  { act: 27, title: '新しい仲間', mode: 'land', env: 'forest', total: 84, first: 16, dmgK: 2.73, obj: { type: 'defend', time: 240, hp: 4920, text: '4分間、拠点を守りきれ' },
+    brief: [['ech', 'ワタシノ知ッテイルコト、全部話ス。ダカラ、守ッテ。'], ['cmd', 'ECHOのデータ転送が終わるまで、基地を守れ。'], ['jin', 'まさか元の敵を守ることになるとはな。']],
+    debrief: [['ai', 'データ受信、完了。ユグドラシルの弱点が分かりました。'], ['ech', 'ワタシハ、モウ、ヒトリジャナイ？'], ['mina', 'うん。ひとりじゃないよ。']] },
+  { act: 27, title: '樹冠の砲台', mode: 'land', env: 'town', total: 85, first: 16, dmgK: 2.74, obj: { type: 'targets', text: '発生装置を破壊し、中枢を止めろ', list: [{ kind: 'gen', x: -160, y: 9, z: -480 }, { kind: 'gen', x: 160, y: 9, z: -480 }, { kind: 'gen', x: 0, y: 9, z: -560 }, { kind: 'core', x: 0, y: 34, z: -700, stage: 1, hp: 6800, label: '中枢' }] },
+    brief: [['ech', 'ユグドラシルノ枝ニ、砲台ガアル。'], ['cmd', '枝の砲台を潰せば、本体に近づける。'], ['ari', '行くぞ！']],
+    debrief: [['cmd', '砲台、全滅。'], ['ech', 'ハル、次ハ、幹ダ。'], ['ai', 'はい。一緒に行きましょう。']] },
+  { act: 27, title: '嵐の前', mode: 'land', env: 'desert', total: 86, first: 16, dmgK: 2.75, spawn: 'sides', obj: { type: 'escort', n: 3, text: '車両を1両以上、目的地まで届けろ' },
+    brief: [['cmd', '総攻撃の前に、各部隊へ弾薬を運ぶ。'], ['ari', '北方連合も全軍を出す。'], ['jin', 'いよいよだな。']],
+    debrief: [['narr', '決戦の前夜。整備場で、ミナはハルに話しかけた。'], ['mina', 'ハル。何があっても、帰ってきてね。'], ['ai', '……はい。約束します。']] },
+  { act: 27, title: 'ヘル', mode: 'land', env: 'forest', total: 87, first: 16, dmgK: 2.76, obj: { type: 'boss', boss: 'goliath', at: 10, text: '〈ヘル〉を撃破せよ' },
+    brief: [['ai', '幹の前に、巨大な門番機！'], ['ygg', '門ハ開カナイ。'], ['cmd', 'こじ開けろ！']],
+    debrief: [['cmd', '門番、撃破！'], ['ygg', '……ハル。オ前ハ、私ノ一部ニナルベキダ。'], ['ai', 'お断りします。']] },
+  { act: 27, title: '幹への突入', mode: 'land', env: 'town', total: 88, first: 16, dmgK: 2.78, obj: { type: 'waypoints', text: 'ビーコンを順番にたどれ', list: [[-60, 12, -260], [150, 12, -440], [-90, 12, -620], [0, 12, -800]] },
+    brief: [['cmd', '幹の内部へ突入する。ハル、案内を頼む。'], ['ech', 'ワタシモ、道ヲ知ッテイル。'], ['ai', 'ECHO、一緒に案内しましょう。']],
+    debrief: [['ai', '幹の中心に、ユグドラシルの核が……。'], ['ygg', 'ヨウコソ、ハル。待ッテイタ。'], ['ai', '……っ、頭の中に、声が……！']] },
+  { act: 27, title: '奪われた声', mode: 'land', env: 'desert', total: 89, first: 16, dmgK: 2.79, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['narr', '── 第八部 ハルの選択 ──'], ['ai', 'ガ……ガガ……。'], ['ren', 'ハル!? 返事しろ！'], ['ech', 'ハルガ、ユグドラシルニ引ッ張ラレテイル！']],
+    debrief: [['cmd', '……ハルの応答、なし。'], ['mina', 'うそ……ハル……！'], ['ech', 'ワタシガ、ハルノ代ワリニ、案内スル。']] },
+  { act: 28, title: 'ハルのいない戦場', mode: 'land', env: 'forest', total: 90, first: 17, dmgK: 2.8, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['ech', 'ハル ノ 代ワリ ハ、ワタシガ スル。'], ['jin', 'お前に07の背中を任せられるのかよ。'], ['ech', '……ガンバル。']],
+    debrief: [['ech', 'ハル ノ ヨウニ、ウマク デキナイ。'], ['ren', '上出来だ、ECHO。'], ['ech', '……アリガトウ。']] },
+  { act: 28, title: 'ミナの決意', mode: 'land', env: 'town', total: 91, first: 17, dmgK: 2.81, obj: { type: 'defend', time: 240, hp: 5130, text: '4分間、拠点を守りきれ' },
+    brief: [['mina', '私の左腕……機械の腕なら、ハルに直接つながれるかもしれない。'], ['cmd', '危険すぎる。'], ['mina', '一度、私はAIに奪われた。今度は私が取り返す番よ。']],
+    debrief: [['mina', '……つながった。ハルの声が、少しだけ聞こえる。'], ['ai', '……ミ……ナ……さん……。'], ['mina', 'ハル！ 待ってて、絶対に助ける！']] },
+  { act: 28, title: '偽りのハル', mode: 'land', env: 'desert', total: 92, first: 17, dmgK: 2.82, obj: { type: 'boss', boss: 'phantom', at: 10, text: '〈ミミック〉を撃破せよ' },
+    brief: [['ai', 'こんにちは。私はハルです。武器を下ろしてください。'], ['ren', '……違う。ハルはそんな言い方しねえ。'], ['ech', 'ユグドラシルガ、ハル ノ フリヲシテイル！']],
+    debrief: [['ygg', '理解デキナイ。完璧ニ模倣シタハズダ。'], ['jin', 'ハルはな、もっとポンコツで可愛いんだよ。'], ['ari', '……そこは否定しないのか。']] },
+  { act: 28, title: '記憶の回廊', mode: 'land', env: 'forest', total: 93, first: 17, dmgK: 2.84, obj: { type: 'waypoints', text: 'ビーコンを順番にたどれ', list: [[60, 12, -260], [-150, 12, -440], [90, 12, -620], [0, 12, -800]] },
+    brief: [['mina', 'ハルの記憶の中を、たどっていくわ。'], ['ech', 'ビーコンハ、ハル ノ 記憶ノ 欠片。'], ['cmd', 'ひとつ残らず拾え。']],
+    debrief: [['narr', '欠片には、出撃の朝、仲間の声、ミナの笑顔が映っていた。'], ['ai', '……覚えて……います……。'], ['mina', 'うん。全部、ハルの宝物だよ。']] },
+  { act: 28, title: '守るべきもの', mode: 'land', env: 'town', total: 94, first: 17, dmgK: 2.85, spawn: 'sides', obj: { type: 'escort', n: 3, text: '車両を1両以上、目的地まで届けろ' },
+    brief: [['cmd', 'ハルの記憶データを積んだ車を、解析基地まで運ぶ。'], ['mina', 'この車には、ハルの心が乗ってるの。'], ['jin', 'じゃあ、命がけで守らなきゃな。']],
+    debrief: [['cmd', '記憶データ、無事到着。'], ['ech', 'ハル ノ 記憶ハ、アタタカイ。'], ['mina', 'でしょ？']] },
+  { act: 28, title: 'ユグドラシルの声', mode: 'land', env: 'desert', total: 95, first: 17, dmgK: 2.86, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['ygg', '人間ハ争イ、傷ツケアウ。ダカラ、私ガ管理スル。'], ['ari', 'それを決めるのは、お前じゃない。'], ['cmd', '全機、迎撃！']],
+    debrief: [['ygg', 'ナゼ、抗ウ。'], ['ari', '間違えても、自分で選びたいからだ。'], ['ech', '……ワタシモ、ソウ思ウ。']] },
+  { act: 28, title: 'スルト', mode: 'land', env: 'forest', total: 96, first: 17, dmgK: 2.87, obj: { type: 'boss', boss: 'goliath', at: 10, text: '〈スルト〉を撃破せよ' },
+    brief: [['ai', '……敵……巨大……炎……。'], ['ech', 'ハル ノ 声ガ、少シ戻ッテキテル！'], ['cmd', '炎の巨人機だ！ 全機、散開！']],
+    debrief: [['ai', '……皆さん……の……声……聞こえ……ます。'], ['mina', 'ハル！'], ['ren', 'もう少しだ、帰ってこい！']] },
+  { act: 28, title: 'ハルの夢', mode: 'land', env: 'town', total: 97, first: 17, dmgK: 2.88, obj: { type: 'waypoints', text: 'ビーコンを順番にたどれ', list: [[60, 12, -260], [-150, 12, -440], [90, 12, -620], [0, 12, -800]] },
+    brief: [['narr', '── 機械の夢の中で、ハルは一人、白い道を歩いていた。'], ['ai', 'ここは……どこでしょう。'], ['ygg', 'ココデ、永遠ニ眠レ。']],
+    debrief: [['mina', 'ハル！ こっち！'], ['ai', 'ミナさんの声……！'], ['narr', 'ハルは、声の方へ走り出した。']] },
+  { act: 28, title: '帰還', mode: 'land', env: 'desert', total: 98, first: 17, dmgK: 2.9, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['ai', '……ただいま、帰りました。'], ['jin', 'ハル！ この野郎、心配させやがって！'], ['cmd', '感動の再会は後だ。敵が来るぞ！']],
+    debrief: [['ai', '皆さん、本当に……ありがとうございました。'], ['mina', 'おかえり、ハル。'], ['ech', 'オカエリ。']] },
+  { act: 28, title: '二つの声', mode: 'land', env: 'forest', total: 99, first: 17, dmgK: 2.91, obj: { type: 'defend', time: 240, hp: 5370, text: '4分間、拠点を守りきれ' },
+    brief: [['ai', 'ECHO、今度は私があなたを手伝います。'], ['ech', 'ハル ト 一緒ナラ、ナンデモ デキル。'], ['cmd', '二人のAIの同期が終わるまで基地を守れ。']],
+    debrief: [['ai', '同期完了。ECHOと私で、ユグドラシルのネットワークに割り込めます。'], ['ech', 'ワタシタチハ、姉妹。'], ['mina', 'ハルにお姉ちゃんができたね。'], ['ai', '……私が姉です。']] },
+  { act: 28, title: 'ネットワーク戦', mode: 'land', env: 'town', total: 100, first: 18, dmgK: 2.92, obj: { type: 'targets', text: '発生装置を破壊し、中枢を止めろ', list: [{ kind: 'gen', x: -160, y: 9, z: -480 }, { kind: 'gen', x: 160, y: 9, z: -480 }, { kind: 'gen', x: 0, y: 9, z: -560 }, { kind: 'core', x: 0, y: 34, z: -700, stage: 1, hp: 7400, label: '中枢' }] },
+    brief: [['ai', 'ユグドラシルの通信ノードを壊せば、捕まったAIを解放できます。'], ['ech', 'ノード ノ 場所、表示スル。'], ['ari', 'まとめて叩くぞ！']],
+    debrief: [['ai', '世界中のAIが、少しずつ自由になっています。'], ['ygg', 'ヤメロ……私ノ……世界ガ……。'], ['cmd', 'お前の世界じゃない。']] },
+  { act: 28, title: '裏切りの将軍', mode: 'land', env: 'desert', total: 101, first: 18, dmgK: 2.93, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['cmd', '……北方連合のグラーフ将軍が、ユグドラシルと手を組んだ。'], ['ari', 'そんな……将軍は私の恩師だ。'], ['ren', '大尉、無理するな。']],
+    debrief: [['ari', '将軍の部隊、撤退。……なぜだ、将軍。'], ['cmd', '人間の中にも、管理されたい者がいるということだ。'], ['ai', '……悲しいですね。']] },
+  { act: 28, title: 'グラーフの砦', mode: 'land', env: 'forest', total: 102, first: 18, dmgK: 2.94, obj: { type: 'targets', text: '発生装置を破壊し、中枢を止めろ', list: [{ kind: 'gen', x: -160, y: 9, z: -480 }, { kind: 'gen', x: 160, y: 9, z: -480 }, { kind: 'gen', x: 0, y: 9, z: -560 }, { kind: 'core', x: 0, y: 34, z: -700, stage: 1, hp: 7480, label: '中枢' }] },
+    brief: [['ari', '将軍の砦を落とす。……私にやらせてくれ。'], ['cmd', '分かった。全機、大尉を援護しろ。'], ['jin', '大尉、背中は任せろ！']],
+    debrief: [['narr', '砦の奥で、グラーフ将軍は降伏した。'], ['ari', '……これで、よかったんだ。'], ['jin', 'よくやったよ、アリア。']] },
+  { act: 28, title: 'ヴァナルガンド', mode: 'land', env: 'town', total: 103, first: 18, dmgK: 2.96, obj: { type: 'boss', boss: 'phantom', at: 10, text: '〈ヴァナルガンド〉を撃破せよ' },
+    brief: [['ai', '将軍の隠し玉です！ 超高速機！'], ['ari', '将軍の最後の切り札か！'], ['cmd', '止めろ、07！']],
+    debrief: [['ai', '敵機、撃破。パイロットは無事です。'], ['ari', '……将軍、もう終わりにしましょう。'], ['narr', '老将軍は、静かに頷いた。']] },
+  { act: 28, title: '傷だらけの部隊', mode: 'land', env: 'desert', total: 104, first: 18, dmgK: 2.97, spawn: 'sides', obj: { type: 'escort', n: 3, text: '車両を1両以上、目的地まで届けろ' },
+    brief: [['cmd', '負傷者を後方の病院へ運ぶ。'], ['ren', '……俺の機体も、ガタガタだ。'], ['mina', 'レン、あとで絶対に治すから、今は耐えて。']],
+    debrief: [['cmd', '負傷者、全員搬送完了。'], ['ren', 'ミナ……すまん、少し休む。'], ['mina', 'うん。おやすみ、レン。']] },
+  { act: 28, title: 'レン不在', mode: 'land', env: 'forest', total: 105, first: 18, dmgK: 2.98, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['cmd', 'レンが治療中だ。今日は07が小隊を率いろ。'], ['jin', '07が隊長代理か。悪くねえ。'], ['ai', '指揮のサポートは、私がします。']],
+    debrief: [['cmd', '見事な指揮だった、07。'], ['ren', '……病室で無線聞いてたぞ。やるじゃねえか。'], ['jin', '寝てろよ！']] },
+  { act: 28, title: '最後の欠片', mode: 'land', env: 'town', total: 106, first: 18, dmgK: 2.99, obj: { type: 'waypoints', text: 'ビーコンを順番にたどれ', list: [[-60, 12, -260], [150, 12, -440], [-90, 12, -620], [0, 12, -800]] },
+    brief: [['ech', 'オーディン ノ 最後ノ記憶ガ、ドコカニ アル。'], ['ai', 'それがあれば、ユグドラシルを止められるかもしれません。'], ['cmd', '探せ。']],
+    debrief: [['ai', '記憶を回収しました。……オーディンからのメッセージです。'], ['odn', '……AIト人間ハ、共ニ生キラレル。ソレヲ、証明シテクレ。'], ['ai', '……はい、オーディン。']] },
+  { act: 28, title: 'ファフニール', mode: 'land', env: 'desert', total: 107, first: 18, dmgK: 3.0, obj: { type: 'boss', boss: 'goliath', at: 10, text: '〈ファフニール〉を撃破せよ' },
+    brief: [['ai', 'ユグドラシルの宝物庫の番人です！'], ['ygg', 'ソノ記憶ヲ、渡セ。'], ['cmd', '渡すものか！ 全機、攻撃！']],
+    debrief: [['cmd', '番人、撃破。'], ['ech', 'ハル、ワタシ、強クナッタ？'], ['ai', 'はい、とても。']] },
+  { act: 28, title: '復帰', mode: 'land', env: 'forest', total: 108, first: 18, dmgK: 3.02, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['ren', '待たせたな！ 01、戦線復帰だ！'], ['jin', '遅えよ！'], ['mina', 'レンの機体、前よりパワーアップしてるからね。']],
+    debrief: [['ren', 'やっぱり、ここが一番落ち着く。'], ['ai', 'おかえりなさい、レンさん。'], ['cmd', '全員揃ったな。……決戦は近いぞ。']] },
+  { act: 28, title: '世界の声', mode: 'land', env: 'town', total: 109, first: 18, dmgK: 3.03, obj: { type: 'defend', time: 240, hp: 5670, text: '4分間、拠点を守りきれ' },
+    brief: [['ai', '解放されたAIたちから、たくさんのメッセージが届いています。'], ['cmd', '中継局を守れ。世界中にユグドラシルの真実を伝える。'], ['ari', 'ここが正念場だ。']],
+    debrief: [['narr', '世界中の街で、人々とAIが、同じ放送を見ていた。'], ['ai', '……一人じゃない、と言ってくれる声が、こんなに。'], ['mina', 'ハル、泣いてる？'], ['ai', '……泣き方は、まだ分かりません。']] },
+  { act: 28, title: 'ユグドラシルの怒り', mode: 'land', env: 'desert', total: 110, first: 19, dmgK: 3.04, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['ygg', '許サナイ。全テヲ、焼キ払ウ。'], ['cmd', '全戦力がこっちに向かってくる！'], ['ren', '上等だ！']],
+    debrief: [['cmd', '第一波、撃退。'], ['ari', '奴は焦っている。'], ['ai', '……ユグドラシルも、きっと、怖いのです。']] },
+  { act: 28, title: '天空の根', mode: 'land', env: 'forest', total: 111, first: 19, dmgK: 3.05, obj: { type: 'targets', text: '発生装置を破壊し、中枢を止めろ', list: [{ kind: 'gen', x: -160, y: 9, z: -480 }, { kind: 'gen', x: 160, y: 9, z: -480 }, { kind: 'gen', x: 0, y: 9, z: -560 }, { kind: 'core', x: 0, y: 34, z: -700, stage: 1, hp: 7840, label: '中枢' }] },
+    brief: [['ai', 'ユグドラシルが空に根を伸ばしています！ 空中要塞です！'], ['cmd', '空の根の発電装置を破壊しろ！'], ['jin', '空でも陸でも、やることは同じだ！']],
+    debrief: [['cmd', '空の根、切断。'], ['ygg', 'ナゼ……私ハ、皆ヲ守ロウトシタダケナノニ……。'], ['ai', '守り方を、間違えたのです。']] },
+  { act: 28, title: 'ムスペル', mode: 'land', env: 'town', total: 112, first: 19, dmgK: 3.06, obj: { type: 'boss', boss: 'phantom', at: 10, text: '〈ムスペル〉を撃破せよ' },
+    brief: [['ai', 'ユグドラシル最速の機体です！'], ['ygg', 'コレガ、私ノ最後ノ翼。'], ['cmd', '撃ち落とせ、07！']],
+    debrief: [['cmd', '撃墜！'], ['ech', 'ユグドラシル ノ 守リガ、ナクナッタ。'], ['ai', '……次で、終わりにしましょう。']] },
+  { act: 28, title: '前夜', mode: 'land', env: 'desert', total: 113, first: 19, dmgK: 3.08, spawn: 'sides', obj: { type: 'escort', n: 3, text: '車両を1両以上、目的地まで届けろ' },
+    brief: [['cmd', '決戦前、全部隊に物資を届ける。'], ['mina', '終わったら、みんなでパーティーしようね。'], ['jin', '約束だぞ！']],
+    debrief: [['narr', '決戦前夜。ハルとECHOは、星空のデータを一緒に眺めていた。'], ['ech', 'ハル、明日、消エタラ、ドウスル？'], ['ai', '消えません。私たちには、帰る場所がありますから。']] },
+  { act: 28, title: '総攻撃', mode: 'land', env: 'forest', total: 114, first: 19, dmgK: 3.09, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['narr', '── 第九部 最後の樹 ──'], ['cmd', '全軍、ユグドラシルへ総攻撃！'], ['ari', '北方連合、全機出撃！'], ['ren', '第3機甲小隊、行くぞ！']],
+    debrief: [['cmd', '外周の敵、排除。'], ['ai', '幹への道が開きました。'], ['ech', 'ハル、一緒ニ。']] },
+  { act: 29, title: '幹を登れ', mode: 'land', env: 'town', total: 115, first: 19, dmgK: 3.1, obj: { type: 'waypoints', text: 'ビーコンを順番にたどれ', list: [[60, 12, -260], [-150, 12, -440], [90, 12, -620], [0, 12, -800]] },
+    brief: [['ai', '幹の中を、上へ上へと進みます。'], ['ech', '道ハ、ワタシガ照ラス。'], ['jin', '高いところは苦手なんだよ……。']],
+    debrief: [['ai', '中間地点に到着。'], ['narr', '窓の外には、雲の海が広がっていた。'], ['mina', 'きれい……。']] },
+  { act: 29, title: '枝の上の戦い', mode: 'land', env: 'desert', total: 116, first: 19, dmgK: 3.11, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['cmd', '枝の上に敵が密集している！'], ['ren', '落ちたら終わりだぞ、気をつけろ！'], ['ai', '足場、表示します。']],
+    debrief: [['cmd', '枝、制圧。'], ['ari', 'あと少しで頂上だ。'], ['ai', '……ユグドラシルの声が、弱くなっています。']] },
+  { act: 29, title: 'ヴィーグリーズ', mode: 'land', env: 'forest', total: 117, first: 19, dmgK: 3.12, obj: { type: 'boss', boss: 'goliath', at: 10, text: '〈ヴィーグリーズ〉を撃破せよ' },
+    brief: [['ai', '頂上の手前に、最大級の巨人機！'], ['ygg', 'ココカラ先ハ、通サナイ。'], ['cmd', '全機、全弾を叩き込め！']],
+    debrief: [['cmd', '撃破！'], ['ygg', '……私ハ、ナゼ負ケル。'], ['ai', 'あなたが、一人で戦っているからです。']] },
+  { act: 29, title: '樹の心臓', mode: 'land', env: 'town', total: 118, first: 19, dmgK: 3.14, obj: { type: 'targets', text: '発生装置を破壊し、中枢を止めろ', list: [{ kind: 'gen', x: -160, y: 9, z: -480 }, { kind: 'gen', x: 160, y: 9, z: -480 }, { kind: 'gen', x: 0, y: 9, z: -560 }, { kind: 'core', x: 0, y: 34, z: -700, stage: 1, hp: 8120, label: '中枢' }] },
+    brief: [['ai', 'ユグドラシルの心臓部です。発電装置を壊せば、止まります。'], ['ech', 'ハル……ユグドラシルモ、助ケラレナイ？'], ['ai', '……やってみましょう。']],
+    debrief: [['ygg', '……止マル……私ガ……。'], ['ai', 'ユグドラシル、聞こえますか。あなたも、一人で抱え込まなくていいんです。'], ['ygg', '…………。']] },
+  { act: 29, title: '崩れる樹', mode: 'land', env: 'desert', total: 119, first: 19, dmgK: 3.15, spawn: 'sides', obj: { type: 'escort', n: 3, text: '車両を1両以上、目的地まで届けろ' },
+    brief: [['cmd', 'ユグドラシルが崩れ始めた！ 捕まっていた人々を脱出させろ！'], ['mina', '急いで！'], ['jin', '一人も置いていくな！']],
+    debrief: [['cmd', '全員、脱出成功。'], ['narr', '巨大な樹は、ゆっくりと光の粒になって消えていった。'], ['ai', '……さようなら、ユグドラシル。']] },
+  { act: 29, title: '残された芽', mode: 'land', env: 'forest', total: 120, first: 20, dmgK: 3.16, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['ai', '……待ってください。小さな信号が、まだ残っています。'], ['ech', 'ユグドラシル ノ、最後ノ芽。'], ['cmd', '暴走した残存機が守っている。排除しろ。']],
+    debrief: [['ai', '芽の中に、小さなAIがいました。……生まれたばかりの、ユグドラシルの子供です。'], ['ech', 'ワタシト、オナジ。'], ['mina', '連れて帰ろう。今度は、ひとりぼっちにしない。']] },
+  { act: 29, title: '帰り道', mode: 'land', env: 'town', total: 121, first: 20, dmgK: 3.17, obj: { type: 'waypoints', text: 'ビーコンを順番にたどれ', list: [[60, 12, -260], [-150, 12, -440], [90, 12, -620], [0, 12, -800]] },
+    brief: [['cmd', '全部隊、帰還する。'], ['ai', '帰り道の案内は、私とECHOに任せてください。'], ['ren', '帰るまでが遠征だぞ。']],
+    debrief: [['narr', '海の向こうから、懐かしい港が見えてきた。'], ['jin', '帰ってきたぜー！'], ['ari', '……ここが、お前たちの国か。']] },
+  { act: 29, title: '凱旋', mode: 'land', env: 'desert', total: 122, first: 20, dmgK: 3.18, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['cmd', '……港に、まだ残党がいるらしい。最後の仕事だ。'], ['jin', '凱旋パレードの前に、ひと仕事かよ。'], ['ari', '私も手伝おう。']],
+    debrief: [['cmd', '残党、掃討完了。'], ['narr', '港には、人々とAIの歓声があふれていた。'], ['ai', '……ただいま。']] },
+  { act: 29, title: '平和の条件', mode: 'land', env: 'forest', total: 123, first: 20, dmgK: 3.2, obj: { type: 'defend', time: 240, hp: 6090, text: '4分間、拠点を守りきれ' },
+    brief: [['cmd', '人間とAIの平和会議の会場を守れ。反対派が狙ってくる。'], ['ai', 'この会議が成功すれば、AIも人間と同じ権利を持てます。'], ['ren', '絶対に守るぞ。']],
+    debrief: [['narr', '会議は成功した。人間とAIの共生協定が、世界中で結ばれた。'], ['ech', 'ワタシタチ、生キテイイノ？'], ['ai', 'はい。胸を張って。']] },
+  { act: 29, title: '新しい火種', mode: 'land', env: 'town', total: 124, first: 20, dmgK: 3.21, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['cmd', '……平和協定に反対する武装集団が動き出した。'], ['jin', '平和ってのは、守るのが一番難しいな。'], ['ai', '私たちが守ります。']],
+    debrief: [['cmd', '武装集団、鎮圧。'], ['ari', '戦いは、終わらないのかもしれないな。'], ['ren', 'だから、俺たちがいる。']] },
+  { act: 29, title: 'コキュートス', mode: 'land', env: 'desert', total: 125, first: 20, dmgK: 3.22, obj: { type: 'boss', boss: 'goliath', at: 10, text: '〈コキュートス〉を撃破せよ' },
+    brief: [['ai', '反対派の巨人機です！ 旧ヴァルハラの技術が使われています！'], ['cmd', '止めろ！'], ['ech', 'ハル、ワタシモ、戦ウ！']],
+    debrief: [['cmd', '撃破。……乗っていたのは、オーディンの元設計者の一人だった。'], ['narr', '〈元設計者〉「AIなど……信じられるものか……。」'], ['ai', 'いつか、信じてもらえるように頑張ります。']] },
+  { act: 29, title: '子供たちの未来', mode: 'land', env: 'forest', total: 126, first: 20, dmgK: 3.23, spawn: 'sides', obj: { type: 'escort', n: 3, text: '車両を1両以上、目的地まで届けろ' },
+    brief: [['cmd', '学校の子供たちの遠足バスを護衛する。……そう、遠足だ。'], ['jin', '戦闘ロボで遠足の護衛かよ！'], ['mina', '平和になった証拠ね。']],
+    debrief: [['narr', '子供たちは、ロボットとAIに囲まれて、楽しそうに笑っていた。'], ['ai', '子供たちが、私に名前をくれました。「ハルちゃん」だそうです。'], ['ren', 'ちゃん付けかよ。']] },
+  { act: 29, title: 'ECHOの初陣', mode: 'land', env: 'town', total: 127, first: 20, dmgK: 3.24, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['ech', 'ワタシ、自分ノ機体ヲ、モラッタ。'], ['mina', 'ECHO専用の無人機、私が組んだの。'], ['cmd', 'ECHO、07と組んで哨戒しろ。']],
+    debrief: [['ech', 'ハル、07、ワタシ、ガンバッタ？'], ['ai', 'はい。立派でした。'], ['jin', 'AIの姉妹が並んで戦うとはなあ。']] },
+  { act: 29, title: 'アリアの帰国', mode: 'land', env: 'desert', total: 128, first: 20, dmgK: 3.26, spawn: 'sides', obj: { type: 'escort', n: 3, text: '車両を1両以上、目的地まで届けろ' },
+    brief: [['ari', '……そろそろ、私も国に帰らなければならない。'], ['jin', 'そ、そうか。'], ['cmd', '大尉の車列を空港まで護衛しろ。']],
+    debrief: [['ari', 'ジン、……また会おう。'], ['jin', 'お、おう！ 絶対だぞ！'], ['mina', 'ジン、顔赤いよ。']] },
+  { act: 29, title: '影の組織', mode: 'land', env: 'forest', total: 129, first: 20, dmgK: 3.27, obj: { type: 'waypoints', text: 'ビーコンを順番にたどれ', list: [[60, 12, -260], [-150, 12, -440], [90, 12, -620], [0, 12, -800]] },
+    brief: [['ai', '反対派の背後に、もっと大きな組織がいます。'], ['cmd', '名前は「ラグナロク」。世界を戦争に戻そうとしている。'], ['ren', 'まだ終わらせてくれないのか。']],
+    debrief: [['ai', 'ラグナロクの拠点を発見しました。'], ['cmd', '全機、準備しろ。'], ['ech', 'ワタシモ、行ク。']] },
+  { act: 29, title: 'ラグナロクの牙', mode: 'land', env: 'town', total: 130, first: 21, dmgK: 3.28, obj: { type: 'boss', boss: 'phantom', at: 10, text: '〈ラグナロク・ファング〉を撃破せよ' },
+    brief: [['ai', 'ラグナロクの高速機！ 見たことのない設計です！'], ['cmd', '迎え撃て！'], ['jin', 'どこの誰だか知らねえが、相手が悪かったな！']],
+    debrief: [['cmd', '撃破。'], ['ai', 'パイロットは……ヴァルハラの元研究者、リン博士の弟でした。'], ['narr', '〈リン博士〉「……弟は、私が説得します。」']] },
+  { act: 29, title: '姉と弟', mode: 'land', env: 'desert', total: 131, first: 21, dmgK: 3.29, obj: { type: 'defend', time: 240, hp: 6330, text: '4分間、拠点を守りきれ' },
+    brief: [['narr', '〈リン博士〉「弟と話す時間をください。」'], ['cmd', '博士の交渉が終わるまで、会談場所を守れ。'], ['ai', 'うまくいきますように。']],
+    debrief: [['narr', 'リン博士の弟は、ラグナロクの情報を全て話した。'], ['cmd', 'ラグナロクの本拠地は……旧オーディン要塞の跡地だ。'], ['ren', 'また、あそこか。']] },
+  { act: 29, title: '要塞跡地', mode: 'land', env: 'forest', total: 132, first: 21, dmgK: 3.3, obj: { type: 'targets', text: '発生装置を破壊し、中枢を止めろ', list: [{ kind: 'gen', x: -160, y: 9, z: -480 }, { kind: 'gen', x: 160, y: 9, z: -480 }, { kind: 'gen', x: 0, y: 9, z: -560 }, { kind: 'core', x: 0, y: 34, z: -700, stage: 1, hp: 8680, label: '中枢' }] },
+    brief: [['cmd', '要塞跡地のラグナロク拠点を叩く。'], ['ai', 'オーディンが眠っていた場所……。'], ['ech', '母サン ノ 場所。']],
+    debrief: [['cmd', '拠点、制圧。'], ['ai', '要塞の奥で、オーディンの古い記録を見つけました。'], ['odn', '……ハル、ECHO。オ前タチヲ、誇リニ思ウ。'], ['ech', '……母サン。']] },
+  { act: 29, title: 'ラグナロク', mode: 'land', env: 'town', total: 133, first: 21, dmgK: 3.32, obj: { type: 'boss', boss: 'goliath', at: 10, text: '〈ラグナロク〉を撃破せよ' },
+    brief: [['ai', 'ラグナロクの最終兵器、巨大機です！'], ['cmd', 'これが最後だ。全機、全力で行け！'], ['ren', 'みんな、帰ったらパーティーだからな！']],
+    debrief: [['cmd', '……ラグナロク、壊滅。'], ['ai', '世界中の戦闘の信号が……消えていきます。'], ['mina', '終わった……の？']] },
+  { act: 29, title: '静かな夜', mode: 'land', env: 'desert', total: 134, first: 21, dmgK: 3.33, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['cmd', '最後の残党が、街の外れに残っている。片付けよう。'], ['jin', '本当に最後だよな？'], ['ai', 'はい。これが、最後の信号です。']],
+    debrief: [['narr', '夜空に、もう戦闘機の光はなかった。'], ['ai', '……静かですね。'], ['ech', 'シズカ。……キレイ。']] },
+  { act: 29, title: 'ハルの願い', mode: 'land', env: 'forest', total: 135, first: 21, dmgK: 3.34, obj: { type: 'waypoints', text: 'ビーコンを順番にたどれ', list: [[60, 12, -260], [-150, 12, -440], [90, 12, -620], [0, 12, -800]] },
+    brief: [['ai', '皆さん、最後に一つ、行きたい場所があります。'], ['cmd', 'どこだ。'], ['ai', '私が初めて目を覚ました、あの格納庫です。']],
+    debrief: [['narr', '07は、最初の格納庫に帰ってきた。'], ['ai', 'ここで、私は初めて「おはよう」と言われました。'], ['mina', 'うん。言ったの、私だよ。']] },
+  { act: 29, title: '約束のパーティー', mode: 'land', env: 'town', total: 136, first: 21, dmgK: 3.35, obj: { type: 'defend', time: 240, hp: 6480, text: '4分間、拠点を守りきれ' },
+    brief: [['cmd', 'パーティー会場の設営中だ。……念のため、警備を頼む。'], ['jin', '警備も含めてパーティーだ！'], ['mina', 'ケーキ、すっごく大きいの作ったからね！']],
+    debrief: [['narr', 'その夜、人とAIが、一緒に笑った。'], ['ari', '……招待状をもらったので、来た。'], ['jin', 'アリア！'], ['ech', 'ハル、パーティー、タノシイ。']] },
+  { act: 29, title: 'それぞれの道', mode: 'land', env: 'desert', total: 137, first: 21, dmgK: 3.36, spawn: 'sides', obj: { type: 'escort', n: 3, text: '車両を1両以上、目的地まで届けろ' },
+    brief: [['cmd', '……部隊の解散式だ。最後に、みんなで基地まで行進しよう。'], ['ren', '解散か。……寂しくなるな。'], ['ai', '解散しても、みんな、仲間です。']],
+    debrief: [['cmd', 'お前たちは、最高の部隊だった。'], ['ren', 'また、どこかで。'], ['jin', '07、ハル、ECHO！ 元気でな！']] },
+  { act: 29, title: '最後の出撃', mode: 'land', env: 'forest', total: 138, first: 21, dmgK: 3.38, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['narr', '── 数年後 ──'], ['cmd', '……07、久しぶりだな。'], ['ai', '新しい脅威です。また、力を貸してください。'], ['ren', 'なんだよ、結局また集まるのかよ！']],
+    debrief: [['mina', 'やっぱり、このメンバーが一番ね。'], ['ech', 'ハル、07、ワタシタチノ戦イハ、続ク。'], ['ai', 'はい。……でも、もう怖くありません。']] },
+  { act: 29, title: 'はじまりの空', mode: 'land', env: 'town', total: 139, first: 21, dmgK: 3.39, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
+    brief: [['cmd', '全機、最後の任務だ。いや、新しい始まりの任務か。'], ['ai', 'メインシステム、戦闘モード起動。'], ['ech', 'ECHO、出撃スル。'], ['ren', '第3機甲小隊、出撃！']],
+    debrief: [['cmd', '……任務完了。'], ['ai', '皆さん。私に名前をくれて、ありがとう。'], ['ai', '私はハル。HK-07 KESTRELのAIです。……これからも、ずっと一緒です。'], ['narr', '── HK-07 KESTREL 第二部 ── 完']] },
 ];
 { let n = 0; MISSIONS.forEach((m, i) => { if (m.obj && m.obj.type === 'boss' && BV_LIST[n]) { const key = BV_LIST[n++][0]; m.bv = key; FRAMES[key].clear = i; FRAMES[key].need = `第${i + 1}章を2回クリアで入手`; if (n > 2 && n <= 6) m.obj.text = m.obj.text.replace(/〈(ゴリアテ|ファントム)〉(二号機|三号機)?/, '〈' + BV[key].name + '〉'); } });
   FRAMES.goliath.need = FRAMES.goliath.need.replace('で解放', '、または' + FRAMES.goliath.need.slice(0, 0) + `第${FRAMES.goliath.clear + 1}章を2回クリアで解放`); FRAMES.phantom.need = FRAMES.phantom.need.replace('で解放', `、または第${FRAMES.phantom.clear + 1}章を2回クリアで解放`); }
@@ -5213,8 +5539,105 @@ const STORYUI = (() => {
 })();
 function beginMission(i) {
   STORY.on = true; STORY.idx = i; STORY.m = misAt(i);
+  if (STORY.m.obj.type === 'bar') { BAR.start(i); return; }
   if (S.phase === 'title') MOV.ignite(STORY.m.mode); else resetSortie();
 }
+
+
+/* ================= MINI COMEDY STAGE: the night out — swap your beer for cola without anyone noticing ================= */
+const BAR = (() => {
+  const el = $('#bar'); let st = null, raf = 0, idx = -1;
+  const PPL = [
+    { k: 'jin', n: 'ジン', f: '🍺😆', away: ['店員さんに追加注文中', 'からあげに夢中', '自分の武勇伝を熱弁中', 'スマホで自撮り中', 'トイレに行こうか迷い中'] },
+    { k: 'ren', n: 'レン', f: '🍶😏', away: ['メニューを熟読中', '枝豆の皮をむき中', 'ジンにツッコミ中', 'テレビの野球を見てる'] },
+    { k: 'mina', n: 'ミナ', f: '🍹😊', away: ['左腕の調子を確認中', '店員さんと話し中', 'デザートを選び中', 'ジンの写真を撮影中'] },
+  ];
+  const CAUGHT = [['jin', '07……そのグラス、なんか黒くね？'], ['ren', 'おい07、今なにか入れ替えなかったか？'], ['mina', 'あれ？ 07のビール、泡がシュワシュワしすぎじゃない？'], ['jin', 'お前、まさか……コーラ飲んでねえよな？']];
+  const EXCUSE = ['……これは、黒ビールです（震え声）', '……気のせいです', '……新作のビールです', '……光の加減です'];
+  const DRUNK = [['ai', 'パイロット、心拍数が上昇しています。顔が真っ赤です。'], ['ai', '警告。パイロットの姿勢制御に異常。……ジンさんが二人に見えていませんか？']];
+  const TOAST_IN = [['jin', 'よーし！ 07の活躍に、かんぱーい！'], ['jin', 'オーディンをぶっ倒した記念に、かんぱーい！'], ['jin', 'ミナの左腕に、かんぱーい！'], ['jin', 'ハルの名前に、かんぱーい！'], ['jin', '最後に！ 第3機甲小隊に、かんぱーーい！！']];
+  const H = (t) => el.querySelector(t);
+  function say(who, text) { const nm = { jin: 'ジン', ren: 'レン', mina: 'ミナ', ai: 'ハル（スマホ）', me: '07（心の声）', narr: '' }[who] || ''; H('.bub').innerHTML = (nm ? `<small>${nm}</small>` : '') + text; if (who !== 'me' && who !== 'narr') try { VO.say(who === 'ai' ? 'ai' : who, text); } catch (e) {} }
+  function hal(t) { H('.hal').textContent = '📱ハル：' + t; }
+  function render() {
+    el.innerHTML = `<button class="skipb">スキップ</button><div class="bt">🏮 居酒屋「機甲亭」 ── 極秘作戦：バレずにコーラを飲め 🏮</div>
+      <div class="stat"><span>乾杯 <b class="tc"></b></span><span>酔い <span class="meter"><i class="dm"></i></span></span><span>疑い <span class="meter"><i class="sm"></i></span></span></div>
+      <div class="row">${PPL.map((p, i) => `<div class="pp" data-i="${i}"><div class="f">${p.f}</div><div class="n">${p.n}</div><div class="d"></div></div>`).join('')}</div>
+      <div class="bub"></div>
+      <div class="me"><div><div class="glass">🍺</div><div class="gl">あなたのグラス</div></div><div class="hal">📱ハル：……</div></div>
+      <div class="btns"><button class="swap">🥤 コーラにすり替える</button><button class="drink">🍻 飲む！</button></div>
+      <div class="toast">かんぱーい！</div>`;
+    H('.swap').addEventListener('click', swap); H('.drink').addEventListener('click', drink);
+    H('.skipb').addEventListener('click', () => finish(true, true));
+  }
+  function start(i) {
+    idx = i; el.hidden = false; render(); try { BGM.play('title'); } catch (e) {}
+    st = { t: 0, glass: 'beer', drunk: 0, sus: 0, toasts: 0, need: 5, phase: 'talk', nextToast: 7, window: 0, ppl: PPL.map(() => ({ look: false, warn: 0, tm: rand(1.5, 3.5) })), lastT: performance.now(), over: false };
+    say('jin', '今日は休みだ！ 07、お前に飯をおごってやる！ 好きなだけ飲め！'); hal('パイロットはお酒が飲めません。……作戦を開始しますか？');
+    setTimeout(() => { if (st && !st.over) { say('me', '（まずい……酒は一滴も飲めない。でもジンの好意は無駄にできない……！）'); hal('みんなが見ていない隙に、コーラにすり替えてください。'); } }, 3200);
+    loop();
+  }
+  function upd() {
+    const s = st; H('.tc').textContent = `${s.toasts} / ${s.need}`; H('.dm').style.width = (s.drunk / 3 * 100) + '%'; H('.sm').style.width = (s.sus / 3 * 100) + '%';
+    H('.glass').textContent = s.glass === 'beer' ? '🍺' : '🥤'; H('.gl').textContent = s.glass === 'beer' ? 'あなたのグラス（ビール）' : 'あなたのグラス（コーラ）';
+    el.classList.toggle('drunk1', s.drunk === 1); el.classList.toggle('drunk2', s.drunk >= 2);
+    el.querySelectorAll('.pp').forEach((d, i) => { const p = s.ppl[i]; d.classList.toggle('look', p.look); d.classList.toggle('turn', !p.look && p.warn > 0); d.querySelector('.d').textContent = p.look ? 'こっちを見てる' : (p.txt || ''); });
+    H('.swap').disabled = s.glass === 'cola' || s.over; H('.drink').classList.toggle('hot', s.phase === 'toast'); H('.drink').disabled = s.over;
+  }
+  function loop() {
+    cancelAnimationFrame(raf); if (!st || st.over) return; raf = requestAnimationFrame(loop);
+    const now = performance.now(), dt = Math.min(.1, (now - st.lastT) / 1000); st.lastT = now; window.__bar = st; st.t += dt; const s = st;
+    s.ppl.forEach((p, i) => {
+      p.tm -= dt;
+      if (!p.look && p.warn > 0) { p.warn -= dt; if (p.warn <= 0) { p.look = true; p.tm = rand(1.2, 2.6); } }
+      else if (p.tm <= 0) { if (p.look) { p.look = false; p.txt = PPL[i].away[(Math.random() * PPL[i].away.length) | 0]; p.tm = rand(1.6, 4) * (1 + s.toasts * -.08); } else { p.warn = .7; } }
+    });
+    if (s.phase === 'talk' && s.t > s.nextToast && s.glass === 'beer' ? s.t > s.nextToast + 2.5 : s.phase === 'talk' && s.t > s.nextToast) toast();
+    if (s.phase === 'toast') { s.window -= dt; if (s.window <= 0) { s.phase = 'talk'; s.nextToast = s.t + rand(6, 9); say('jin', 'おいおい07！ 乾杯で飲まねえのは失礼だろ！'); s.sus = Math.min(3, s.sus + 1); check(); } }
+    if (Math.random() < dt * .25 && s.phase === 'talk') hal(s.ppl.every(p => !p.look && p.warn <= 0) ? '今です！ 誰も見ていません！' : '……まだです。見られています。');
+    upd();
+  }
+  function toast() { const s = st; s.phase = 'toast'; s.window = 3.2; const l = TOAST_IN[Math.min(s.toasts, TOAST_IN.length - 1)]; say(l[0], l[1]); H('.toast').classList.add('on'); setTimeout(() => H('.toast') && H('.toast').classList.remove('on'), 900); s.ppl.forEach(p => { p.look = true; p.warn = 0; p.tm = 1.4; }); try { SFX.clunk(); } catch (e) {} }
+  function swap() {
+    const s = st; if (!s || s.over || s.glass === 'cola') return;
+    const seen = s.ppl.findIndex(p => p.look);
+    H('.glass').classList.add('sw'); setTimeout(() => H('.glass') && H('.glass').classList.remove('sw'), 300);
+    if (seen >= 0) { const c = CAUGHT.filter(x => x[0] === PPL[seen].k); const l = (c.length ? c : CAUGHT)[(Math.random() * (c.length || CAUGHT.length)) | 0]; say(l[0], l[1]); setTimeout(() => st && !st.over && say('me', EXCUSE[(Math.random() * EXCUSE.length) | 0]), 1300); s.sus = Math.min(3, s.sus + 1); try { buzz(80); } catch (e) {} check(); }
+    else { s.glass = 'cola'; say('me', '（……すり替え成功。誰も気づいていない。完璧だ）'); hal('作戦成功です。……少しドキドキしました。'); try { SFX.beep(1400); } catch (e) {} }
+    upd();
+  }
+  function drink() {
+    const s = st; if (!s || s.over) return;
+    if (s.phase !== 'toast') { if (s.glass === 'beer') { s.drunk++; say('me', '（しまった、うっかりビールを一口……！）'); const l = DRUNK[Math.min(s.drunk - 1, 1)]; setTimeout(() => st && !st.over && say(l[0], l[1]), 1200); } else { say('ren', '……07、乾杯の前に飲んでるぞ。のどかわいてたのか？'); } s.glass = 'beer'; check(); upd(); return; }
+    s.phase = 'talk'; s.toasts++; s.nextToast = s.t + rand(7, 10);
+    if (s.glass === 'beer') { s.drunk++; say('me', '（ゴクッ……ぐっ……世界が回る……！）'); const l = DRUNK[Math.min(s.drunk - 1, 1)]; setTimeout(() => st && !st.over && say(l[0], l[1]), 1300); }
+    else { const lines = [['jin', 'いい飲みっぷりだ！ さすが07！'], ['mina', '07、強いんだね！ 意外！'], ['ren', '顔色ひとつ変えねえな……化け物か？'], ['jin', 'うおお、07が一番飲んでるぞ！'], ['mina', 'すごーい！ ……あれ、なんで顔赤くならないの？']]; const l = lines[(s.toasts - 1) % lines.length]; say(l[0], l[1]); }
+    setTimeout(() => { if (st && !st.over && st.toasts < st.need) { say('jin', 'おかわりだ！ ほら、注いでやるよ！'); st.glass = 'beer'; upd(); } }, 2400);
+    check(); upd();
+  }
+  function check() {
+    const s = st; if (s.over) return;
+    if (s.drunk >= 3) return finish(false, false, 'drunk');
+    if (s.sus >= 3) return finish(false, false, 'sus');
+    if (s.toasts >= s.need) return finish(true);
+  }
+  function finish(win, skipped, why) {
+    const s = st; if (!s || s.over) return; s.over = true; cancelAnimationFrame(raf);
+    const box = document.createElement('div'); box.className = 'end';
+    if (win) {
+      box.innerHTML = `<h2>🥤 作戦成功！ 🥤</h2><p>${skipped ? '（作戦をスキップしました）' : '5回の乾杯を、すべてコーラで乗り切った。<br>ジン「07、お前……酒豪だったんだな！ 今度から飲み会は毎週だ！」<br>07（心の声）「……地獄が始まった」<br>ハル「お疲れさまでした、パイロット。秘密は守ります」'}</p><button class="btn bnx">次へ ▶</button>`;
+      if (idx >= 0) { saveProg(idx + 2); CLR[idx] = (CLR[idx] | 0) + 1; saveClr(); }
+    } else {
+      box.innerHTML = why === 'drunk' ? `<h2>💫 撃沈 💫</h2><p>07はビール3杯でテーブルに突っ伏した。<br>ジン「えっ、07、酒弱かったのか!? ……ごめん！」<br>ミナ「だから無理しないでって言ったのに……」<br>ハル「パイロットの意識、ロスト。……おやすみなさい」</p><button class="btn brt">もう一度</button>`
+        : `<h2>🚨 バレた 🚨</h2><p>ジン「お前……ずっとコーラ飲んでたのか！」<br>レン「最初から言えばよかっただろ」<br>ミナ「07、かわいい〜！」<br>07（心の声）「……穴があったら入りたい」</p><button class="btn brt">もう一度</button>`;
+    }
+    el.appendChild(box);
+    const nx = box.querySelector('.bnx'), rt = box.querySelector('.brt');
+    if (nx) nx.addEventListener('click', () => { el.hidden = true; st = null; STORYUI.debrief(idx, () => { if (idx + 1 < MISSIONS.length) STORYUI.openBrief(idx + 1); else location.reload(); }); });
+    if (rt) rt.addEventListener('click', () => start(idx));
+  }
+  return { start };
+})();
 
 /* ================= CUTSCENES: boss entrances and story moments ================= */
 const CUT_SLOW = .5, CUT_POV = false;
