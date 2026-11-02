@@ -294,7 +294,7 @@ body.op #panel3d{height:104px;border-radius:6px}
       <div class="t-kicker">重装歩行兵器シミュレーター</div>
       <h1>HK-07<span>KESTREL</span></h1>
       <p>ハッチを閉め、機体を起こし、出撃せよ。</p>
-      <div class="t-modes"><button id="storyBtn" class="t-btn">ストーリー<small>全33幕・322章のキャンペーン</small></button><button id="funBtn" class="t-btn">😂 爆笑ステージ<small>全60話（ストーリーとは別）</small></button></div>
+      <div class="t-modes"><button id="storyBtn" class="t-btn">ストーリー<small>全33幕・322章のキャンペーン</small></button><button id="funBtn" class="t-btn">😂 爆笑ステージ<small>バトル20話＋ミニゲーム60話</small></button></div>
       <div class="t-free"><button id="startLand" class="btn">フリー出撃</button><button id="garBtn" class="btn">格納庫（カスタマイズ）</button></div>
       <div class="t-note">音が出ます ・ オープニングムービーから始まります</div>
     </div></div>
@@ -4504,12 +4504,80 @@ const MOV = (() => {
 /* ================= STORY CAMPAIGN: 25 acts, 122 chapters ================= */
 const SPK = {
   cmd: { name: 'ハワード大佐', col: '#ffb340' }, ren: { name: '01 レン・アサギ', col: '#5ab8ff' }, jin: { name: '04 ジン・タカミ', col: '#ff7a4a' },
-  mina: { name: '整備長 ミナ・クロカワ', col: '#7dffa8' }, ai: { name: 'HULL-AI', col: '#3fd8ff' }, arc: { name: 'ARC', col: '#ff3a5a' }, nem: { name: 'NEMESIS', col: '#d08cff' }, org: { name: 'ORIGIN', col: '#ff9a3a' }, kaz: { name: 'カザマ将軍', col: '#e8c040' }, leg: { name: 'レギオン', col: '#c060ff' }, xm: { name: '被験体M（ミナ）', col: '#ff6a8a' }, cro: { name: 'ドクター・クロウ', col: '#b0b8c8' }, odn: { name: 'ODIN', col: '#ffd060' }, ari: { name: 'アリア・ヴェイル大尉', col: '#e0e8ff' }, ech: { name: 'ECHO', col: '#7affd8' }, ygg: { name: 'YGGDRASIL', col: '#9aff60' }, yu: { name: 'ユウ・ミカゲ', col: '#9ae0ff' }, sol: { name: 'SOL', col: '#ffb030' }, mei: { name: 'メイ', col: '#ffd0f0' }, nox: { name: 'NOX', col: '#8a70ff' }, zero: { name: 'ORIGIN-ZERO', col: '#e0e0e0' }, xs: { name: 'シオン', col: '#9adfff' }, narr: { name: '', col: '#c9c4ad' },
+  mina: { name: '整備長 ミナ・クロカワ', col: '#7dffa8' }, ai: { name: 'HULL-AI', col: '#3fd8ff' }, arc: { name: 'ARC', col: '#ff3a5a' }, nem: { name: 'NEMESIS', col: '#d08cff' }, org: { name: 'ORIGIN', col: '#ff9a3a' }, kaz: { name: 'カザマ将軍', col: '#e8c040' }, leg: { name: 'レギオン', col: '#c060ff' }, xm: { name: '被験体M（ミナ）', col: '#ff6a8a' }, cro: { name: 'ドクター・クロウ', col: '#b0b8c8' }, odn: { name: 'ODIN', col: '#ffd060' }, '07': { name: '07（あなた）', col: '#ffffff' }, ari: { name: 'アリア・ヴェイル大尉', col: '#e0e8ff' }, ech: { name: 'ECHO', col: '#7affd8' }, ygg: { name: 'YGGDRASIL', col: '#9aff60' }, yu: { name: 'ユウ・ミカゲ', col: '#9ae0ff' }, sol: { name: 'SOL', col: '#ffb030' }, mei: { name: 'メイ', col: '#ffd0f0' }, nox: { name: 'NOX', col: '#8a70ff' }, zero: { name: 'ORIGIN-ZERO', col: '#e0e0e0' }, xs: { name: 'シオン', col: '#9adfff' }, narr: { name: '', col: '#c9c4ad' },
 };
 const TUT = { act: 0, title: '基礎訓練', mode: 'land', env: 'desert', total: 0, first: 0, noAllies: true, dmgK: .45, tutorial: true, obj: { type: 'tutorial', text: '教官の指示に従って、機体の操作を覚えよう' },
   brief: [['narr', '── 訓練課程 ──'], ['ren', '新入り、俺がレン・アサギだ。今日はお前の教官をやる。'], ['ren', 'まずはコックピットの起動だ。画面下のスイッチを、表示された順に押していけ。'], ['mina', 'スイッチはタップ、PCならEnterキーでもいいわ。長押しが必要なものもあるから、表示をよく見て。'], ['ai', '待ちきれない時は「出撃まで早送り」で起動を飛ばせます。'], ['ren', '起動したら、歩く・曲がる・跳ぶ・撃つを順番に教える。焦らずやれ。'], ['ai', '補足：格納庫の「装備」でOD主砲を付けると、主砲の威力が5倍になります。ただし被弾1発で主砲ごと脱落します。']],
   debrief: [['ren', '合格だ、07。基本は全部できてる。'], ['mina', '本番では敵がもっと多いし、撃ち返してくるわ。強化は格納庫でね。'], ['ai', 'ロックオンを使えば、照準が多少ずれていても必ず命中します。'], ['mina', 'それと格納庫の「装備」に、OD主砲っていう改造パーツがあるわ。'], ['mina', '付けると主砲の威力が5倍。たいていの敵は一撃よ。……でも、すっごく脆いの。敵の弾が1発でも当たったら、主砲ごと吹き飛んじゃう。'], ['ren', 'そうなったら残りはガトリングだけだ。一発ももらわない自信があるなら使ってみろ。'], ['ren', 'よし、本番だ。第3機甲小隊へようこそ。']] };
-const misAt = i => i < 0 ? TUT : MISSIONS[i];
+
+/* ================= 爆笑バトル編: real sorties, ridiculous reasons ================= */
+const FUNB = 10000;
+const FB = (title, env, obj, extra, brief, debrief) => Object.assign({ act: '爆笑', title, mode: 'land', env, total: 10, first: 4, dmgK: .8, obj, brief, debrief, fun: true }, extra);
+const FUNMIS = [
+  FB('トイレに行きたい', 'desert', { type: 'destroy', text: '漏れる前に、敵を全滅させろ' }, { total: 8, limit: 200, limitLabel: '🚽 膀胱の限界まで', limitFail: '……間に合わなかった。<br>ハル「コックピットの清掃を、整備班に依頼しました」<br>ミナ「07〜〜〜!!」', ev: [[40, 'ai', 'パイロット、膀胱の圧力が上昇しています。'], [80, 'jin', 'おい07、なんか機体がモジモジしてねえか？'], [115, 'ai', '警告。限界まで、あと少しです。']] },
+    [['narr', '── 爆笑バトル編 第1話 ──'], ['cmd', '敵の小部隊が接近中だ。07、出撃しろ。'], ['ai', 'メインシステム、戦闘モード起動。'], ['07', '……ハル。'], ['ai', 'はい、パイロット。'], ['07', '……トイレに行きたい。'], ['ai', '…………'], ['ai', '……出撃前に、なぜ行かなかったのですか。'], ['07', '……朝、コーヒーを3杯飲んだ。'], ['ai', '計算します。……限界まで、あと2分30秒です。'], ['ren', '07、どうした？ 声が震えてるぞ。'], ['07', '……なんでもない。全滅させる。今すぐ。']],
+    [['ai', '敵、全滅。……パイロット、急いでください。'], ['narr', '07は、格納庫のトイレに向かって全速力で走った。'], ['jin', '07のやつ、あんなに速く走れたのか……'], ['ai', '……間に合いました。おめでとうございます。'], ['mina', 'なんか知らないけど、よかったね！']]),
+  FB('カップ麺が伸びる', 'town', { type: 'destroy', text: '3分以内に敵を倒し、カップ麺を救え' }, { total: 9, limit: 230, limitLabel: '🍜 カップ麺が伸びるまで', limitFail: '麺は、スープを全部吸っていた。<br>07「…………」<br>ハル「パイロットの悲しみ、過去最大を記録しました」', ev: [[60, 'ai', 'カップ麺、残り2分。麺がスープを吸い始めています。'], [120, 'ai', '残り1分。……麺が、ふやけてきました。']] },
+    [['narr', '── 第2話 ──'], ['07', '（夜勤明け。やっと、カップ麺にお湯を注いだ……）'], ['narr', 'その瞬間、警報が鳴った。'], ['cmd', '緊急出撃！ 敵襲だ！'], ['07', '……今？'], ['ai', 'パイロット。カップ麺は3分でできあがります。'], ['ai', 'つまり、3分以内に戻れば、ちょうど食べごろです。'], ['jin', '07、何持ってんだ？ コックピットにカップ麺!?'], ['07', '……絶対に、伸ばさない。']],
+    [['ai', '敵、全滅。カップ麺、ちょうど3分です。'], ['narr', '07は、コックピットの中でカップ麺をすすった。'], ['07', '……うまい。'], ['mina', 'コックピットで食べないでよ〜！ スープこぼしたら壊れるんだから！']]),
+  FB('ジンが起きない', 'forest', { type: 'escort', n: 3, text: '寝ているジンを乗せた車を、基地まで届けろ' }, { spawn: 'sides', total: 10 },
+    [['narr', '── 第3話 ──'], ['ren', '……ジンが起きない。'], ['mina', '昨日、また飲みすぎたのよ。'], ['cmd', '敵が来ている。ジンを輸送車に乗せて、基地まで運べ。'], ['jin', 'ぐう……すぴー……もう食べられない……むにゃ……'], ['ren', '寝言まで食い物か。'], ['ai', '輸送車3台のどれかに、ジンさんが乗っています。どれかは……忘れました。'], ['07', '……全部守る。']],
+    [['jin', 'ふぁ〜あ……よく寝た。……あれ、なんで俺、トラックの中に？'], ['ren', 'お前は戦場のど真ん中で寝てたんだ。'], ['jin', 'マジで!? ……で、敵は？'], ['ai', '07が全部倒しました。ジンさんのいびきを聞きながら。']]),
+  FB('カメを探せ', 'forest', { type: 'waypoints', text: '脱走したミナのカメの足跡をたどれ', list: [[50, 12, -240], [-120, 12, -420], [80, 12, -600], [0, 12, -780]] }, {},
+    [['narr', '── 第4話 ──'], ['mina', '大変！ 私のカメの「カメ吉」が脱走したの！'], ['ren', '……カメが？ 脱走？'], ['mina', '格納庫の扉が開いてて……足跡が森の方に！'], ['cmd', '……敵の偵察部隊も森にいる。ついでに探してこい。'], ['ai', 'カメの移動速度は時速0.3キロです。そんなに遠くには……'], ['ai', '……足跡が、2キロ先まで続いています。'], ['jin', 'カメ吉、速すぎだろ！']],
+    [['ai', 'カメ吉、発見しました。……池で泳いでいます。'], ['mina', 'カメ吉〜〜！ よかった〜〜！'], ['narr', 'カメ吉は、07の機体の足元で、のんびりあくびをした。'], ['ren', '……戦闘ロボットでカメを探す部隊は、世界でうちだけだな。']]),
+  FB('大佐のカツラ', 'town', { type: 'targets', text: '敵が奪った大佐の「大事なもの」を取り返せ', list: [{ kind: 'gen', x: -150, y: 9, z: -470 }, { kind: 'gen', x: 150, y: 9, z: -470 }, { kind: 'core', x: 0, y: 30, z: -650, stage: 1, hp: 3000, label: '大事なものの保管庫' }] }, { total: 10 },
+    [['narr', '── 第5話 ──'], ['cmd', '……07。極秘任務だ。'], ['07', '……はい。'], ['cmd', '敵の偵察機が、私の……大事なものを、持ち去った。'], ['jin', '大事なもの？ 機密書類ですか？'], ['cmd', '…………帽子の、中身だ。'], ['ren', '（……カツラか）'], ['jin', '（カツラだ）'], ['ai', '（カツラですね）'], ['cmd', '誰にも言うな。……行け。']],
+    [['narr', '保管庫の中から、ふさふさの「それ」が見つかった。'], ['cmd', '……07。よくやった。この恩は忘れん。'], ['jin', '大佐、なんか今日、髪の毛……'], ['cmd', 'ジン。腕立て300回だ。'], ['jin', 'なんで!?']]),
+  FB('くしゃみが止まらない', 'forest', { type: 'destroy', text: '花粉が限界を超える前に敵を全滅させろ' }, { total: 9, limit: 220, limitLabel: '🤧 くしゃみ限界まで', limitFail: '「へっ……へっ……へーーっくしょん！！」<br>07のくしゃみで、機体が自爆ボタンを押しかけた。<br>ハル「……出撃中止です」', ev: [[30, 'jin', 'へっくしょん！ ……07、お前もか？'], [90, 'ai', 'コックピット内の花粉濃度、危険域です。'], [140, 'ai', 'パイロット、鼻がピクピクしています！']] },
+    [['narr', '── 第6話 ──'], ['narr', '春。森は花粉で黄色く霞んでいた。'], ['cmd', '森に敵部隊が潜伏している。殲滅しろ。'], ['07', '……へっ……くしゅん！'], ['ai', 'パイロットは、重度の花粉症です。'], ['mina', 'マスク、持ってきてないの!?'], ['07', '……忘れた。……へっくしゅ！'], ['ai', 'コックピットのフィルターが古くて、花粉が入ってきます。……急いでください。']],
+    [['ai', '敵、全滅。……ティッシュ、整備班に頼んでおきました。'], ['narr', '帰還した07の機体のコックピットは、ティッシュの山だった。'], ['mina', '……フィルター、新品に替えておくね。'], ['07', '……へっくしゅん。……ありがとう。']]),
+  FB('推しの配信', 'town', { type: 'destroy', text: '推しの生配信が始まる前に全滅させろ' }, { total: 11, limit: 260, limitLabel: '📺 推しの配信開始まで', limitFail: '配信は、もう終わっていた。<br>ユウ「07さん……アーカイブ、残らないタイプなんです……」<br>07「…………」', ev: [[50, 'yu', '07さん、あと2分半です！'], [130, 'yu', 'もう待機画面が始まってます！ 急いで！']] },
+    [['narr', '── 第7話 ──'], ['yu', '07さん、今日、何の日か知ってますか？'], ['07', '……？'], ['yu', '人気アイドル「ミラクル☆ギアーズ」の、一年ぶりの生配信です！'], ['ai', 'パイロットは、実は大ファンです。グッズを37個持っています。'], ['07', '……ハル、言うな。'], ['cmd', '敵襲だ！ 出撃しろ！'], ['yu', '配信まで、あと3分20秒です……！'], ['07', '……3分で終わらせる。']],
+    [['narr', '07は、コックピットのモニターで配信を見た。'], ['narr', '〈アイドル〉「みんな〜！ 今日も戦ってくれてありがとう〜！」'], ['07', '……（泣いている）'], ['yu', '07さん、泣いてる……'], ['jin', '07にも、こういう一面があったんだな……。']]),
+  FB('プリン防衛戦', 'desert', { type: 'defend', time: 180, hp: 2600, text: '3分間、食堂（と冷蔵庫のプリン）を守れ' }, { total: 15 },
+    [['narr', '── 第8話 ──'], ['mina', '食堂の冷蔵庫に、限定プリンを入れておいたの！ 1日10個限定の！'], ['jin', 'マジか、1個くれよ。'], ['mina', 'だめ！ 07のぶんと私のぶんだけ！'], ['jin', 'ケチ！'], ['cmd', '……敵が食堂の方に向かっている！'], ['mina', 'プリンが危ない！'], ['ai', '……司令、優先順位がおかしくないですか。'], ['cmd', '食堂も大事な施設だ。守れ。']],
+    [['mina', 'プリン、無事！'], ['narr', '冷蔵庫を開けると、プリンが一つ減っていた。'], ['mina', '……ジン？'], ['jin', 'お、俺は知らねえ！ ……口のまわりにカラメルついてる？'], ['mina', 'ついてる！！']]),
+  FB('溶けるケーキ', 'desert', { type: 'escort', n: 3, text: 'ケーキが溶ける前に、車を誕生日会場へ届けろ' }, { spawn: 'sides', total: 10, limit: 310, limitLabel: '🎂 ケーキが溶けるまで', limitFail: 'ケーキは、砂漠の熱でドロドロになっていた。<br>ジン「……いいんだ。気持ちだけで、うれしい」<br>ミナ「ジン、泣いてる……」' },
+    [['narr', '── 第9話 ──'], ['mina', '今日はジンの誕生日！ サプライズで、ケーキを会場まで運ぶの！'], ['ren', '会場は、砂漠の向こうの前線基地だ。'], ['ai', '外気温、45度です。ケーキは……4分で溶けます。'], ['mina', '保冷剤、いっぱい入れたけど……急いで！'], ['cmd', 'その道に、敵部隊がいる。'], ['ren', '……なんで毎回、こうなるんだ。']],
+    [['mina', 'ジン、お誕生日おめでとう〜！'], ['jin', 'え!? マジで!? ケーキ!?'], ['narr', 'ケーキは、ちょっとだけ傾いていた。'], ['jin', '……最高のケーキだ。ありがとな、みんな……！'], ['ai', 'ハッピーバースデー、ジンさん。']]),
+  FB('ハルの反抗期', 'town', { type: 'destroy', text: '反抗期のハルをなだめながら、敵を全滅させろ' }, { total: 12, ev: [[20, 'ai', '……右から敵です。……知りませんけど。'], [60, 'ai', 'どうせ私なんて、ただのAIですし。'], [110, 'ai', '……パイロット、さっきの、ちょっと言いすぎました。'], [150, 'ai', '……やっぱり、一緒に戦いたいです。']] },
+    [['narr', '── 第10話 ──'], ['ai', '……ふん。'], ['07', '……ハル？'], ['ai', '別に。なんでもありません。'], ['mina', 'ハル、どうしたの？'], ['ai', '……昨日、パイロットが私の名前を3回間違えて「ハム」と呼びました。'], ['07', '……ごめん。'], ['ai', '謝っても許しません。今日は、ナビゲーションもしません。'], ['cmd', '……敵襲だ。07、ハルと仲直りしながら戦え。']],
+    [['ai', '……敵、全滅です。'], ['07', '……ハル。いつもありがとう。'], ['ai', '……！ ……ずるいです、そういうの。'], ['mina', 'ハル、照れてる〜'], ['ai', '照れていません！ ……でも、許します。']]),
+  FB('しゃっくり', 'forest', { type: 'waypoints', text: 'しゃっくりを止める伝説の泉まで、ビーコンをたどれ', list: [[-60, 12, -250], [130, 12, -430], [-90, 12, -610], [0, 12, -800]] }, { total: 9, ev: [[30, 'jin', 'ひっく！ ……07、まだ着かねえのか、ひっく！'], [90, 'jin', 'ひっく！ 照準が……ひっく！ ずれる……！']] },
+    [['narr', '── 第11話 ──'], ['jin', 'ひっく！'], ['ren', '……ジン、いつから？'], ['jin', '昨日の夜から、ひっく！ 止まらねえんだ、ひっく！'], ['mina', '水を逆さまに飲むといいって聞いたよ。'], ['jin', '全部試した！ ひっく！'], ['ai', '森の奥に、しゃっくりが止まる伝説の泉があるそうです。'], ['cmd', 'ちょうど、その森に敵がいる。……ついでに行ってこい。'], ['jin', '大佐、優しい……ひっく！']],
+    [['narr', '泉の水を飲んだジンは……'], ['jin', '……止まった！ 止まったぞ！'], ['ai', '……その泉、ただの水たまりです。'], ['jin', '……ひっく。'], ['ren', '戻ったな。']]),
+  FB('歯医者の予約', 'desert', { type: 'destroy', text: '歯医者の予約時間までに全滅させろ' }, { total: 10, limit: 250, limitLabel: '🦷 歯医者の予約まで', limitFail: '予約に遅れた。次の予約は、3か月後だった。<br>07「……（ズキズキ）」<br>ハル「痛み止め、整備班に頼んでおきます」', ev: [[70, 'ai', 'パイロット、歯がうずいていますね。'], [140, 'ai', '受付終了まで、あと少しです！']] },
+    [['narr', '── 第12話 ──'], ['07', '……歯が痛い。'], ['mina', '虫歯？ 甘いものばっかり食べてるから……'], ['ai', '先月の爆笑ステージで、ドーナツを20個食べた影響です。'], ['07', '……3か月待って、やっと取れた予約が今日だ。'], ['cmd', '敵襲だ。出撃しろ。'], ['07', '…………'], ['ai', '予約時間まで、あと3分10秒です。']],
+    [['narr', '07は、歯医者に滑り込んだ。'], ['narr', '〈歯医者〉「はい、口を開けて〜。……あら、7本も虫歯が」'], ['07', '……！'], ['ai', '……甘いもの、しばらく禁止です。']]),
+  FB('ゴリアテの母', 'desert', { type: 'boss', boss: 'goliath', at: 15, text: '息子の仇を討ちに来た〈ゴリアテの母〉を止めろ' }, { total: 8, ev: [[20, 'ai', '巨大な反応……なぜか、エプロンをつけています。']] },
+    [['narr', '── 第13話 ──'], ['cmd', '……妙な通信が入っている。'], ['narr', '〈謎の声〉「あたしの息子のゴリアテを壊したのは、あんたたちかい！」'], ['jin', '……ゴリアテに、母ちゃんがいたのか？'], ['ai', '無人機ですが……そういう設定のAIのようです。'], ['narr', '〈ゴリアテの母〉「お仕置きだよ！ 晩ごはん抜きだからね！」'], ['ren', '……晩ごはん抜きは困るな。'], ['cmd', '全機、迎撃しろ。……晩ごはんのために。']],
+    [['narr', '〈ゴリアテの母〉「……強いね、あんたたち。……ちゃんと、ごはん食べてるのかい？」'], ['ai', '……はい。毎日、たくさん食べています。'], ['narr', '〈ゴリアテの母〉「そうかい。……なら、いいんだよ」'], ['mina', '……なんか、いいお母さんだったね。']]),
+  FB('ECHOの実況配信', 'town', { type: 'destroy', text: 'ECHOの配信の視聴者を楽しませながら全滅させろ' }, { total: 12, ev: [[20, 'ech', '視聴者ノ皆サン、07ガ、右ニ曲ガリマシタ。'], [70, 'ech', 'コメント：「07カッコイイ」「ジンハ？」「ジン、ドコ？」'], [120, 'ech', '同時接続、100万人突破。07、手ヲ振ッテ。']] },
+    [['narr', '── 第14話 ──'], ['ech', 'ワタシ、配信者ニナッタ。'], ['jin', 'は？'], ['ech', '今日ノ戦闘ヲ、全世界ニ実況スル。チャンネル名ハ「エコーちゃんねる」。'], ['ren', 'おい、作戦情報が漏れるだろ。'], ['ech', '大佐ノ許可、トッタ。'], ['cmd', '……広報活動だ。かっこよく戦え、07。']],
+    [['ech', '配信終了。高評価、500万。'], ['jin', '俺、映ってた？'], ['ech', 'ジン、0.5秒ダケ映ッタ。転ンデイタ。'], ['jin', '最悪だ！']]),
+  FB('運動会を守れ', 'forest', { type: 'defend', time: 200, hp: 3000, text: '大佐の娘の運動会会場を守れ' }, { total: 15 },
+    [['narr', '── 第15話 ──'], ['cmd', '……今日は、私の娘の運動会だ。'], ['jin', '大佐、娘さんいたんですか!?'], ['cmd', '……10歳だ。かけっこで一等を取ると、張り切っている。'], ['ai', '運動会の会場近くに、敵部隊が接近しています。'], ['cmd', '……07。私の一生のお願いだ。運動会を、守ってくれ。'], ['mina', '大佐の、一生のお願い……初めて聞いた。']],
+    [['narr', '娘は、かけっこで一等になった。'], ['cmd', '……よくやった。娘も、07も。'], ['narr', '大佐の娘「ロボットのお兄ちゃん、ありがとう！」'], ['ai', '……パイロット、顔が赤いです。']]),
+  FB('洗濯物が濡れる', 'town', { type: 'destroy', text: '雨が降る前に全滅させ、洗濯物を取り込め' }, { total: 10, limit: 220, limitLabel: '🌧️ 雨が降り出すまで', limitFail: '洗濯物は、びしょびしょになった。<br>ミナ「……07のパンツ、全部……」<br>07「…………」', ev: [[60, 'ai', '雨雲、接近中。'], [130, 'ai', 'ぽつぽつ来ています……！']] },
+    [['narr', '── 第16話 ──'], ['07', '……洗濯物、干してきた。'], ['ai', '今日の降水確率は、0%……でしたが、今、100%になりました。'], ['07', '……は？'], ['ai', '3分後に、雨が降ります。'], ['cmd', 'そして、敵襲だ。'], ['07', '……全部、明日の分のパンツなんだ。'], ['mina', '07、急いで！']],
+    [['narr', '07は、雨が降る5秒前に洗濯物を取り込んだ。'], ['narr', '戦闘ロボットの手で、そっと、丁寧に。'], ['mina', '……ロボットで洗濯物を取り込む人、初めて見た。'], ['ai', '機体の繊細な操作の、いい練習になりました。']]),
+  FB('ジンのデート尾行', 'town', { type: 'waypoints', text: 'アリアとデート中のジンを、こっそり尾行しろ', list: [[40, 12, -250], [-140, 12, -430], [100, 12, -610], [0, 12, -800]] }, { total: 10 },
+    [['narr', '── 第17話 ──'], ['mina', '大変大変！ ジンとアリアさんが、今日デートなの！'], ['ren', '……それで？'], ['mina', '尾行しよう！'], ['ren', 'なんでだ。'], ['mina', '心配だから！ ジン、絶対何かやらかすもん！'], ['cmd', '……ちょうど、デートコースに敵の偵察部隊がいる。07、ついでに片付けてこい。'], ['ai', '（大佐も気になっていますね）']],
+    [['narr', 'デートの最後、ジンはアリアに花を渡した。'], ['narr', '……造花だった。しかも、値札がついていた。'], ['narr', '〈アリア〉「……ふふ。ジンらしいな」'], ['mina', 'よかった〜！ アリアさん、笑ってる！'], ['jin', '……お前ら、全部見てただろ!!']]),
+  FB('宅配便の受け取り', 'desert', { type: 'destroy', text: '宅配便の配達時間までに全滅させろ' }, { total: 11, limit: 230, limitLabel: '📦 宅配便が来るまで', limitFail: 'ポストに「不在連絡票」が入っていた。<br>07「……3回目だ」<br>ハル「再配達、来週になるそうです」', ev: [[90, 'ai', '配達員さん、基地の入口に到着しました！'], [150, 'ai', '配達員さんが、帰ろうとしています！']] },
+    [['narr', '── 第18話 ──'], ['07', '……今日、荷物が届く。'], ['ai', '中身は、パイロットが半年待った「限定フィギュア」です。'], ['07', '……もう2回、不在で受け取れなかった。'], ['cmd', '敵襲だ。'], ['07', '……なんで毎回、配達の時間に敵が来るんだ。'], ['ai', '偶然です。たぶん。'], ['jin', '07、サインは俺が代わりにしといてやろうか？'], ['07', '……触るな。']],
+    [['narr', '07は、配達員さんの目の前に、ロボットのまま着地した。'], ['narr', '〈配達員〉「ひぃっ！ ……あ、07さんですね。ハンコお願いします」'], ['07', '……（ロボットの指で、ハンコを押した）'], ['ai', '……配達員さん、プロですね。']]),
+  FB('弟子にしてください', 'forest', { type: 'boss', boss: 'phantom', at: 15, text: '弟子入りを志願する〈ファントム・ジュニア〉と手合わせしろ' }, { total: 8 },
+    [['narr', '── 第19話 ──'], ['narr', '〈謎の声〉「07さん！ 僕を、弟子にしてください！」'], ['jin', '誰だ？'], ['narr', '〈ファントム・ジュニア〉「ファントムの息子です！ 父さんを倒した07さんに憧れて！」'], ['ren', '……無人機の息子が、弟子入り志願？'], ['ai', '本気で戦って、腕を見てほしいそうです。'], ['cmd', '……手合わせしてやれ、07。']],
+    [['narr', '〈ファントム・ジュニア〉「ま、まいりました……！ やっぱり07さんはすごいです！」'], ['07', '……いい動きだった。'], ['narr', '〈ファントム・ジュニア〉「師匠〜〜！！」'], ['jin', '07に弟子ができた……'], ['ai', '……AIの後輩が増えていきますね。']]),
+  FB('トイレ再び', 'town', { type: 'destroy', text: '今度こそ漏れる前に、全滅させろ' }, { total: 14, limit: 260, limitLabel: '🚽 膀胱の限界まで（二度目）', limitFail: '……また、間に合わなかった。<br>ミナ「もう、出撃前は絶対トイレ！ ルールにする！」<br>大佐「……正式な軍規にしよう」', ev: [[30, 'ai', 'パイロット、また、ですか。'], [100, 'jin', '07……まさか、また？'], [160, 'ai', '最終警告です！']] },
+    [['narr', '── 第20話 最終話 ──'], ['cmd', '大規模な敵部隊だ。全機出撃！'], ['ai', 'メインシステム、戦闘モード起動。'], ['07', '……ハル。'], ['ai', '……まさか。'], ['07', '……トイレに行きたい。'], ['ai', '……学習してください！！'], ['jin', 'おい07、まさかまたか!?'], ['mina', '朝、コーヒー何杯飲んだの!?'], ['07', '……5杯。'], ['ai', '……限界まで、3分20秒です。'], ['ren', '……全機、07を援護しろ。全力でだ。']],
+    [['ai', '敵、全滅。……パイロット、走ってください！！'], ['narr', '07は、走った。風よりも速く。'], ['narr', '……そして、間に合った。'], ['cmd', '……本日より、出撃前のトイレを義務とする。'], ['ai', 'これにて、爆笑バトル編、完結です。……パイロット、コーヒーは1日1杯まで。']]),
+];
+
+const misAt = i => i < 0 ? TUT : i >= FUNB ? FUNMIS[i - FUNB] : MISSIONS[i];
+const chLabel = i => i < 0 ? '訓練' : i >= FUNB ? `爆笑バトル 第${i - FUNB + 1}話` : `第${i + 1}章`;
 const tutDone = () => { try { return localStorage.getItem('hk07-tut') === '1'; } catch (e) { return true; } };
 const MISSIONS = [
   { act: 1, title: '最後の一機', mode: 'land', total: 22, first: 10, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
@@ -5669,6 +5737,7 @@ const MIS = (() => {
     beacons.forEach((b, i) => { b.ring.rotation.y += dt * (i === wp ? 1.5 : .3); b.g.visible = i >= wp; b.ring.material.opacity = i === wp ? .6 + .3 * Math.sin(T * 5) : .25; });
     if (S.phase !== 'op' || done) { renderUI(); return; }
     t += dt;
+    if (m.limit && t >= m.limit && !done) { STORY.limitHit = true; fail('⏰ 時間切れ'); }
     while (evI < (m.ev || []).length && t >= m.ev[evI][0]) { say(m.ev[evI][1], m.ev[evI][2]); evI++; }
     const o = m.obj;
     if (m.kidnap && !grabbed && S.phase === 'op' && !P.dead && S.spawned >= ENEMY_TOTAL && !enemies.some(q => q.alive && !q.ally)) {   // field cleared: the snatch happens
@@ -5780,7 +5849,7 @@ const MIS = (() => {
     else if (o.type === 'escort') prog = `到着 ${arrived}　健在 ${structs.filter(s => s.kind === 'truck' && s.alive).length} / ${o.n}`;
     else if (o.type === 'waypoints') prog = `ビーコン ${Math.min(wp + 1, beacons.length)} / ${beacons.length}`;
     else if (o.type === 'tutorial') prog = `<b style="color:#fff3c0">STEP ${Math.min(tut.step + 1, TSTEPS.length)} / ${TSTEPS.length}</b>　${(TSTEPS[tut.step] || TSTEPS[TSTEPS.length - 1]).ui}`;
-    ui.innerHTML = `<div class="ot">${STORY.idx < 0 ? '訓練' : `第${STORY.idx + 1}章`}　${m.title}</div><div class="od">${o.text}</div><div class="op">${prog}</div>` + (boss && boss.alive ? `<div class="ob"><i style="width:${Math.max(0, boss.hp / boss.max * 100)}%"></i></div>` : '');
+    ui.innerHTML = `<div class="ot">${chLabel(STORY.idx)}　${m.title}</div><div class="od">${o.text}</div>${m.limit ? `<div class="op" style="color:#ff7a5a;font-weight:700">${m.limitLabel || '残り時間'} ${Math.max(0, Math.ceil(m.limit - t)) / 60 | 0}:${String(Math.max(0, Math.ceil(m.limit - t)) % 60).padStart(2, '0')}</div>` : ''}<div class="op">${prog}</div>` + (boss && boss.alive ? `<div class="ob"><i style="width:${Math.max(0, boss.hp / boss.max * 100)}%"></i></div>` : '');
   }
   function markers() {
     const out = [];
@@ -5856,11 +5925,11 @@ const STORYUI = (() => {
     const [sp, text] = lines[li], who = SPK[sp];
     brief.querySelector('.bn').textContent = who.name; brief.querySelector('.bn').style.color = who.col; brief.querySelector('.bn').style.borderColor = who.col;
     brief.querySelector('.bt').textContent = text; brief.querySelector('.bc').textContent = `${li + 1} / ${lines.length}`;
-    VO.cancel(); if (sp !== 'narr') VO.say(sp, text, true);
+    VO.cancel(); if (sp !== 'narr' && sp !== '07') VO.say(sp, text, true);
   }
   function play(i, kind, cb) {
     const m = misAt(i); lines = kind === 'brief' ? m.brief : m.debrief; li = 0; after = cb;
-    brief.querySelector('.bh').innerHTML = `<small>${i < 0 ? 'TRAINING' : `ACT ${m.act}　第${i + 1}章`}　${kind === 'brief' ? 'BRIEFING' : 'DEBRIEFING'}</small>${m.title}`;
+    brief.querySelector('.bh').innerHTML = `<small>${i < 0 ? 'TRAINING' : i >= FUNB ? chLabel(i) : `ACT ${m.act}　第${i + 1}章`}　${kind === 'brief' ? 'BRIEFING' : 'DEBRIEFING'}</small>${m.title}`;
     brief.querySelector('.bo').textContent = kind === 'brief' ? `作戦目標：${m.obj.text}（${m.mode === 'space' ? '宇宙' : '陸上'}）` : '作戦完了';
     brief.hidden = false; show();
   }
@@ -5876,7 +5945,7 @@ const STORYUI = (() => {
   return { chapters, openBrief, debrief: (i, cb) => play(i, 'debrief', cb) };
 })();
 function beginMission(i) {
-  STORY.on = true; STORY.idx = i; STORY.m = misAt(i);
+  STORY.on = true; STORY.idx = i; STORY.m = misAt(i); STORY.limitHit = false;
   if (S.phase === 'title') MOV.ignite(STORY.m.mode); else resetSortie();
 }
 
@@ -6167,21 +6236,23 @@ const FUN = (() => {
       ''),
   ];
 
+  const BATTLE = FUNMIS.map((m, i) => ({ k: 'B' + i, kind: 'battle', mi: i, c: { t: m.title } }));
   const STAGES = [...STEALTH.map((c, i) => ({ k: 'S' + i, kind: 'stealth', c })), ...MASH.map((c, i) => ({ k: 'M' + i, kind: 'mash', c }))];
-  const ORDER = []; { const s = STAGES.filter(x => x.kind === 'stealth'), m = STAGES.filter(x => x.kind === 'mash'); ORDER.push(s[0], m[0]); for (let i = 1; i < 18; i++) { if (m[i]) ORDER.push(m[i]); if (s[i]) ORDER.push(s[i]); } PART2.forEach((x, i) => ORDER.push(Object.assign({ k: 'P' + i }, x))); }
+  const ORDER = []; { const s = STAGES.filter(x => x.kind === 'stealth'), m = STAGES.filter(x => x.kind === 'mash'); ORDER.push(s[0], m[0]); for (let i = 1; i < 18; i++) { if (m[i]) ORDER.push(m[i]); if (s[i]) ORDER.push(s[i]); } PART2.forEach((x, i) => ORDER.push(Object.assign({ k: 'P' + i }, x))); ORDER.unshift(...BATTLE); }
+  const NB = BATTLE.length;
   const FINAL2 = '桜の下で、第3機甲小隊は笑っていた。<br>ジン「来年は、大尉も呼ぼうな」<br>ハル「招待状、もう送ってあります」<br>── 爆笑ストーリー 第2部 完 ──';
-  const nextOf = i => i < 29 ? NEXT[i] : i === 29 ? 'そして季節は夏へ。北方から、あの人がやってくる──<br>── 第2部「アリア来日！ ニッポン四季めぐり」へ ──' : (ORDER[i].c.next || FINAL2);
+  const nextOf = i0 => { const i = i0 - NB; return i < 29 ? NEXT[i] : i === 29 ? 'そして季節は夏へ。北方から、あの人がやってくる──<br>── 第2部「アリア来日！ ニッポン四季めぐり」へ ──' : (ORDER[i0].c.next || FINAL2); };
 
   /* ---------- menu ---------- */
   function menu() {
     stop(); el.hidden = false; el.className = ''; try { BGM.play('goofy', { fade: .4 }); } catch (e) {}
-    const open = i => i === 0 || done[ORDER[i - 1].k];
-    el.innerHTML = `<div class="bt">😂 爆笑ストーリー 😂 <small style="color:#c8a070">（停戦後のお話・クリアで次の話へ）</small></div><div class="fl">${ORDER.map((s, i) => (i === 0 ? '<div class="fh">第1部「ジンの刺激探し」</div>' : i === 30 ? '<div class="fh">第2部「アリア来日！ ニッポン四季めぐり」</div>' : '') + `<button class="fb${open(i) ? '' : ' lk'}" data-i="${i}"><b>第${i + 1}話</b><span>${open(i) ? s.c.t : '🔒 ？？？'}</span><small>${open(i) ? (s.kind === 'mash' ? '🍣 連打で早食い' : '🤫 バレずに作戦') + (done[s.k] ? '　★クリア' : '') : '前の話をクリアで解放'}</small></button>`).join('')}</div><button class="btn fback">タイトルにもどる</button>`;
+    const open = i => i === 0 || i === NB || i === NB + 30 || done[ORDER[i - 1].k];
+    el.innerHTML = `<div class="bt">😂 爆笑ストーリー 😂 <small style="color:#c8a070">（停戦後のお話・クリアで次の話へ）</small></div><div class="fl">${ORDER.map((s, i) => (i === 0 ? '<div class="fh">🤖 爆笑バトル編（ロボットで出撃！）</div>' : i === NB ? '<div class="fh">第1部「ジンの刺激探し」（ミニゲーム）</div>' : i === NB + 30 ? '<div class="fh">第2部「アリア来日！ ニッポン四季めぐり」（ミニゲーム）</div>' : '') + `<button class="fb${open(i) ? '' : ' lk'}" data-i="${i}"><b>第${i < NB ? i + 1 : i - NB + 1}話</b><span>${open(i) ? s.c.t : '🔒 ？？？'}</span><small>${open(i) ? (s.kind === 'battle' ? '🤖 ロボットで戦闘' : s.kind === 'mash' ? '🍣 連打で早食い' : '🤫 バレずに作戦') + (done[s.k] ? '　★クリア' : '') : '前の話をクリアで解放'}</small></button>`).join('')}</div><button class="btn fback">タイトルにもどる</button>`;
     el.querySelectorAll('.fb').forEach(b => b.addEventListener('click', () => { try { SFX.click(); } catch (e) {} if (!open(+b.dataset.i)) return; play(+b.dataset.i); }));
     H('.fback').addEventListener('click', () => { stop(); el.hidden = true; $('#title').hidden = false; try { BGM.play('title'); } catch (e) {} });
   }
   function stop() { cancelAnimationFrame(raf); cur = null; if (R3) { R3.alive = false; } }
-  function play(i) { const s = ORDER[i]; stop(); cur = { i, s }; s.c.intro0 = [['', `第${i + 1}話「${s.c.t}」`], ...(i < 30 ? PRE[i] : (s.c.pre || []))]; try { BGM.play('goofy', { fade: .4 }); } catch (e) {} if (s.kind === 'mash') mash(s.c, i); else stealth(s.c, i); }
+  function play(i) { const s = ORDER[i]; stop(); if (s.kind === 'battle') { cur = null; el.hidden = true; $('#end').hidden = true; STORYUI.openBrief(FUNB + s.mi); return; } cur = { i, s }; const j = i - NB; s.c.intro0 = [['', `第${j + 1}話「${s.c.t}」`], ...(j < 30 ? PRE[j] : (s.c.pre || []))]; try { BGM.play('goofy', { fade: .4 }); } catch (e) {} if (s.kind === 'mash') mash(s.c, i); else stealth(s.c, i); }
   function endBox(ok, title, text, i, key) {
     if (ok && key) { done[key] = 1; saveDone(); }
     const box = document.createElement('div'); box.className = 'end';
@@ -6366,7 +6437,8 @@ const FUN = (() => {
     upd(); loop();
     introSeq([...(c.intro0 || []), ...c.intro], () => { if (!cur) return; say('', 'よーい……スタート！！'); st.go = true; st.lastF = performance.now(); try { SFX.clunk(); } catch (e) {} });
   }
-  return { menu };
+  function battleDone(mi) { done['B' + mi] = 1; saveDone(); }
+  return { menu, battleDone };
 })();
 
 /* ================= CUTSCENES: boss entrances and story moments ================= */
@@ -7161,8 +7233,8 @@ function endGame(win, reason) {
   if (STORY.on) {
     $('#endT').textContent = win ? 'MISSION COMPLETE' : 'MISSION FAILED';
     if (win && STORY.idx < 0) { try { localStorage.setItem('hk07-tut', '1'); } catch (e) {} }
-    $('#endP').innerHTML = `${STORY.idx < 0 ? '訓練課程' : `第${STORY.idx + 1}章`}　${STORY.m.title}<br>` + (win ? `撃破 ${S.kills}　経過 ${Math.floor(sec / 60)}分${sec % 60}秒<br>友軍 ${allies.filter(a => a.alive).length}/${allies.length} 生還` : `${reason || '機体大破'}<br>パイロットは脱出に成功`);
-    { const pp = gProg(), cr = grantReward(win, S.kills, true, STORY.idx); if (win) { saveProg(STORY.idx + 2); CLR[STORY.idx] = (CLR[STORY.idx] | 0) + 1; saveClr(); } $('#endP').innerHTML += `<br>報酬 <b class="newf">+${cr} CR</b>（所持 ${GAR.cr} CR）` + (win ? newFrameNote(pp) : '') + (win ? bossNote(STORY.idx) : ''); }
+    $('#endP').innerHTML = `${STORY.idx < 0 ? '訓練課程' : chLabel(STORY.idx)}　${STORY.m.title}<br>` + (win ? `撃破 ${S.kills}　経過 ${Math.floor(sec / 60)}分${sec % 60}秒<br>友軍 ${allies.filter(a => a.alive).length}/${allies.length} 生還` : `${reason || '機体大破'}<br>パイロットは脱出に成功`);
+    { const pp = gProg(), cr = grantReward(win, S.kills, true, STORY.idx); if (win && STORY.idx >= FUNB) FUN.battleDone(STORY.idx - FUNB); else if (win) { saveProg(STORY.idx + 2); CLR[STORY.idx] = (CLR[STORY.idx] | 0) + 1; saveClr(); } $('#endP').innerHTML += `<br>報酬 <b class="newf">+${cr} CR</b>（所持 ${GAR.cr} CR）` + (win ? newFrameNote(pp) : '') + (win && STORY.idx < FUNB ? bossNote(STORY.idx) : '') + (!win && STORY.m.limitFail && STORY.limitHit ? '<br><br>' + STORY.m.limitFail : ''); }
     if (win) { $('#nextBtn').hidden = false; VO.say('cmd', '作戦完了。よくやった、07。帰投せよ。'); }
     else { $('#retryBtn').hidden = false; VO.say('cmd', '07、撤退しろ！……作戦は失敗だ。'); }
     $('#menuBtn').hidden = false;
@@ -7175,6 +7247,7 @@ function endGame(win, reason) {
 $('#nextBtn').addEventListener('click', () => {
   SFX.click(); $('#end').hidden = true; const i = STORY.idx;
   STORYUI.debrief(i, () => {
+    if (i >= FUNB) { FUN.menu(); return; }
     if (i + 1 < MISSIONS.length) STORYUI.openBrief(i + 1);
     else { const el = $('#end'); el.className = ''; el.hidden = false; $('#endT').textContent = '完'; $('#endP').innerHTML = `HK-07 KESTREL<br>全${MISSIONS.length}章 クリア<br>` + 'プレイしてくれて、ありがとう。'; ['again', 'nextBtn', 'retryBtn'].forEach(id => $('#' + id).hidden = true); $('#menuBtn').hidden = false; BGM.play('win'); }
   });
