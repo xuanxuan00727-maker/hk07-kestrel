@@ -6527,7 +6527,7 @@ const CUT = (() => {
     camera.near = .5; camera.updateProjectionMatrix(); window.dispatchEvent(new Event('resize'));
     const f = done; done = null; if (f) f();
     if (hackNext) setTimeout(() => hack(hackNext), 300);
-    if (hackDone) { const e = hackDone, fk = e.koDir || 1; e.cutHold = false; if (e.fallK == null) { e.fallK = 1; e.koDir = fk; } killEnemy(e, true); e.drunkKO = 10; e.koDir = fk; setTimeout(() => { if (S.phase === 'op') endGame(true); }, 2500); }
+    if (hackDone) { const e = hackDone, fk = e.koDir || 1; e.cutHold = false; if (e.fallK == null) { e.fallK = 1; e.koDir = fk; } killEnemy(e, true); e.drunkKO = 10; e.koDir = fk; setTimeout(() => { if (S.phase === 'op') endGame(true); }, 600); }
   }
   const fwd = () => V.set(-Math.sin(P.yaw), 0, -Math.cos(P.yaw)).clone();
   const right = () => new THREE.Vector3(Math.cos(P.yaw), 0, -Math.sin(P.yaw));
@@ -6814,7 +6814,7 @@ const CUT = (() => {
   // comedy ep5: the drunk boss's hit does nothing, so HAL just hacks it — it thrashes about, runs into a building and keels over
   function hack(e) {
     if (!begin('hack', { boss: e, ph: 0, said: {}, tgt: null })) return;
-    P.armor = e.armor0 != null ? e.armor0 : P.armor; e.cutHold = true; e.alert = false; e.cd = 99;
+    P.armor = e.armor0 != null ? e.armor0 : P.armor; e.cutHold = true; e.alert = false; e.cd = 99; slowK = 2;   // this scene plays at normal speed
   }
   function upHack(dt) {
     const D = d, e = D.boss, say1 = (k, at, fn) => { if (t > at && !D.said[k]) { D.said[k] = true; fn(); } };
@@ -6843,12 +6843,12 @@ const CUT = (() => {
       e.fallK = Math.min(1, (t - D.crash) / 1.4);
       shot(ep.clone().add(new THREE.Vector3(26, 9, 26)), ep.clone().setY(3), dt, 1.5);
       const c = t - D.crash;
-      say1('p1', 2.2, () => { VO.radio('強化人間パイロット', 'あれ……何してたっけ……', 9, .9); caption('', ''); });
-      say1('p2', 5.0, () => VO.radio('強化人間パイロット', 'あ、そうだ……乗ってたんだ……', 9, .9));
-      say1('p3', 7.8, () => VO.radio('強化人間パイロット', 'このロボット……名前……なんだったっけ……', 9, .9));
-      say1('p4', 10.8, () => VO.radio('強化人間パイロット', 'あ……ジェットコースターに乗ってたんだ……ひっく', 9, .9));
-      say1('p5', 14, () => { VO.ai('……敵ボス、機能停止。パイロットは無事です。……たぶん。', 'high'); caption('敵ボス 機能停止', 'TARGET DOWN'); });
-      if (c > 17) end();
+      say1('p1', 1.2, () => { VO.radio('強化人間パイロット', 'あれ……何してたっけ……', 9, .9); caption('', ''); });
+      say1('p2', 3.0, () => VO.radio('強化人間パイロット', 'あ、そうだ……乗ってたんだ……', 9, .9));
+      say1('p3', 4.8, () => VO.radio('強化人間パイロット', 'このロボット……名前……なんだったっけ……', 9, .9));
+      say1('p4', 6.8, () => VO.radio('強化人間パイロット', 'あ……ジェットコースターに乗ってたんだ……ひっく', 9, .9));
+      say1('p5', 9.2, () => { VO.ai('……敵ボス、機能停止。パイロットは無事です。……たぶん。', 'high'); caption('敵ボス 機能停止', 'TARGET DOWN'); });
+      if (c > 11) end();
     }
   }
   return { boss, grab, update, get on() { return on; }, get k() { return slowK; } };
