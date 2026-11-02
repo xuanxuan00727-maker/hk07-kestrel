@@ -7145,6 +7145,7 @@ const CUT = (() => {
     s1('h', 16.4, () => { VO.ai('……ジンさんとミナさん、無事です。……パイロット、そろそろ落ち着いてください。', 'high'); caption('……二人とも、無事です', ''); });
     // 07's machine thrashes about: spins, hops, dashes, flails
     // pure madness: whirling, rocket hops, ground-pounds, arms flailing, confetti everywhere
+    if (t > 46) return joyCalm(dt);
     const k = t, hop = Math.abs(Math.sin(k * 2.3));
     P.yaw += dt * (9 + Math.sin(k * 2) * 7); P.y = Math.max(0, hop * 16 - 2); P.thrust = P.y > .5 ? 1 : 0;
     const r = 22 + Math.sin(k * .9) * 14; P.x = D.ox + Math.cos(k * 2.3) * r + Math.sin(k * 7) * 3; P.z = D.oz + Math.sin(k * 1.6) * r;
@@ -7163,7 +7164,41 @@ const CUT = (() => {
     // camera: wide shot that keeps the madness and the victims in frame
     const mid = new THREE.Vector3(P.x, 4, P.z); if (t > 3.5 && D.jin) mid.lerp(new THREE.Vector3(D.jin.x, 4, D.jin.z), .3);
     shot(mid.clone().add(new THREE.Vector3(Math.sin(t * .25) * 55, 22, Math.cos(t * .25) * 55)), mid, dt, 1.5);
-    if (t > 19.5) { [D.jin, D.mina].forEach(a => { if (a) { a.flung = false; a.fvx = null; a.thud = false; } }); P.y = 0; P.fallX = P.fallZ = 0; P.reach = 0; end(); }
+    // act 2: Ren grabs him from behind — and goes flying too
+    const ren = D.ren || (D.ren = allies[0] && allies[0].alive && allies[0] !== D.jin && allies[0] !== D.mina ? allies[0] : allies.find(a => a.alive && a !== D.jin && a !== D.mina));
+    s1('r2', 20, () => VO.radio('01 レン', '……仕方ない。俺が止める。後ろから押さえ込む。', 1, .85));
+    s1('r3', 25.2, () => VO.radio('01 レン', 'ぐあっ!? な、なんだこのパワーは……!!', 1, .85));
+    s1('r4', 26.5, () => VO.radio('07（あなた）', 'じゃまするなああああ！！！ RGが待ってるんだああああ！！！', 7, 1));
+    // act 3: the whole squad dogpiles him — he bursts out and everyone scatters
+    s1('c1', 30, () => VO.radio('司令部', '……全機！ 07を取り押さえろ！ 総員でかかれ！', 0, .7));
+    s1('c2', 33, () => VO.radio('04 ジン', 'よ、よし！ 全員で行くぞ！ せーの！', 4, 1.18));
+    s1('c3', 37.4, () => { VO.radio('07（あなた）', 'うおおおおおおおおおおお！！！！', 7, 1); caption('全機、吹き飛ばされた', 'HULL-AI'); });
+    s1('c4', 39.5, () => VO.radio('司令部', '……第3機甲小隊、07一機に全滅……だと……？', 0, .7));
+    s1('c5', 42, () => VO.radio('整備長ミナ', 'ハル！ ハルなら止められるでしょ!?', 2, 1.15));
+    if (ren && t > 20.5 && t < 25) { const dx = P.x - ren.x, dz = P.z - ren.z, dl = Math.hypot(dx, dz) || 1; if (dl > 10) { ren.x += dx / dl * 26 * dt; ren.z += dz / dl * 26 * dt; } ren.yaw = Math.atan2(-dx, -dz); }
+    if (ren && t > 25 && !ren.flung2) { ren.flung2 = true; const dx = ren.x - P.x, dz = ren.z - P.z, dl = Math.hypot(dx, dz) || 1; ren.fvx = dx / dl * 60; ren.fvz = dz / dl * 60; ren.vy = 22; ren.y = .2; ren.blown = 2.4; ren.blownSpin = 3; explosion(new THREE.Vector3(ren.x, 6, ren.z), 1.6); P.trauma = 1; try { SFX.clunk(); } catch (e) {} }
+    if (ren && ren.fvx != null && ren.flung2) { ren.x += ren.fvx * dt; ren.z += ren.fvz * dt; ren.fvx *= Math.exp(-1.4 * dt); ren.fvz *= Math.exp(-1.4 * dt); }
+    if (t > 33 && t < 37.3) allies.forEach(a => { if (!a.alive) return; const dx = P.x - a.x, dz = P.z - a.z, dl = Math.hypot(dx, dz) || 1; if (dl > 9) { a.x += dx / dl * 30 * dt; a.z += dz / dl * 30 * dt; } a.yaw = Math.atan2(-dx, -dz); });
+    if (t > 37.3 && !D.burst) { D.burst = true; explosion(new THREE.Vector3(P.x, 4, P.z), 3.2); allies.forEach((a, i) => { if (!a.alive) return; const ang = i / allies.length * Math.PI * 2; a.fvx = Math.cos(ang) * 55; a.fvz = Math.sin(ang) * 55; a.vy = 20; a.y = .2; a.blown = 2.4; a.blownSpin = (i % 2 ? -1 : 1) * 2.8; a.flung = true; }); for (let q = 0; q < 30; q++) { const a = q / 30 * Math.PI * 2; addPart({ pos: new THREE.Vector3(P.x + Math.cos(a) * 5, 1, P.z + Math.sin(a) * 5), color: 0x9a8a6c, op: .6, s0: 3, s1: 12, life: 1.6, vel: new THREE.Vector3(Math.cos(a) * 22, 4, Math.sin(a) * 22) }); } P.trauma = 1; buzz([200, 80, 300]); }
+    if (D.burst) allies.forEach(a => { if (a.fvx != null) { a.x += a.fvx * dt; a.z += a.fvz * dt; a.fvx *= Math.exp(-1.5 * dt); a.fvz *= Math.exp(-1.5 * dt); } });
+  }
+  // act 4: HAL's last resort — one sentence about the box and he freezes, then kneels and cradles it
+  function joyCalm(dt) {
+    const D = d, s1 = (k, at, fn) => { if (t > at && !D.said[k]) { D.said[k] = true; fn(); } };
+    s1('h1', 46.2, () => VO.ai('……パイロット。最終手段です。', 'high'));
+    s1('h2', 48.4, () => { VO.ai('そんなに暴れたら……RG 2.0の箱が、つぶれますよ。', 'high'); caption('', ''); });
+    s1('h3', 51.4, () => { VO.radio('07（あなた）', '…………！！！', 7, 1); caption('ピタッ', ''); });
+    s1('h4', 54.5, () => VO.radio('07（あなた）', '……箱……箱は無事か……？', 7, 1));
+    s1('h5', 57.5, () => VO.ai('はい。無傷です。……そっと、置いてあります。', 'high'));
+    s1('h6', 60.5, () => VO.radio('07（あなた）', '……よかった……。……みんな、ごめん。', 7, 1));
+    s1('h7', 63.5, () => VO.radio('04 ジン', '……（地面に刺さったまま）……お、おう……', 4, 1.18));
+    s1('h8', 66, () => { VO.ai('……一件落着です。', 'high'); caption('一件落着', 'HULL-AI'); });
+    const c = t - 46;
+    if (c < 5.3) { P.yaw += dt * Math.max(0, 9 - c * 2); P.y = Math.max(0, P.y - dt * 12); P.fallX *= .9; P.fallZ *= .9; P.reach = Math.max(0, P.reach - dt); }
+    else { P.y = 0; P.reach = 0; P.fallX += (.55 - P.fallX) * Math.min(1, dt * 1.5); P.fallZ *= .9; P.trauma = 0; }   // kneel, head bowed
+    const pp = new THREE.Vector3(P.x, 0, P.z), fw = new THREE.Vector3(-Math.sin(P.yaw), 0, -Math.cos(P.yaw));
+    shot(pp.clone().addScaledVector(fw, 22).add(new THREE.Vector3(0, 9, 0)), pp.clone().add(new THREE.Vector3(0, 6, 0)), dt, 1.2);
+    if (t > 69) { allies.forEach(a => { a.flung = false; a.flung2 = false; a.fvx = null; a.thud = false; }); P.y = 0; P.fallX = P.fallZ = 0; P.reach = 0; end(); }
   }
   function boss(e) { if (!e || S.phase !== 'op') return; if (drunkTalk()) { e.armor0 = P.armor; e.drunkBoss = true; } (e.kind === 'phantom' ? bossRam : bossShell)(e); }
   // comedy ep5: the drunk boss's hit does nothing, so HAL just hacks it — it thrashes about, runs into a building and keels over
