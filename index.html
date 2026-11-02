@@ -5840,6 +5840,7 @@ const MIS = (() => {
       if (boss && boss.saved) { boss.savedT = (boss.savedT || 0) + dt; if (boss.savedT > 3) win(); }
       if (boss && !half && boss.hp < boss.max / 2 && m.half) { half = true; say(m.half[0], m.half[1]); }
       if (boss && !boss.alive) win();
+      if (boss && m.fun && (boss.fallK != null || boss.drunkKO != null) && S.phase === 'op') { if (boss.alive) { boss.alive = false; boss.drunkKO = 10; } win(); }   // failsafe: a hacked, toppled boss always ends the sortie
     } else if (o.type === 'defend') {
       if (!base.alive) fail(`${base.label}が破壊された`); else if (t >= o.time) win();
       else if (S.phase === 'op') { // reinforcements keep trickling in, 2-3 at a time, until the timer runs out
