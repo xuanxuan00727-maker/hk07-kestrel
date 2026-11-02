@@ -901,8 +901,27 @@ const BGM = (() => {
       if (bar % 8 === 7 && s === 15) [0, .07, .14].forEach((d, i) => blip(t + d, 'square', [900, 700, 1200][i], .06, .04, { cut: 2000 }));   // honk honk
     } };
   })();
+  // even sillier victory march: double-time oom-pah, honking kazoo fanfare, slide whistles and boings everywhere
+  const GFW = (() => {
+    const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+    const blip = (t, type, f, dur, amp, o = {}) => { const os = ctx.createOscillator(), a = ctx.createGain(); os.type = type; os.frequency.setValueAtTime(f, t); if (o.f2) os.frequency.exponentialRampToValueAtTime(o.f2, t + (o.slide || dur)); a.gain.setValueAtTime(0, t); a.gain.linearRampToValueAtTime(amp, t + .005); a.gain.exponentialRampToValueAtTime(.0008, t + dur); let node = os; if (o.cut) { const fl = ctx.createBiquadFilter(); fl.type = o.ft || 'lowpass'; fl.frequency.value = o.cut; fl.Q.value = o.q || 1; os.connect(fl); node = fl; } if (o.vib) { const l = ctx.createOscillator(), lg = ctx.createGain(); l.frequency.value = o.vib; lg.gain.value = f * .04; l.connect(lg); lg.connect(os.frequency); l.start(t); l.stop(t + dur + .05); } node.connect(a); a.connect(g); os.start(t); os.stop(t + dur + .05); };
+    const MEL = [72, 72, 72, 76, 79, -1, 76, 79, 84, -1, 84, -1, 79, 76, 72, -1, 74, 74, 74, 77, 81, -1, 77, 81, 86, -1, 86, -1, 81, 77, 74, -1, 76, 79, 76, 72, 77, 81, 77, 74, 79, 83, 79, 76, 72, 76, 79, 84, 84, -1, 83, -1, 81, -1, 79, -1, 84, 84, 84, -1, -1, -1, -1, -1];
+    const BASS = [48, 55, 53, 55];
+    return { bpm: 168, vol: 1.6, fn(s16, t, sd) {
+      const s = s16 % 16, bar = (s16 / 16 | 0), r = BASS[bar % 4];
+      if (s % 4 === 0) blip(t, 'square', hz(r - 12 + (s % 8 ? 7 : 0)), sd * 1.8, .22, { cut: 500, q: 2 });
+      if (s % 4 === 2) [0, 4, 7].forEach(k => blip(t, 'triangle', hz(r + 12 + k), sd * .9, .05));
+      if (s % 2 === 1) blip(t, 'square', 1500 + (s % 4) * 200, .025, .05, { cut: 2000, ft: 'bandpass', q: 6 });
+      const n = MEL[s16 % MEL.length]; if (n > 0) { blip(t, 'sawtooth', hz(n), sd * 1.4, .08, { cut: 1500, ft: 'bandpass', q: 2.5, vib: 8 }); blip(t, 'square', hz(n + 12), sd * .8, .025, { cut: 3000 }); }
+      if (s === 0 && bar % 2 === 0) blip(t, 'sine', 400, sd * 6, .1, { f2: 2600, slide: sd * 3, vib: 9 });
+      if (s === 8) blip(t, 'sine', 2600, sd * 5, .09, { f2: 250, slide: sd * 5 });
+      if (s === 6 || s === 14) blip(t, 'sine', 120, .3, .16, { f2: 700, slide: .1, vib: 22 });
+      if (s === 12) [0, .08, .16, .24].forEach((d, i) => blip(t + d, 'square', [700, 900, 700, 1200][i], .07, .05, { cut: 2200 }));
+      if (bar % 4 === 3 && s === 15) blip(t, 'sawtooth', 90, .6, .12, { f2: 40, slide: .5, cut: 600 });
+    } };
+  })();
   const TRACKS = {
-    goofy: GF,
+    goofy: GF, goofywin: GFW,
     title: { bpm: 76, vol: .9, fn(s16, t, sd) {
       const s = s16 % 16, bar = Math.floor(s16 / 16), c = PROG[bar % 4];
       if (s === 0) { pad(t, c.ch.map(m => m + 12), sd * 16 * 1.1, .035, 650); synth(t, n2f(c.r - 12), sd * 15, { amp: .1, cut: 80, cutEnv: 160, q: 2, att: .8, wet: .2 }); }
@@ -931,7 +950,7 @@ const BGM = (() => {
   function sched() { if (!track || !ctx || ctx.state !== 'running') return; const sd = 60 / track.bpm / 4; if (nextT < ctx.currentTime - .05) { const miss = Math.ceil((ctx.currentTime + .03 - nextT) / sd); step += miss; nextT += miss * sd; } let guard = 0; while (nextT < ctx.currentTime + .15 && guard++ < 6) { try { track.fn(step, nextT, sd); } catch (e) { if (!sched.err) { sched.err = 1; console.error('[BGM]', e); } } step++; nextT += sd; } }
   function play(name, o = {}) {
     if (!init()) return;
-    try { if (name !== 'win' && name !== 'lose' && STORY.on && STORY.m && STORY.m.fun) name = 'goofy'; } catch (e) {}   // comedy sorties keep the silly music
+    try { if (STORY.on && STORY.m && STORY.m.fun && name !== 'lose') name = name === 'win' ? 'goofywin' : 'goofy'; } catch (e) {}   // comedy sorties keep the silly music
     if (o.intensity != null) I = o.intensity;
     if (track && track.name === name) return;
     const t = ctx.currentTime;
@@ -6503,9 +6522,11 @@ const CUT = (() => {
     if (d && d.wall) { const w = d.wall; setTimeout(() => scene.remove(w), 9000); }
     if (d && d.boss) { d.boss.cutHold = false; d.boss.alert = true; d.boss.cd = 1.5; }
     const hackNext = d && d.boss && d.boss.drunkBoss && kind !== 'hack' && d.boss.alive ? d.boss : null;
+    const hackDone = d && d.boss && kind === 'hack' && d.boss.alive ? d.boss : null;
     camera.near = .5; camera.updateProjectionMatrix(); window.dispatchEvent(new Event('resize'));
     const f = done; done = null; if (f) f();
     if (hackNext) setTimeout(() => hack(hackNext), 300);
+    if (hackDone) { const e = hackDone, fk = e.koDir || 1; e.cutHold = false; if (e.fallK == null) { e.fallK = 1; e.koDir = fk; } killEnemy(e, true); e.drunkKO = 10; e.koDir = fk; setTimeout(() => { if (S.phase === 'op') endGame(true); }, 2500); }
   }
   const fwd = () => V.set(-Math.sin(P.yaw), 0, -Math.cos(P.yaw)).clone();
   const right = () => new THREE.Vector3(Math.cos(P.yaw), 0, -Math.sin(P.yaw));
@@ -6826,7 +6847,7 @@ const CUT = (() => {
       say1('p3', 7.8, () => VO.radio('強化人間パイロット', 'このロボット……名前……なんだったっけ……', 9, .9));
       say1('p4', 10.8, () => VO.radio('強化人間パイロット', 'あ……ジェットコースターに乗ってたんだ……ひっく', 9, .9));
       say1('p5', 14, () => { VO.ai('……敵ボス、機能停止。パイロットは無事です。……たぶん。', 'high'); caption('敵ボス 機能停止', 'TARGET DOWN'); });
-      if (c > 17) { const fk = e.koDir; end(); e.cutHold = false; e.alive = true; killEnemy(e, true); e.drunkKO = 10; e.koDir = fk; }
+      if (c > 17) end();
     }
   }
   return { boss, grab, update, get on() { return on; }, get k() { return slowK; } };
