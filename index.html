@@ -3749,6 +3749,7 @@ function squadPick(idx, ne, ns) { // even slots lead the assault on structures, 
 }
 function allyMG(a, e, d, dt) {
   if (d > 240) return;
+  if (STORY.on && STORY.m && STORY.m.drunkAll) return;   // drunk squad: no gatling either
   a.burst -= dt; if (a.burst < -1.4) a.burst = 1.2; if (a.burst <= 0) return;
   a.mgT -= dt; if (a.mgT > 0) return; a.mgT = .1;
   if (Math.random() < .38) { if (e.struct) MIS.damage(e.struct, 3 * SQ.dmg, false, null); else { e.hp -= 4 * SQ.dmg; e.alert = true; if (e.hp <= 0) killEnemy(e, false); } }
