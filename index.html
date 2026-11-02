@@ -1002,6 +1002,7 @@ const VO = (() => {
     } catch (e) { busy = false; }
   }
   function push(it) {
+    if (S.phase === 'cut') { q.length = 0; clearTimeout(guard); busy = false; try { ss && ss.cancel(); } catch (e) {} q.push(it); next(); return; }   // in a scene every line plays the moment the scene says it, in order
     if (it.pri === 'high') q.unshift(it); else q.push(it);
     while (q.length > 5) { const i = q.findIndex(x => x.pri !== 'high' && x.cls === 'ai'); q.splice(i >= 0 ? i : q.length - 1, 1); }
     next();
