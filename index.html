@@ -5569,7 +5569,16 @@ const FUN = (() => {
   const VOK = { 'ジン': 'jin', 'レン': 'ren', 'ミナ': 'mina', 'ハル': 'ai', 'ハワード大佐': 'cmd' };
   const done = (() => { try { return JSON.parse(localStorage.getItem('hk07-fun') || '{}'); } catch (e) { return {}; } })();
   const saveDone = () => { try { localStorage.setItem('hk07-fun', JSON.stringify(done)); } catch (e) {} };
-  function say(who, text) { const b = H('.bub'); if (!b) return; b.innerHTML = (who ? `<small>${who}</small>` : '') + text; if (VOK[who]) try { VO.cancel(); VO.say(VOK[who], text); } catch (e) {} }
+  // very drunk Jin: slurred consonants, stretched vowels, hiccups and stutters
+  const SLUR = [['す', 'しゅ'], ['さ', 'しゃ'], ['そ', 'しょ'], ['せ', 'しぇ'], ['ら', 'りゃ'], ['る', 'りゅ'], ['ろ', 'りょ'], ['つ', 'ちゅ'], ['だ', 'ら'], ['ぞ', 'じょ'], ['ざ', 'じゃ'], ['た', 'たぁ'], ['か', 'かぁ']];
+  function slur(t) {
+    let o = ''; for (const ch of t) { const r = SLUR.find(x => x[0] === ch); o += r && Math.random() < .55 ? r[1] : ch; if ('あいうえおぁぃぅぇぉ'.includes(ch) && Math.random() < .12) o += 'ぁ〜'; }
+    o = o.replace(/([！？。、…])/g, m => Math.random() < .45 ? m + pick(['ひっく', 'うぃっ', 'ヒック', '……うぃ〜']) : m);
+    if (Math.random() < .5) o = o.slice(0, 1) + '、' + o.slice(0, 1) + o.slice(1);
+    return (Math.random() < .5 ? pick(['うぃ〜……', 'ひっく……', 'あ〜……']) : '') + o;
+  }
+  const jinDrunk = () => cur && cur.s && (cur.s.c.drunk || (cur.s.c.riv || []).some(r => r[1] === 'jin' && r[3] === 'drunk'));
+  function say(who, text) { const b = H('.bub'); if (!b) return; if (who && who.startsWith('ジン') && (jinDrunk() || (cur && cur.s && cur.s.c.t === 'バレずにコーラを飲め' && cur.drinkN > 0))) text = slur(text); b.innerHTML = (who ? `<small>${who}</small>` : '') + text; if (VOK[who]) try { VO.cancel(); VO.say(VOK[who], text); } catch (e) {} }
 
   /* ---------- engine A: sneak (do the secret thing while nobody looks, then answer the call) ---------- */
   const P3 = (j, r, m) => [{ n: 'ジン', f: j[0], away: j[1] }, { n: 'レン', f: r[0], away: r[1] }, { n: 'ミナ', f: m[0], away: m[1] }];
@@ -5904,7 +5913,7 @@ const FUN = (() => {
       if (st.phase === 'intro' && FUN_SKIP) { FUN_SKIP(); return; }
       if (st.over || st.phase === 'intro') return;
       if (st.phase !== 'call') { say('07（心の声）', '（しまった、合図の前に……！）'); if (st.a) st.pen++; st.a = true; check(); upd(); return; }
-      st.phase = 'talk'; st.n++; st.next = st.t + rand(6.5, 9.5);
+      st.phase = 'talk'; st.n++; st.next = st.t + rand(6.5, 9.5); if (cur) cur.drinkN = st.n;
       if (st.a) { st.pen++; say('07（心の声）', c.bad); } else { const l = pick(c.ok); say(l[0], l[1]); }
       setTimeout(() => { if (!st.over && st.n < st.need) { say(c.reset[0], c.reset[1]); st.a = true; upd(); } }, 2400);
       check(); upd();
