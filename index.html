@@ -315,6 +315,7 @@ body.op #panel3d{height:104px;border-radius:6px}
         <div class="g-side">
           <div class="g-h">機体<small class="g-prog"></small></div><div class="g-msg" hidden></div><div class="g-frames"></div>
           <div class="g-h">強化<small>1段ごと</small></div><div class="g-upg"></div>
+          <div class="g-h">装備</div><div class="g-od"></div>
           <div class="g-h">塗装</div><div class="g-paint"></div>
           <div class="g-h">第3機甲小隊（僚機）</div><div class="g-squad"></div>
         </div>
@@ -995,7 +996,7 @@ function resetPlayer() {
   if (S.viewSave) { S.view = S.viewSave; S.viewSave = null; }
   Object.assign(P, { x: 0, z: 0, yaw: 0, spd: 0, turn: 0, thr: 0, ty: 0, tp: 0, tyT: 0, tpT: 0, armor: 100, heat: 0, over: false,
     main: 6, mainRes: 24, reload: 0, sub: 400, mgCd: 0, mainCd: 0, mgN: 0, phase: 0, stepN: 0, side: 1,
-    gy: 0, fallX: 0, fallZ: 0, knock: false, getup: null, lostMain: false, lostHead: false, headGlT: 0, reachArm: 'L', kbx: 0, kbz: 0, tumble: 0, bobY: 0, bobV: 0, kick: 0, kickV: 0, trauma: 0, glitch: 0, flash: 0, dead: false, hits: [], servo: 0, bumpCd: 0, fired: 0, hitsLanded: 0,
+    gy: 0, fallX: 0, fallZ: 0, knock: false, getup: null, lostMain: false, lostHead: false, odOn: false, headGlT: 0, reachArm: 'L', kbx: 0, kbz: 0, tumble: 0, bobY: 0, bobV: 0, kick: 0, kickV: 0, trauma: 0, glitch: 0, flash: 0, dead: false, hits: [], servo: 0, bumpCd: 0, fired: 0, hitsLanded: 0,
     brl: 0, mgSpin: 0, vel: new THREE.Vector3(), pitchS: 0, cat: 0, onDeck: true, crouch: .22, acc: 0, lastSpd: 0, lean: 0, y: 0, vy: 0, thrust: 0, fuel: 100, fuelCd: 0, jetT: 0, fuelWarn: false, aimO: new THREE.Vector3(0, 7.9, 0), aimD: new THREE.Vector3(0, 0, -1) });
   if (window.__dropPlace) window.__dropPlace();
 }
@@ -1591,7 +1592,7 @@ const GARUI = (() => {
     }
     pv.environment = scene.environment;
     if (pmech) pv.remove(pmech.root);
-    const pal = heroPal(); if (FRAMES[GAR.frame].boss) pmech = buildBossHero(GAR.frame); else { pmech = buildKestrel(pal, '07', false); applyKit(pmech, GAR.frame, pal); }
+    const pal = heroPal(); if (FRAMES[GAR.frame].boss) pmech = buildBossHero(GAR.frame); else { pmech = buildKestrel(pal, '07', false); applyKit(pmech, GAR.frame, pal); if (GAR.od) addOD(pmech); }
     scene.remove(pmech.root); pv.add(pmech.root);
     const bb = new THREE.Box3().setFromObject(pmech.root); PVH = Math.max(8, bb.max.y);
   }
@@ -1618,6 +1619,7 @@ const GARUI = (() => {
       const lv = GAR.lv[u.k], cost = UPG_COST[lv], max = lv >= UPG_MAX;
       return `<div class="gu"><div><b>${u.name}</b><small>${u.desc}／段</small></div><div class="pips">${Array.from({ length: UPG_MAX }, (_, i) => `<i class="${i < lv ? 'on' : ''}"></i>`).join('')}</div><button class="btn gbuy" data-u="${u.k}" ${max || GAR.cr < cost ? 'disabled' : ''}>${max ? 'MAX' : cost + ' CR'}</button></div>`;
     }).join('');
+    q('.g-od').innerHTML = `<button class="gf${GAR.od ? ' on' : ''}" data-od="1"><b>OD主砲（オーバードライブ）</b><span>${GAR.od ? '装備中　◀ タップで外す' : 'タップで装備'}</span><small>主砲に高出力コンデンサを直結する。主砲の威力が${OD_K}倍になり、ほとんどの敵を一撃で倒せる。ただし極端に脆く、敵の弾が1発でも当たると主砲ごと吹き飛び、以後はガトリングだけで戦うことになる。</small></button>`;
     q('.g-paint').innerHTML = Object.entries(PAINTS).map(([k, p]) => `<button class="gp${GAR.paint === k ? ' on' : ''}" data-p="${k}" title="${p.name}"><i style="background:#${p.c[1].toString(16).padStart(6, '0')}"></i><i style="background:#${p.c[0].toString(16).padStart(6, '0')}"></i><i style="background:#${p.c[2].toString(16).padStart(6, '0')}"></i><span>${p.name}</span></button>`).join('');
     const pct = v => `${v >= 1 ? '+' : ''}${Math.round((v - 1) * 100)}%`;
     q('.g-squad').innerHTML = `あなたの機体を強化するほど、僚機6機も同じだけ強くなります。<br><span>耐久 ${SQ.hp}（${pct(SQ.hp / 480)}）</span><span>火力 ${pct(SQ.dmg)}</span><span>連射 ${pct(SQ.rate)}</span><span>命中 ${pct(2 - SQ.aim)}</span>`;
@@ -1630,6 +1632,7 @@ const GARUI = (() => {
       GAR.frame = t.dataset.f; saveGar(); SFX.relay(); m.hidden = false; m.textContent = `${f.name} を選択しました。次の出撃から使えます。`; render(); preview();
     }
     else if (t.dataset.u) { const k = t.dataset.u, lv = GAR.lv[k], c = UPG_COST[lv]; if (lv < UPG_MAX && GAR.cr >= c) { GAR.cr -= c; GAR.lv[k]++; saveGar(); SFX.clunk(); render(); } }
+    else if (t.dataset.od) { GAR.od = !GAR.od; saveGar(); SFX.relay(); render(); preview(); }
     else if (t.dataset.p) { GAR.paint = t.dataset.p; saveGar(); SFX.click(); render(); preview(); }
     else if (t.classList.contains('g-close')) close();
   });
@@ -1681,8 +1684,18 @@ function makeHero() {
   if (BOSS_READY && S.mode !== 'space' && FRAMES[GAR.frame] && FRAMES[GAR.frame].boss && frameOwned(GAR.frame)) return buildBossHero(GAR.frame);
   const sp = S.mode === 'space', pal = sp ? PAL_S : heroPal(), k = buildKestrel(pal, '07', true); if (sp) addSpaceKit(k, PAL_S); else applyKit(k, frameOwned(GAR.frame) ? GAR.frame : 'kestrel', pal);
   if (false) { const h = new THREE.Group(); h.position.set(0, 2.42, -1.66); k.body.add(h); part(cb(1.3, 1.36, .16, .05), pal.graph, 0, -.68, 0, h); part(new THREE.BoxGeometry(.9, .06, .05), pal.accent, 0, -1.2, -.09, h); part(new THREE.BoxGeometry(1.1, 1.1, .04), std(0x0b0c0a, .9, .1), 0, 1.72, -1.55, k.body); k.hatch = h; }
-  mergeStatic(k.root);
+  mergeStatic(k.root); if (GAR.od && !sp) addOD(k);
   k.gait = makeGait(k.root, k.legs, { hipX: [1.75, -1.75], hipY: HIP, l1: 2.8, l2: 2.7, ankle: .5, lift: 1.0, sway: .32 }); return k;
+}
+// OVERDRIVE MAIN GUN: a capacitor pack on the right gun housing. The main gun hits enormously hard, but the whole unit is blown off by the very first hit taken.
+const OD_K = 5, OD_BREAK = 90;
+function addOD(k) {
+  if (!k || !k.pitch) return; const par = k.armR || k.pitch, g = new THREE.Group(); g.position.set(k.armR ? .6 : 3.1, k.armR ? .52 : -.08, -.3); par.add(g);
+  const dark = std(0x1d1f22, .45, .7), glow = new THREE.MeshStandardMaterial({ color: 0xff3a22, emissive: 0xff2a10, emissiveIntensity: 1.6, roughness: .3 });
+  part(new THREE.BoxGeometry(.95, .34, 1.7), dark, 0, .17, 0, g);
+  [-.24, .24].forEach(x => { const c = new THREE.Mesh(new THREE.CylinderGeometry(.17, .17, 1.4, 14), glow); c.rotation.x = Math.PI / 2; c.position.set(x, .5, 0); g.add(c); const r = new THREE.Mesh(new THREE.CylinderGeometry(.2, .2, .12, 14), dark); r.rotation.x = Math.PI / 2; r.position.set(x, .5, -.72); g.add(r); const r2 = r.clone(); r2.position.z = .72; g.add(r2); });
+  part(new THREE.BoxGeometry(.9, .08, .2), std(0xe0b020, .5, .3), 0, .36, .82, g);
+  k.od = g; return g;
 }
 let ME = makeHero();
 /* ================= SPACE THEATRE: carrier, asteroids, starfield; flight physics for everyone ================= */
@@ -4078,7 +4091,7 @@ async function doLaunch() {
     $('#bootPanel').hidden = true; await DROP.start(); if (S.phase !== 'drop') return;
   }
   setTimeout(() => VO.radio('01', '07が来たぞ！全機、援護しろ！', 1, .9), 1200);
-  S.phase = 'op'; S.t0 = performance.now();
+  S.phase = 'op'; S.t0 = performance.now(); P.odOn = !!ME.od; if (P.odOn) { say('OD主砲 作動 ─ 主砲威力×' + OD_K + '（被弾1発で脱落）', 'r', 3.2); }
   if (S.mode === 'space') { P.onDeck = false; P.cat = 2.2; ME.gait.airborne = true; sNoise({ dur: 2.4, f: 300, f2: 1800, gain: .7, a: .2 }); sTone({ f: 60, f2: 140, dur: 2.2, type: 'sawtooth', gain: .2 }); setTimeout(() => VO.ai('カタパルト、射出。'), 300); }
   $('#hint').innerHTML = S.mode === 'space'
     ? '<span class="x">タップで閉じる</span><b>スマホ</b>　左レバーで推力／◀▶で旋回／画面ドラッグで機首の向き（上下左右）／ブーストで急加速<br><b>PC</b>　W/S 推力・X 推力ゼロ／A/D 旋回／矢印キー・ドラッグ 機首／Shift・J 急加速／Space 主砲／F 機銃／V 視点<br>宇宙では慣性が残る。止まりたいときは推力を下げて待て。デブリに注意。'
@@ -4237,8 +4250,8 @@ const SPK = {
   mina: { name: '整備長 ミナ・クロカワ', col: '#7dffa8' }, ai: { name: 'HULL-AI', col: '#3fd8ff' }, arc: { name: 'ARC', col: '#ff3a5a' }, nem: { name: 'NEMESIS', col: '#d08cff' }, org: { name: 'ORIGIN', col: '#ff9a3a' }, kaz: { name: 'カザマ将軍', col: '#e8c040' }, leg: { name: 'レギオン', col: '#c060ff' }, xm: { name: '被験体M（ミナ）', col: '#ff6a8a' }, cro: { name: 'ドクター・クロウ', col: '#b0b8c8' }, odn: { name: 'ODIN', col: '#ffd060' }, xs: { name: 'シオン', col: '#9adfff' }, narr: { name: '', col: '#c9c4ad' },
 };
 const TUT = { act: 0, title: '基礎訓練', mode: 'land', env: 'desert', total: 0, first: 0, noAllies: true, dmgK: .45, tutorial: true, obj: { type: 'tutorial', text: '教官の指示に従って、機体の操作を覚えよう' },
-  brief: [['narr', '── 訓練課程 ──'], ['ren', '新入り、俺がレン・アサギだ。今日はお前の教官をやる。'], ['ren', 'まずはコックピットの起動だ。画面下のスイッチを、表示された順に押していけ。'], ['mina', 'スイッチはタップ、PCならEnterキーでもいいわ。長押しが必要なものもあるから、表示をよく見て。'], ['ai', '待ちきれない時は「出撃まで早送り」で起動を飛ばせます。'], ['ren', '起動したら、歩く・曲がる・跳ぶ・撃つを順番に教える。焦らずやれ。']],
-  debrief: [['ren', '合格だ、07。基本は全部できてる。'], ['mina', '本番では敵がもっと多いし、撃ち返してくるわ。強化は格納庫でね。'], ['ai', 'ロックオンを使えば、照準が多少ずれていても必ず命中します。'], ['ren', 'よし、本番だ。第3機甲小隊へようこそ。']] };
+  brief: [['narr', '── 訓練課程 ──'], ['ren', '新入り、俺がレン・アサギだ。今日はお前の教官をやる。'], ['ren', 'まずはコックピットの起動だ。画面下のスイッチを、表示された順に押していけ。'], ['mina', 'スイッチはタップ、PCならEnterキーでもいいわ。長押しが必要なものもあるから、表示をよく見て。'], ['ai', '待ちきれない時は「出撃まで早送り」で起動を飛ばせます。'], ['ren', '起動したら、歩く・曲がる・跳ぶ・撃つを順番に教える。焦らずやれ。'], ['ai', '補足：格納庫の「装備」でOD主砲を付けると、主砲の威力が5倍になります。ただし被弾1発で主砲ごと脱落します。']],
+  debrief: [['ren', '合格だ、07。基本は全部できてる。'], ['mina', '本番では敵がもっと多いし、撃ち返してくるわ。強化は格納庫でね。'], ['ai', 'ロックオンを使えば、照準が多少ずれていても必ず命中します。'], ['mina', 'それと格納庫の「装備」に、OD主砲っていう改造パーツがあるわ。'], ['mina', '付けると主砲の威力が5倍。たいていの敵は一撃よ。……でも、すっごく脆いの。敵の弾が1発でも当たったら、主砲ごと吹き飛んじゃう。'], ['ren', 'そうなったら残りはガトリングだけだ。一発ももらわない自信があるなら使ってみろ。'], ['ren', 'よし、本番だ。第3機甲小隊へようこそ。']] };
 const misAt = i => i < 0 ? TUT : MISSIONS[i];
 const tutDone = () => { try { return localStorage.getItem('hk07-tut') === '1'; } catch (e) { return true; } };
 const MISSIONS = [
@@ -5448,13 +5461,14 @@ const BREAK = (() => {
   function restore() {   // a fresh sortie: every part back on, wreckage cleared
     list.forEach(d => scene.remove(d.m)); list.length = 0;
     stumps.forEach(s => { if (s.a.parent) s.a.parent.remove(s.a); }); stumps.length = 0; wireSets.length = 0;
-    if (typeof ME !== 'undefined' && ME) { [ME.barrel, ME.mg, ME.armL, ME.head].forEach(o => { if (o) o.visible = true; }); (ME.legs || []).forEach(l => { if (l.thigh) l.thigh.visible = true; }); }
+    if (typeof ME !== 'undefined' && ME) { [ME.barrel, ME.mg, ME.armL, ME.od, ME.head].forEach(o => { if (o) o.visible = true; }); (ME.legs || []).forEach(l => { if (l.thigh) l.thigh.visible = true; }); }
   }
   return { off, update, restore, chunk };
 })();
 // damage thresholds: half armour costs the main gun, a third costs the head (and the main camera starts to fail)
 function checkBreaks() {
   if (P.dead || S.phase !== 'op') return;
+  if (P.odOn && ME.od) { P.odOn = false; P.lostMain = true; BREAK.off(ME.od, .9, false); if (ME.barrel) BREAK.off(ME.barrel, 1.3); say('OD主砲 吹き飛んだ！ ─ ガトリングのみ', 'r', 3); VO.ai('OD主砲、被弾一発で脱落！ ガトリングで戦ってください！', 'high'); }
   if (!P.lostMain && P.armor <= 50 && ME.barrel) { P.lostMain = true; BREAK.off(ME.barrel, 1); say('右腕 主砲ユニット損失', 'r', 2.6); VO.ai('右腕、被弾！ 主砲ユニット、脱落！ ガトリングで戦ってください！', 'high'); }
   if (!P.lostHead && P.armor <= 30 && ME.head) { P.lostHead = true; P.headGlT = 1.5; BREAK.off(ME.head, .8); say('頭部 大破 ─ 予備カメラに切替', 'r', 2.6); VO.ai('頭部、大破！ メインカメラ損傷。予備カメラに切り替えます……映像、不安定です！', 'high'); }
 }
@@ -5603,7 +5617,7 @@ function fireMain() {
   const aim = lk ? lockPos(lk, new THREE.Vector3()) : o.addScaledVector(d, Math.max(hit.t, 25));
   const v = aim.sub(start).normalize();
   const m = new THREE.Mesh(pShellGeo, pShellMat); m.position.copy(start); m.lookAt(start.clone().add(v)); scene.add(m);
-  shells.push({ m, v: v.multiplyScalar(330), life: 3, own: 'p', pd: 55 * ST.main, home: lk });
+  shells.push({ m, v: v.multiplyScalar(330), life: 3, own: 'p', pd: 55 * ST.main * (P.odOn ? OD_K : 1), home: lk });
   muzzleLight.position.copy(start); muzzleLight.intensity = 8;
   addPart({ pos: start.clone().addScaledVector(v, 0.02), color: 0xffd080, add: true, s0: 1.5, s1: 4, life: .1 });
   addPart({ pos: start, color: 0x8a8070, op: .5, s0: 1.5, s1: 7, life: 1.6, vel: new THREE.Vector3(0, 1.5, 0) });
