@@ -7091,13 +7091,13 @@ function fireMG(dt) {
   muzzleLight.position.copy(mp); muzzleLight.intensity = Math.max(muzzleLight.intensity, 2.5);
 }
 const DRUNK_ALL = () => { try { return !!(STORY.on && STORY.m && STORY.m.drunkAll); } catch (e) { return false; } };
-const DRUNK_EN = ['なんだ……この白い塊は……？ ひっく', 'あれ……僕……何に乗ってたんだっけ……', 'うぃ〜……地面が……近づいてくりゅ……', 'もう……のめにゃい……', 'おかあしゃん……ひっく', 'ここ……どこら……？ あ、ロボットの中か……', '敵……？ 友達……？ どっちでもいいや……うぃ〜', 'ぐう……すぴー……'];
+const DRUNK_EN = ['ああ〜〜……ジェットコースターに乗ってる〜〜……ひっく', 'うわぁ〜……回る回る〜……たのしぃ〜……', 'ひゃっほ〜……落ちてく〜……うぃ〜', 'なんだ……この白い塊は……？ ひっく', 'あれ……僕……何に乗ってたんだっけ……', 'うぃ〜……地面が……近づいてくりゅ……', 'もう……のめにゃい……', 'おかあしゃん……ひっく', 'ここ……どこら……？ あ、ロボットの中か……', '敵……？ 友達……？ どっちでもいいや……うぃ〜', 'ぐう……すぴー……'];
 function killEnemy(e, byPlayer = true) {
   if (!e.alive) return;
   if (e.rescue) { if (!e.saved) rescueStop(e); return; } e.alive = false; const wasA = e.ally; e.ally = false; if (byPlayer && !wasA) S.kills++;
-  if (DRUNK_ALL() && !e.boss) {   // drunk enemies don't blow up: they stagger in silly poses, then keel over and stop
+  if (DRUNK_ALL()) {   // drunk enemies don't blow up: they stagger in silly poses, then keel over and stop
     e.drunkKO = 0; e.koDir = Math.random() < .5 ? -1 : 1; e.koSpin = rand(-2, 2);
-    if (S.phase === 'op') { say('機能停止', 'a', 1.4); if (Math.random() < .7) VO.radio('敵パイロット', DRUNK_EN[(Math.random() * DRUNK_EN.length) | 0], 9, .75); }
+    if (S.phase === 'op') { say('機能停止', 'a', 1.4); if (Math.random() < .85) VO.radio('敵パイロット（無事）', DRUNK_EN[(Math.random() * DRUNK_EN.length) | 0], 9, .75); }
     if (S.phase === 'op' && allDestroyedWins() && S.spawned >= ENEMY_TOTAL && enemies.every(x => !x.alive || x.ally)) setTimeout(() => endGame(true), 2600);
     return;
   }
