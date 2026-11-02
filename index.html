@@ -6500,7 +6500,7 @@ const FUN = (() => {
 /* ================= TALK TO HAL: speak into the mic mid-battle, HAL answers in a few seconds ================= */
 const HALTALK = (() => {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition; let rec = null, on = false, busy = false;
-  const btn = document.createElement('button'); btn.id = 'halMic'; btn.textContent = '🎤 ハルと話す';
+  const btn = document.createElement('button'); btn.id = 'halMic'; btn.textContent = '🎤 長押しでハルと話す';
   btn.style.cssText = 'position:fixed;left:10px;top:50%;z-index:40;padding:10px 12px;border-radius:24px;border:2px solid #3fd8ff;background:rgba(5,30,40,.85);color:#bff4ff;font-size:13px;font-weight:700;display:none;touch-action:manipulation';
   document.body.appendChild(btn);
   const pick = a => a[(Math.random() * a.length) | 0];
@@ -6532,24 +6532,48 @@ const HALTALK = (() => {
     if (has(t, 'つまらない', 'つまんない', '暇', 'ひま')) return '……では、敵をもっと倒してください。退屈しませんよ。';
     return pick([`了解です。……ちなみに、敵は残り${left}機です。`, 'すみません、もう一度言ってください。戦闘音で聞き取りにくくて。', 'なるほど。……今は目の前の敵に集中しましょう。', near ? `了解。一番近い敵は${dirTo(near)}です。` : '了解しました。']);
   }
+  // the full AI: on claude.ai the page can ask Claude itself; elsewhere the built-in replies above answer
+  let SAMPLE = null; const hist = [];
+  try { if (window.claude && claude.use) claude.use('sample').then(f => { SAMPLE = f; }).catch(() => {}); } catch (e) {}
+  function stateText() {
+    const foes = enemies.filter(e => e.alive && !e.ally), left = foes.length + Math.max(0, ENEMY_TOTAL - S.spawned), m = STORY.on ? STORY.m : null, boss = foes.find(e => e.boss);
+    const near = foes.slice().sort((a, b) => Math.hypot(a.x - P.x, a.z - P.z) - Math.hypot(b.x - P.x, b.z - P.z))[0];
+    return `作戦:${m ? m.title + '／' + m.obj.text : '自由戦闘'}。残り敵${left}機。装甲${Math.round(P.armor)}%。${near ? '最寄りの敵:' + dirTo(near) + Math.round(Math.hypot(near.x - P.x, near.z - P.z)) + 'm。' : ''}${boss ? 'ボス装甲' + Math.round(boss.hp / boss.max * 100) + '%。' : ''}${m && m.limit ? '制限時間残り' + Math.max(0, Math.ceil(m.limit - (performance.now() - S.t0) / 1000)) + '秒(' + (m.limitLabel || '') + ')。' : ''}${drunkTalk() ? '今回は司令とパイロットとハル以外、味方も敵も全員泥酔してふにゃふにゃ。' : ''}${m && m.drunkJin ? 'ジンが泥酔している。' : ''}${m && m.fun ? '今はギャグ回（爆笑ストーリー）。' : ''}`;
+  }
+  async function askAI(text) {
+    const prompt = `あなたは人型ロボット「HK-07ケストレル」に搭載されたAI「ハル」。パイロット07と戦闘中に無線で会話している。性格：丁寧語、優しい、少し天然、ときどき照れる、ボケにはツッコミも返す、ユーモアがある。仲間：01レン（冷静）、04ジン（お調子者・酒好き）、整備長ミナ、ハワード大佐（司令）。
+現在の戦況：${stateText()}
+直近の会話：
+${hist.slice(-8).map(h => h[0] + '：' + h[1]).join('\n')}
+パイロットの発言：「${text}」
+
+ハルとして、日本語で1〜2文（60文字以内）だけで返答して。戦況を聞かれたら上の数字で正確に答える。説明や前置き、かっこ書き、名前ラベルは付けない。`;
+    const r = await SAMPLE(prompt, { modelTier: 'quick', cache: false });
+    return String(r.text || '').replace(/^ハル[：:]\s*/, '').trim().slice(0, 120);
+  }
   function heard(text) {
     if (!text || busy) return; busy = true;
-    VO.radio('07（あなた）', text, 7, 1);
-    setTimeout(() => { try { VO.ai(answer(text), 'high'); } catch (e) { console.warn(e); } busy = false; }, 900 + Math.random() * 800);
+    VO.radio('07（あなた）', text, 7, 1); hist.push(['07', text]);
+    const t0 = performance.now(), done = a => { const wait = Math.max(0, 700 - (performance.now() - t0)); setTimeout(() => { try { VO.ai(a, 'high'); } catch (e) {} hist.push(['ハル', a]); busy = false; }, wait); };
+    if (SAMPLE) askAI(text).then(a => done(a || answer(text))).catch(() => done(answer(text)));
+    else done(answer(text));
   }
+  let said = '', holding = false;
   function start() {
     if (!SR) { try { VO.ai('この端末では、マイクの音声認識が使えません。Chromeブラウザなら使えます。'); } catch (e) {} return; }
-    rec = new SR(); rec.lang = 'ja-JP'; rec.continuous = true; rec.interimResults = false;
-    rec.onresult = ev => { const r = ev.results[ev.results.length - 1]; if (r.isFinal) heard(r[0].transcript.trim()); };
-    rec.onerror = ev => { if (ev.error === 'not-allowed') { on = false; upd(); VO.ai('マイクが許可されていません。'); } };
-    rec.onend = () => { if (on) try { rec.start(); } catch (e) {} };
-    try { rec.start(); on = true; VO.ai('マイク、オン。いつでも話しかけてください。'); } catch (e) { on = false; }
-    upd();
+    said = ''; holding = true; on = true; upd();
+    rec = new SR(); rec.lang = 'ja-JP'; rec.continuous = true; rec.interimResults = true;
+    rec.onresult = ev => { let t = ''; for (let i = 0; i < ev.results.length; i++) t += ev.results[i][0].transcript; said = t; btn.textContent = '🎙️ ' + (said.slice(-14) || '聞いてます…'); };
+    rec.onerror = ev => { if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') { holding = false; on = false; upd(); VO.ai('マイクが許可されていません。ブラウザの設定で、マイクを許可してください。'); } };
+    rec.onend = () => { if (holding) { try { rec.start(); } catch (e) {} return; } on = false; upd(); const t = said.trim(); said = ''; if (t) heard(t); };
+    try { VO.cancel(); rec.start(); } catch (e) { holding = false; on = false; upd(); }
   }
-  function stop() { on = false; try { rec && rec.stop(); } catch (e) {} upd(); }
-  function upd() { btn.textContent = on ? '🎙️ 聞いてます…（タップで停止）' : '🎤 ハルと話す'; btn.style.borderColor = on ? '#ff5a4a' : '#3fd8ff'; }
-  btn.addEventListener('click', e => { e.stopPropagation(); on ? stop() : start(); });
-  function tick() { const show = S.phase === 'op' || S.phase === 'cut'; btn.style.display = show ? 'block' : 'none'; if (!show && on && S.phase !== 'op') { /* keep listening across scenes */ } if (S.phase === 'title' && on) stop(); }
+  function stop() { holding = false; try { rec && rec.stop(); } catch (e) {} }
+  function upd() { btn.textContent = on ? '🎙️ 聞いてます…（離すと送信）' : '🎤 長押しでハルと話す'; btn.style.borderColor = on ? '#ff5a4a' : '#3fd8ff'; btn.style.background = on ? 'rgba(80,10,10,.9)' : 'rgba(5,30,40,.85)'; }
+  btn.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); try { btn.setPointerCapture(e.pointerId); } catch (er) {} start(); });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(n => btn.addEventListener(n, e => { e.stopPropagation(); if (holding) stop(); }));
+  btn.addEventListener('contextmenu', e => e.preventDefault()); btn.style.userSelect = 'none'; btn.style.webkitUserSelect = 'none'; btn.style.touchAction = 'none'; upd();
+  function tick() { const show = S.phase === 'op' || S.phase === 'cut'; btn.style.display = show ? 'block' : 'none'; if (!show && on && S.phase !== 'op') { /* keep listening across scenes */ } if (S.phase === 'title' && holding) stop(); }
   setInterval(tick, 500);
   return { answer, heard };
 })();
