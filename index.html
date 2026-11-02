@@ -6577,7 +6577,7 @@ addEventListener('keydown', e => {
 });
 addEventListener('keyup', e => { const k = e.key.toLowerCase(); keys[k] = false; if (k === 'enter') S.holding = false; });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; btn.l = btn.r = btn.sub = btn.jump = false; S.holding = false; });
-document.addEventListener('pointerdown', () => { audioInit(); if (S.phase === 'title') BGM.play('title'); }, { capture: true });
+document.addEventListener('pointerdown', () => { audioInit(); if (S.phase === 'title' && $('#bar').hidden) BGM.play('title'); }, { capture: true });
 document.addEventListener('contextmenu', e => e.preventDefault());
 
 function holdBtn(id, prop) {
