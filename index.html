@@ -874,7 +874,27 @@ const BGM = (() => {
     // alarm blips
     if (b4 === 2 && (s === 0 || s === 2)) tone(t, 'square', 1320, 1320, .02, sd * 1.2, .3);
   }
+  // goofy circus-polka for the comedy stories: oom-pah tuba, kazoo tune, slide whistle, boings and a woodblock
+  const GF = (() => {
+    const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+    const blip = (t, type, f, dur, amp, o = {}) => { const os = ctx.createOscillator(), a = ctx.createGain(); os.type = type; os.frequency.setValueAtTime(f, t); if (o.f2) os.frequency.exponentialRampToValueAtTime(o.f2, t + (o.slide || dur)); a.gain.setValueAtTime(0, t); a.gain.linearRampToValueAtTime(amp, t + (o.att || .005)); a.gain.exponentialRampToValueAtTime(.0008, t + dur); let node = os; if (o.cut) { const fl = ctx.createBiquadFilter(); fl.type = o.ft || 'lowpass'; fl.frequency.value = o.cut; fl.Q.value = o.q || 1; os.connect(fl); node = fl; } if (o.vib) { const l = ctx.createOscillator(), lg = ctx.createGain(); l.frequency.value = o.vib; lg.gain.value = f * .025; l.connect(lg); lg.connect(os.frequency); l.start(t); l.stop(t + dur + .05); } node.connect(a); a.connect(g); os.start(t); os.stop(t + dur + .05); };
+    const CH = [[48, [64, 67, 72]], [53, [65, 69, 72]], [55, [65, 67, 71]], [48, [64, 67, 72]], [53, [65, 69, 72]], [48, [64, 67, 72]], [55, [62, 65, 71]], [48, [64, 67, 72]]];
+    const MEL = [72, -1, 74, 76, 72, -1, 67, -1, 69, 71, 72, -1, 74, -1, 76, 77, 79, -1, 77, 76, 74, -1, 71, -1, 67, 69, 71, 72, 74, -1, 72, -1,
+      76, 76, -1, 74, 72, -1, 67, 67, 69, -1, 72, -1, 81, 79, 77, 76, 74, -1, 76, 74, 72, -1, 71, 69, 67, 71, 74, 79, 72, -1, -1, -1];
+    return { bpm: 138, vol: .55, fn(s16, t, sd) {
+      const s = s16 % 16, bar = (s16 / 16 | 0), c = CH[bar % CH.length], sw = s % 2 ? sd * .18 : 0, tt = t + sw;
+      if (s % 8 === 0) blip(tt, 'square', hz(c[0] - 12 + (s === 8 ? 7 : 0)), sd * 2.6, .2, { cut: 420, q: 2 });           // tuba "oom"
+      if (s % 8 === 4) c[1].forEach(m => blip(tt, 'triangle', hz(m), sd * 1.2, .05));                                // "pah"
+      if (s % 4 === 2) blip(tt, 'square', 1400, .03, .05, { cut: 1800, ft: 'bandpass', q: 6 });                    // woodblock
+      const n = MEL[(s16 % MEL.length)]; if (n > 0) blip(tt, 'sawtooth', hz(n), sd * 1.7, .07, { cut: 1300, ft: 'bandpass', q: 2.5, vib: 6.5, att: .02 });   // kazoo
+      if (bar % 4 === 3 && s === 8) blip(tt, 'sine', 500, sd * 7, .09, { f2: 2400, slide: sd * 3.5, vib: 7 });    // slide whistle up
+      if (bar % 4 === 3 && s === 12) blip(tt, 'sine', 2400, sd * 4, .08, { f2: 300, slide: sd * 4 });            // ...and down
+      if (bar % 2 === 1 && s === 14) blip(tt, 'sine', 140, .35, .16, { f2: 620, slide: .12, vib: 18 });          // boing
+      if (bar % 8 === 7 && s === 15) [0, .07, .14].forEach((d, i) => blip(t + d, 'square', [900, 700, 1200][i], .06, .04, { cut: 2000 }));   // honk honk
+    } };
+  })();
   const TRACKS = {
+    goofy: GF,
     title: { bpm: 76, vol: .9, fn(s16, t, sd) {
       const s = s16 % 16, bar = Math.floor(s16 / 16), c = PROG[bar % 4];
       if (s === 0) { pad(t, c.ch.map(m => m + 12), sd * 16 * 1.1, .035, 650); synth(t, n2f(c.r - 12), sd * 15, { amp: .1, cut: 80, cutEnv: 160, q: 2, att: .8, wet: .2 }); }
@@ -5825,14 +5845,14 @@ const FUN = (() => {
 
   /* ---------- menu ---------- */
   function menu() {
-    stop(); el.hidden = false; el.className = '';
+    stop(); el.hidden = false; el.className = ''; try { BGM.play('goofy', { fade: .4 }); } catch (e) {}
     const open = i => i === 0 || done[ORDER[i - 1].k];
     el.innerHTML = `<div class="bt">😂 爆笑ストーリー 😂 <small style="color:#c8a070">（停戦後のお話・クリアで次の話へ）</small></div><div class="fl">${ORDER.map((s, i) => (i === 0 ? '<div class="fh">第1部「ジンの刺激探し」</div>' : i === 30 ? '<div class="fh">第2部「アリア来日！ ニッポン四季めぐり」</div>' : '') + `<button class="fb${open(i) ? '' : ' lk'}" data-i="${i}"><b>第${i + 1}話</b><span>${open(i) ? s.c.t : '🔒 ？？？'}</span><small>${open(i) ? (s.kind === 'mash' ? '🍣 連打で早食い' : '🤫 バレずに作戦') + (done[s.k] ? '　★クリア' : '') : '前の話をクリアで解放'}</small></button>`).join('')}</div><button class="btn fback">タイトルにもどる</button>`;
     el.querySelectorAll('.fb').forEach(b => b.addEventListener('click', () => { try { SFX.click(); } catch (e) {} if (!open(+b.dataset.i)) return; play(+b.dataset.i); }));
-    H('.fback').addEventListener('click', () => { stop(); el.hidden = true; $('#title').hidden = false; });
+    H('.fback').addEventListener('click', () => { stop(); el.hidden = true; $('#title').hidden = false; try { BGM.play('title'); } catch (e) {} });
   }
   function stop() { cancelAnimationFrame(raf); cur = null; if (R3) { R3.alive = false; } }
-  function play(i) { const s = ORDER[i]; stop(); cur = { i, s }; s.c.intro0 = [['', `第${i + 1}話「${s.c.t}」`], ...(i < 30 ? PRE[i] : (s.c.pre || []))]; try { BGM.play('title'); } catch (e) {} if (s.kind === 'mash') mash(s.c, i); else stealth(s.c, i); }
+  function play(i) { const s = ORDER[i]; stop(); cur = { i, s }; s.c.intro0 = [['', `第${i + 1}話「${s.c.t}」`], ...(i < 30 ? PRE[i] : (s.c.pre || []))]; try { BGM.play('goofy', { fade: .4 }); } catch (e) {} if (s.kind === 'mash') mash(s.c, i); else stealth(s.c, i); }
   function endBox(ok, title, text, i, key) {
     if (ok && key) { done[key] = 1; saveDone(); }
     const box = document.createElement('div'); box.className = 'end';
