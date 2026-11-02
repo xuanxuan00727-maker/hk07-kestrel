@@ -6496,6 +6496,64 @@ const FUN = (() => {
   return { menu, battleDone };
 })();
 
+
+/* ================= TALK TO HAL: speak into the mic mid-battle, HAL answers in a few seconds ================= */
+const HALTALK = (() => {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition; let rec = null, on = false, busy = false;
+  const btn = document.createElement('button'); btn.id = 'halMic'; btn.textContent = '🎤 ハルと話す';
+  btn.style.cssText = 'position:fixed;left:10px;top:50%;z-index:40;padding:10px 12px;border-radius:24px;border:2px solid #3fd8ff;background:rgba(5,30,40,.85);color:#bff4ff;font-size:13px;font-weight:700;display:none;touch-action:manipulation';
+  document.body.appendChild(btn);
+  const pick = a => a[(Math.random() * a.length) | 0];
+  const has = (t, ...w) => w.some(x => t.includes(x));
+  function dirTo(e) { const dx = e.x - P.x, dz = e.z - P.z, a = wrapA(Math.atan2(-dx, -dz) - P.yaw); return Math.abs(a) < .6 ? '正面' : Math.abs(a) > 2.5 ? '後ろ' : a > 0 ? '左' : '右'; }
+  function answer(t) {
+    const foes = enemies.filter(e => e.alive && !e.ally), left = foes.length + Math.max(0, ENEMY_TOTAL - S.spawned), drunk = drunkTalk(), m = STORY.on ? STORY.m : null;
+    const near = foes.slice().sort((a, b) => Math.hypot(a.x - P.x, a.z - P.z) - Math.hypot(b.x - P.x, b.z - P.z))[0];
+    const boss = foes.find(e => e.boss);
+    if (has(t, 'トイレ', '漏れ', 'もれ') && m && m.limit) return `限界まで、あと${Math.max(0, Math.ceil(m.limit - (performance.now() - S.t0) / 1000))}秒くらいです。……急いでください。`;
+    if (has(t, '何機', '残り', 'のこり', 'あと何', 'あとなん')) return `敵は残り${left}機です。${left < 5 ? 'もう少しです！' : 'がんばりましょう。'}`;
+    if (has(t, 'どこ', '方向', 'どっち', '見えない', 'みえない')) return near ? `一番近い敵は、${dirTo(near)}、${Math.round(Math.hypot(near.x - P.x, near.z - P.z))}メートルです。` : '近くに敵はいません。';
+    if (has(t, 'ボス', 'でかい', '大きい', 'おおきい')) return boss ? `ボスの装甲は残り${Math.max(0, Math.round(boss.hp / boss.max * 100))}パーセントです。${dirTo(boss)}にいます。` : '今はボスの反応はありません。';
+    if (has(t, '装甲', '体力', 'ダメージ', '大丈夫', 'だいじょうぶ', 'HP', 'やばい', 'ピンチ')) return P.armor > 60 ? `装甲は${Math.round(P.armor)}パーセント。まだまだ大丈夫です。` : P.armor > 30 ? `装甲${Math.round(P.armor)}パーセント。少し下がって、ガトリングで削りましょう。` : `装甲${Math.round(P.armor)}パーセント！ 危険です、いったん距離を取ってください！`;
+    if (has(t, '助けて', 'たすけて', '無理', 'むり')) return pick(['大丈夫です。私がついています。深呼吸して、一機ずつ。', 'ロックオンを使ってください。照準は私が合わせます。', 'パイロットなら、できます。']);
+    if (has(t, '弾', 'たま', '弾薬')) return '弾薬は無限です。遠慮なく撃ってください。';
+    if (has(t, 'ジン', 'じん')) return drunk || (m && m.drunkJin) ? pick(['ジンさんは……さっき木に話しかけていました。', 'ジンさん、今、逆立ちしています。……なぜでしょう。']) : pick(['ジンさんは右翼で戦っています。元気そうです。', 'ジンさん、さっきから「腹減った」と言っています。']);
+    if (has(t, 'レン', 'れん')) return drunk ? 'レンさんは……泣きながら盆踊りをしています。' : 'レンさんは冷静に指揮しています。頼りになります。';
+    if (has(t, 'ミナ', 'みな')) return drunk ? 'ミナさんは……整備車の中で歌っています。' : 'ミナさんは基地で、私たちの帰りを待っています。';
+    if (has(t, '酔', 'よっ', '酒', 'さけ', 'のみ')) return drunk ? 'この部隊で正気なのは、パイロットと司令と私だけです。……がんばりましょう。' : 'お酒の話は、帰ってからにしましょう。';
+    if (has(t, 'ありがと', 'サンキュー', 'さんきゅ')) return pick(['どういたしまして、パイロット。', 'えへへ……どういたしまして。']);
+    if (has(t, '名前', 'なまえ', '誰', 'だれ')) return '私はハル。HK-07のAIです。……パイロットがつけてくれた、大事な名前です。';
+    if (has(t, '好き', 'すき', '愛して')) return pick(['……え。そ、それは……戦闘中です、パイロット。', '……私もです。……今のは聞かなかったことにしてください。']);
+    if (has(t, '疲れ', 'つかれ', '眠', 'ねむ')) return '帰ったら、ゆっくり休みましょう。……あと少しです。';
+    if (has(t, '歌', 'うた')) return 'ら〜ら〜ら〜♪ ……戦闘中に歌わせないでください。';
+    if (has(t, '腹', 'はら', 'お腹', 'おなか', 'ご飯', 'ごはん')) return '帰ったら、ミナさんの……いえ、食堂のごはんを食べましょう。';
+    if (has(t, 'こんにちは', 'おはよう', 'こんばんは', 'やあ', 'ハル', 'はる')) return pick(['はい、パイロット。聞こえています。', 'ハルです。どうしましたか？']);
+    if (has(t, '勝て', 'かて', '勝つ', 'かつ')) return '勝てます。私とパイロットなら。';
+    if (has(t, 'つまらない', 'つまんない', '暇', 'ひま')) return '……では、敵をもっと倒してください。退屈しませんよ。';
+    return pick([`了解です。……ちなみに、敵は残り${left}機です。`, 'すみません、もう一度言ってください。戦闘音で聞き取りにくくて。', 'なるほど。……今は目の前の敵に集中しましょう。', near ? `了解。一番近い敵は${dirTo(near)}です。` : '了解しました。']);
+  }
+  function heard(text) {
+    if (!text || busy) return; busy = true;
+    VO.radio('07（あなた）', text, 7, 1);
+    setTimeout(() => { try { VO.ai(answer(text), 'high'); } catch (e) { console.warn(e); } busy = false; }, 900 + Math.random() * 800);
+  }
+  function start() {
+    if (!SR) { try { VO.ai('この端末では、マイクの音声認識が使えません。Chromeブラウザなら使えます。'); } catch (e) {} return; }
+    rec = new SR(); rec.lang = 'ja-JP'; rec.continuous = true; rec.interimResults = false;
+    rec.onresult = ev => { const r = ev.results[ev.results.length - 1]; if (r.isFinal) heard(r[0].transcript.trim()); };
+    rec.onerror = ev => { if (ev.error === 'not-allowed') { on = false; upd(); VO.ai('マイクが許可されていません。'); } };
+    rec.onend = () => { if (on) try { rec.start(); } catch (e) {} };
+    try { rec.start(); on = true; VO.ai('マイク、オン。いつでも話しかけてください。'); } catch (e) { on = false; }
+    upd();
+  }
+  function stop() { on = false; try { rec && rec.stop(); } catch (e) {} upd(); }
+  function upd() { btn.textContent = on ? '🎙️ 聞いてます…（タップで停止）' : '🎤 ハルと話す'; btn.style.borderColor = on ? '#ff5a4a' : '#3fd8ff'; }
+  btn.addEventListener('click', e => { e.stopPropagation(); on ? stop() : start(); });
+  function tick() { const show = S.phase === 'op' || S.phase === 'cut'; btn.style.display = show ? 'block' : 'none'; if (!show && on && S.phase !== 'op') { /* keep listening across scenes */ } if (S.phase === 'title' && on) stop(); }
+  setInterval(tick, 500);
+  return { answer, heard };
+})();
+
 /* ================= CUTSCENES: boss entrances and story moments ================= */
 const CUT_SLOW = .5, CUT_POV = false;
 const CUT = (() => {
