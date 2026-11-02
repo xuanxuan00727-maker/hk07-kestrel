@@ -3784,7 +3784,7 @@ function updateAllies(dt) {
       a.y = 0; if (a.vy < 0) a.vy = 0;
     }
     a.cd -= dt;
-    if (n && n.d < 360 && a.cd <= 0 && Math.abs(tyW - a.ty) < .08) { a.cd = a.drunk && STORY.m.drunkAll ? rand(550, 650) : rand(1.5, 2.6) / SQ.rate / (a.mina ? 1.5 : 1); fireAlly(a, n.e); }
+    if (n && n.d < 360 && a.cd <= 0 && Math.abs(tyW - a.ty) < .08 && !(STORY.on && STORY.m && STORY.m.drunkAll)) { a.cd = a.drunk && STORY.m.drunkAll ? rand(550, 650) : rand(1.5, 2.6) / SQ.rate / (a.mina ? 1.5 : 1); fireAlly(a, n.e); }
     // pose the machine
     const G = a.gait, r = a.root, sp = Math.abs(a.spd);
     a.crouch += ((a.y > .3 ? .1 : .22 + .42 * Math.min(1, sp / 10)) - a.crouch) * Math.min(1, dt * 3);
@@ -3948,7 +3948,7 @@ function updateEnemies(dt) {
     const dT = wrapA(tWant - e.tur.rotation.y);
     e.tur.rotation.y += clamp(dT, -.7 * dt, .7 * dt);
     e.cd -= dt;
-    if (e.cd <= 0 && DRUNK_ALL() && Math.random() < .8) e.cd = rand(3, 7);   // too drunk to shoot straight
+    if (DRUNK_ALL()) e.cd = 99;   // too drunk to shoot straight
     if (e.alert && t && e.cd <= 0 && dist < 330 && Math.abs(dT) < .08) {
       e.cd = e.boss ? rand(2.2, 3.2) : rand(3.8, 6.5) / (e.elite ? 1.6 : 1);
       e.g.updateMatrixWorld(true); const mz = muzzle(e.muzzle);
