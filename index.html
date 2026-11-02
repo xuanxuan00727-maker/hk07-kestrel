@@ -1017,7 +1017,7 @@ const VO = (() => {
       if (sp === 'org') return push({ text, who: 'ORIGIN', cls: 'arc', voice: 'male', pitch: .05, rate: .78, pri: 'high' });
       if (sp === 'nem') return push({ text, who: 'NEMESIS', cls: 'arc', voice: 'female', pitch: 1.5, rate: .9, pri: 'high' });
     },
-    event(key, fn, cd) { const t = performance.now(); if (last[key] && t - last[key] < cd * 1000) return; last[key] = t; fn(); },
+    event(key, fn, cd) { if (S.phase === 'cut') return; const t = performance.now(); if (last[key] && t - last[key] < cd * 1000) return; last[key] = t; fn(); },
     cancel() { q.length = 0; clearTimeout(guard); busy = false; try { ss && ss.cancel(); } catch (e) {} },
   };
 })();
@@ -6486,7 +6486,7 @@ const CUT = (() => {
   function caption(text, tag) { cap.classList.remove('on'); clearTimeout(caption.t); if (text) caption.t = setTimeout(() => { cap.innerHTML = (tag ? `<small>${tag}</small>` : '') + text; cap.classList.add('on'); }, 150); }
   function begin(k, data, cb) {
     if (on || S.phase !== 'op' || P.dead) return false;
-    on = true; t = 0; kind = k; d = data; done = cb; mgT = 0; S.phase = 'cut';
+    on = true; t = 0; kind = k; d = data; done = cb; mgT = 0; S.phase = 'cut'; try { VO.cancel(); } catch (e) {}   // silence the chatter: only the scene talks
     saveView = S.view; S.view = 'tp';
     cine.hidden = false; document.body.classList.add('cine'); skipB.style.display = 'none';
     $('#controls').hidden = true; $('#hint').hidden = true; $('#obj').style.visibility = 'hidden';
