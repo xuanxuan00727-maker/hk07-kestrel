@@ -950,7 +950,7 @@ const BGM = (() => {
   function sched() { if (!track || !ctx || ctx.state !== 'running') return; const sd = 60 / track.bpm / 4; if (nextT < ctx.currentTime - .05) { const miss = Math.ceil((ctx.currentTime + .03 - nextT) / sd); step += miss; nextT += miss * sd; } let guard = 0; while (nextT < ctx.currentTime + .15 && guard++ < 6) { try { track.fn(step, nextT, sd); } catch (e) { if (!sched.err) { sched.err = 1; console.error('[BGM]', e); } } step++; nextT += sd; } }
   function play(name, o = {}) {
     if (!init()) return;
-    try { if (STORY.on && STORY.m && STORY.m.fun && name !== 'lose') name = name === 'win' ? 'goofywin' : 'goofy'; } catch (e) {}   // comedy sorties keep the silly music
+    try { if (window.FUN_ACTIVE || (STORY.on && STORY.m && STORY.m.fun)) name = (name === 'win' || name === 'lose' || name === 'goofywin') ? 'goofywin' : 'goofy'; } catch (e) {}   // comedy story: silly music everywhere, the sillier march on win AND loss   // comedy sorties keep the silly music
     if (o.intensity != null) I = o.intensity;
     if (track && track.name === name) return;
     const t = ctx.currentTime;
@@ -4538,6 +4538,7 @@ const MOV = (() => {
   $('#startLand').addEventListener('click', () => { STORY.on = false; ignite('land'); });
   $('#garBtn').addEventListener('click', () => GARUI.open());
   $('#funBtn').addEventListener('click', () => { audioInit(); SFX.click(); $('#title').hidden = true; FUN.menu(); });
+  $('#storyBtn').addEventListener('click', () => { window.FUN_ACTIVE = false; });
   $('#storyBtn').addEventListener('click', () => { audioInit(); SFX.click(); BGM.play('title'); $('#title').hidden = true; if (!tutDone() && !UNLOCK_ALL) STORYUI.openBrief(-1); else STORYUI.chapters(); });
   $('#movieSkip').addEventListener('click', () => { SFX.click(); end(); });
   return { update, end, white, ignite };
@@ -6300,15 +6301,16 @@ const FUN = (() => {
 
   /* ---------- menu ---------- */
   function menu() {
-    stop(); el.hidden = false; el.className = ''; try { BGM.play('goofy', { fade: .4 }); } catch (e) {}
+    window.FUN_ACTIVE = true; stop(); el.hidden = false; el.className = ''; try { BGM.play('goofy', { fade: .4 }); } catch (e) {}
     const open = i => i === 0 || i === NB || i === NB + 30 || done[ORDER[i - 1].k];
     el.innerHTML = `<div class="bt">😂 爆笑ストーリー 😂 <small style="color:#c8a070">（停戦後のお話・クリアで次の話へ）</small></div><div class="fl">${ORDER.map((s, i) => (i === 0 ? '<div class="fh">🤖 爆笑バトル編（ロボットで出撃！）</div>' : i === NB ? '<div class="fh">第1部「ジンの刺激探し」（ミニゲーム）</div>' : i === NB + 30 ? '<div class="fh">第2部「アリア来日！ ニッポン四季めぐり」（ミニゲーム）</div>' : '') + `<button class="fb${open(i) ? '' : ' lk'}" data-i="${i}"><b>第${i < NB ? i + 1 : i - NB + 1}話</b><span>${open(i) ? s.c.t : '🔒 ？？？'}</span><small>${open(i) ? (s.kind === 'battle' ? '🤖 ロボットで戦闘' : s.kind === 'mash' ? '🍣 連打で早食い' : '🤫 バレずに作戦') + (done[s.k] ? '　★クリア' : '') : '前の話をクリアで解放'}</small></button>`).join('')}</div><button class="btn fback">タイトルにもどる</button>`;
     el.querySelectorAll('.fb').forEach(b => b.addEventListener('click', () => { try { SFX.click(); } catch (e) {} if (!open(+b.dataset.i)) return; play(+b.dataset.i); }));
-    H('.fback').addEventListener('click', () => { stop(); el.hidden = true; $('#title').hidden = false; try { BGM.play('title'); } catch (e) {} });
+    H('.fback').addEventListener('click', () => { stop(); window.FUN_ACTIVE = false; el.hidden = true; $('#title').hidden = false; try { BGM.play('title'); } catch (e) {} });
   }
   function stop() { cancelAnimationFrame(raf); cur = null; if (R3) { R3.alive = false; } }
-  function play(i) { const s = ORDER[i]; stop(); if (s.kind === 'battle') { cur = null; el.hidden = true; $('#end').hidden = true; STORYUI.openBrief(FUNB + s.mi); return; } cur = { i, s }; const j = i - NB; s.c.intro0 = [['', `第${j + 1}話「${s.c.t}」`], ...(j < 30 ? PRE[j] : (s.c.pre || []))]; try { BGM.play('goofy', { fade: .4 }); } catch (e) {} if (s.kind === 'mash') mash(s.c, i); else stealth(s.c, i); }
+  function play(i) { const s = ORDER[i]; stop(); window.FUN_ACTIVE = true; if (s.kind === 'battle') { cur = null; el.hidden = true; $('#end').hidden = true; try { BGM.play('goofy', { fade: .3 }); } catch (e) {} STORYUI.openBrief(FUNB + s.mi); return; } cur = { i, s }; const j = i - NB; s.c.intro0 = [['', `第${j + 1}話「${s.c.t}」`], ...(j < 30 ? PRE[j] : (s.c.pre || []))]; try { BGM.play('goofy', { fade: .4 }); } catch (e) {} if (s.kind === 'mash') mash(s.c, i); else stealth(s.c, i); }
   function endBox(ok, title, text, i, key) {
+    try { BGM.play('goofywin', { fade: .3 }); } catch (e) {}
     if (ok && key) { done[key] = 1; saveDone(); }
     const box = document.createElement('div'); box.className = 'end';
     box.innerHTML = `<h2>${title}</h2><p>${text}</p>${ok ? `<p class="nx">${i + 1 < ORDER.length ? '── つづく ──<br>' + nextOf(i) : FINAL2}</p>` : ''}<div class="btns"><button class="btn e1">${ok ? 'もう一回' : 'リトライ'}</button>${ok && i + 1 < ORDER.length ? '<button class="btn e2">次の話へ ▶</button>' : ''}<button class="btn e3">ステージ選択</button></div>`;
@@ -7079,7 +7081,7 @@ addEventListener('keydown', e => {
 });
 addEventListener('keyup', e => { const k = e.key.toLowerCase(); keys[k] = false; if (k === 'enter') S.holding = false; });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; btn.l = btn.r = btn.sub = btn.jump = false; S.holding = false; });
-document.addEventListener('pointerdown', () => { audioInit(); if (S.phase === 'title' && $('#bar').hidden) BGM.play('title'); }, { capture: true });
+document.addEventListener('pointerdown', () => { audioInit(); if (S.phase === 'title' && $('#bar').hidden && !window.FUN_ACTIVE) BGM.play('title'); }, { capture: true });
 document.addEventListener('contextmenu', e => e.preventDefault());
 
 function holdBtn(id, prop) {
