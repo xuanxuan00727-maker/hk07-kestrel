@@ -7136,14 +7136,23 @@ const CUT = (() => {
     s1('d', 5.0, () => VO.radio('整備長ミナ', '07、止まってー！ 機体が壊れちゃうー！', 2, 1.15));
     s1('e', 8.6, () => VO.radio('04 ジン', 'ぎゃあああああ！！', 4, 1.18));
     s1('f', 9.0, () => VO.radio('整備長ミナ', 'きゃああああ！！', 2, 1.15));
-    s1('g', 11.5, () => VO.radio('07（あなた）', '半年！！！ 半年だぞおおおお！！！', 7, 1));
-    s1('h', 14, () => { VO.ai('……ジンさんとミナさん、無事です。……パイロット、そろそろ落ち着いてください。', 'high'); caption('……二人とも、無事です', ''); });
+    s1('a2', 1.6, () => VO.radio('07（あなた）', 'あああああああ！！！ ガンダムだあああ！！！ 本物のRG 2.0だああああ！！！', 7, 1));
+    s1('a3', 3.2, () => VO.radio('07（あなた）', 'ひゃっほおおおおおう！！！ 生きててよかったあああああ！！！', 7, 1));
+    s1('r1', 6.4, () => VO.radio('01 レン', '……おい、あれ本当に07か……？ 別人だろ……', 1, .85));
+    s1('g', 10.6, () => VO.radio('07（あなた）', '半年！！！ 半年だぞおおおお！！！ 毎朝5時だぞおおおお！！！', 7, 1));
+    s1('g2', 12.6, () => VO.radio('07（あなた）', 'ハルうううう！！！ 今夜は徹夜だああああ！！！ 全パーツ組むぞおおおお！！！', 7, 1));
+    s1('g3', 14.4, () => VO.ai('……パイロット、ハルは今、少しだけ怖いです。', 'high'));
+    s1('h', 16.4, () => { VO.ai('……ジンさんとミナさん、無事です。……パイロット、そろそろ落ち着いてください。', 'high'); caption('……二人とも、無事です', ''); });
     // 07's machine thrashes about: spins, hops, dashes, flails
-    const k = t; P.yaw += Math.sin(k * 1.3) * dt * 7 + dt * 3; P.y = Math.max(0, Math.abs(Math.sin(k * 3.1)) * 6 - 1); P.thrust = P.y > .5 ? 1 : 0;
-    const r = 14 + Math.sin(k * .7) * 8; P.x = D.ox + Math.cos(k * 1.7) * r; P.z = D.oz + Math.sin(k * 1.1) * r;
-    P.fallX = Math.sin(k * 5.3) * .35; P.fallZ = Math.sin(k * 4.1) * .45; P.trauma = Math.max(P.trauma, .25);
-    if (Math.random() < dt * 6) { addPart({ pos: new THREE.Vector3(P.x, P.y + 10, P.z), color: 0xffe14a, add: true, s0: 1.5, s1: 4, life: .5 }); }
-    if (Math.random() < dt * 1.2) try { DRUNKFX.pop(P.x, P.y + 14, P.z, ['うおおお！', 'キターー！', 'RG！！', '最高！！', 'ひゃっほう！'][(Math.random() * 5) | 0]); } catch (e) {}
+    // pure madness: whirling, rocket hops, ground-pounds, arms flailing, confetti everywhere
+    const k = t, hop = Math.abs(Math.sin(k * 2.3));
+    P.yaw += dt * (9 + Math.sin(k * 2) * 7); P.y = Math.max(0, hop * 16 - 2); P.thrust = P.y > .5 ? 1 : 0;
+    const r = 22 + Math.sin(k * .9) * 14; P.x = D.ox + Math.cos(k * 2.3) * r + Math.sin(k * 7) * 3; P.z = D.oz + Math.sin(k * 1.6) * r;
+    P.fallX = Math.sin(k * 7.3) * .7; P.fallZ = Math.sin(k * 6.1) * .8; P.reach = (Math.sin(k * 9) * .5 + .5); P.reachArm = Math.sin(k * 4) > 0 ? 'L' : 'R'; P.trauma = Math.max(P.trauma, .55);
+    if (P.y < .3 && D.wasUp) { D.wasUp = false; explosion(new THREE.Vector3(P.x, 1, P.z), 1.2); for (let q = 0; q < 14; q++) { const a = q / 14 * Math.PI * 2; addPart({ pos: new THREE.Vector3(P.x + Math.cos(a) * 4, .6, P.z + Math.sin(a) * 4), color: 0x9a8a6c, op: .6, s0: 2, s1: 8, life: 1.2, vel: new THREE.Vector3(Math.cos(a) * 14, 3, Math.sin(a) * 14) }); } P.trauma = 1; try { SFX.clunk(); buzz(60); } catch (e) {} } else if (P.y > 3) D.wasUp = true;
+    if (Math.random() < dt * 30) { const c = [0xff3a5a, 0xffe14a, 0x3fd8ff, 0x7aff7a, 0xff8aff][(Math.random() * 5) | 0]; addPart({ pos: new THREE.Vector3(P.x + rand(-4, 4), P.y + rand(8, 14), P.z + rand(-4, 4)), color: c, add: true, s0: .8, s1: .3, life: 1.6, grav: 6, vel: new THREE.Vector3(rand(-10, 10), rand(6, 16), rand(-10, 10)) }); }
+    if (Math.random() < dt * 3) try { DRUNKFX.pop(P.x, P.y + 14, P.z, ['うおおおお！！', 'キターーー！！', 'RG 2.0！！', '最高！！！', 'ひゃっほう！！', 'ガンダムー！！', 'ついにぃぃ！！', '半年ぅぅ！！', 'あああああ！！', '😭😭😭', '🎉🎉🎉', '✨✨✨'][(Math.random() * 12) | 0]); } catch (e) {}
+    if (Math.random() < dt * 2) try { sTone({ f: rand(300, 900), f2: rand(900, 2400), dur: .25, type: 'square', gain: .05 }); } catch (e) {}
     // Jin and Mina charge in, then get flung
     [D.jin, D.mina].forEach((a, i) => {
       if (!a) return;
@@ -7154,7 +7163,7 @@ const CUT = (() => {
     // camera: wide shot that keeps the madness and the victims in frame
     const mid = new THREE.Vector3(P.x, 4, P.z); if (t > 3.5 && D.jin) mid.lerp(new THREE.Vector3(D.jin.x, 4, D.jin.z), .3);
     shot(mid.clone().add(new THREE.Vector3(Math.sin(t * .25) * 55, 22, Math.cos(t * .25) * 55)), mid, dt, 1.5);
-    if (t > 17) { [D.jin, D.mina].forEach(a => { if (a) { a.flung = false; a.fvx = null; a.thud = false; } }); P.y = 0; P.fallX = P.fallZ = 0; end(); }
+    if (t > 19.5) { [D.jin, D.mina].forEach(a => { if (a) { a.flung = false; a.fvx = null; a.thud = false; } }); P.y = 0; P.fallX = P.fallZ = 0; P.reach = 0; end(); }
   }
   function boss(e) { if (!e || S.phase !== 'op') return; if (drunkTalk()) { e.armor0 = P.armor; e.drunkBoss = true; } (e.kind === 'phantom' ? bossRam : bossShell)(e); }
   // comedy ep5: the drunk boss's hit does nothing, so HAL just hacks it — it thrashes about, runs into a building and keels over
