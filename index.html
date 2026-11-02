@@ -923,6 +923,7 @@ const BGM = (() => {
   function sched() { if (!track || !ctx || ctx.state !== 'running') return; const sd = 60 / track.bpm / 4; if (nextT < ctx.currentTime - .05) { const miss = Math.ceil((ctx.currentTime + .03 - nextT) / sd); step += miss; nextT += miss * sd; } let guard = 0; while (nextT < ctx.currentTime + .15 && guard++ < 6) { try { track.fn(step, nextT, sd); } catch (e) { if (!sched.err) { sched.err = 1; console.error('[BGM]', e); } } step++; nextT += sd; } }
   function play(name, o = {}) {
     if (!init()) return;
+    try { if (name !== 'win' && name !== 'lose' && STORY.on && STORY.m && STORY.m.fun) name = 'goofy'; } catch (e) {}   // comedy sorties keep the silly music
     if (o.intensity != null) I = o.intensity;
     if (track && track.name === name) return;
     const t = ctx.currentTime;
