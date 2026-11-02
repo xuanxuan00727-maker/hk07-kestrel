@@ -57,7 +57,7 @@ body{background:var(--hull);color:var(--ink);font-family:var(--f-label);overflow
 #radio div{font-family:var(--f-mono);font-size:clamp(12px,1.8vw,15px);line-height:1.45;color:#e9f3ea;background:rgba(4,10,8,.74);border:1px solid rgba(90,184,255,.45);border-radius:4px;padding:5px 10px;transition:opacity .6s;text-align:center}
 #radio b{font-weight:400;margin-right:10px;color:#5ab8ff;letter-spacing:.08em}
 #radio .ai{border-color:rgba(63,216,255,.5)}#radio .ai b{color:#3fd8ff}
-#radio .cmd{border-color:rgba(255,179,64,.6)}#radio .cmd b{color:#ffb340}
+#radio .cmd{border-color:rgba(255,179,64,.6)}#radio .cmd b{color:#ffb340}#radio .me{border-color:rgba(255,255,255,.85)}#radio .me b{color:#ffffff}
 body.cine #app{padding:0;gap:0;grid-template-rows:minmax(0,1fr);grid-template-columns:none}
 body.cine #console{display:none}
 body.cine #monitor{border-radius:0;box-shadow:none}
@@ -1011,6 +1011,7 @@ const VO = (() => {
     radio(who, text, v = 1, pitch = 1) {
       if (drunkTalk() && who !== '司令部' && !String(who).startsWith('07')) text = slurJP(text);
       const cmd = who === '司令部';
+      if (String(who).startsWith('07')) return push({ text, who: '07（あなた）', cls: 'me', radio: true, voice: 'male', v, pitch: 1, rate: 1.05, pri: 'high' });   // the hero's own lines: never dropped, shown in white
       push({ text, who: cmd ? '司令部（ハワード大佐）' : who, cls: cmd ? 'cmd' : 'radio', radio: true, voice: cmd ? 'male' : null, v, pitch: cmd ? .7 : pitch, rate: cmd ? .98 : 1.12, pri: cmd ? 'high' : undefined });
     },
     say(sp, text) {
