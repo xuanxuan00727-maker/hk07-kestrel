@@ -4552,7 +4552,7 @@ const FUNMIS = [
   FB('カメを探せ', 'forest', { type: 'waypoints', text: '脱走したミナのカメの足跡をたどれ', list: [[50, 12, -240], [-120, 12, -420], [80, 12, -600], [0, 12, -780]] }, { ev: [[20, 'mina', 'カメ吉〜！ 出ておいで〜！ レタスあるよ〜！'], [60, 'ai', '足跡の横に、レタスの食べかすがあります。カメ吉、グルメです。'], [100, 'jin', 'おいミナ、カメ吉って何歳だ？'], [104, 'mina', '87歳！'], [108, 'jin', '俺らより年上じゃねえか！']]},
     [['narr', '── 第4話 ──'], ['mina', '大変！ 私のカメの「カメ吉」が脱走したの！'], ['ren', '……カメが？ 脱走？'], ['mina', '格納庫の扉が開いてて……足跡が森の方に！'], ['cmd', '……敵の偵察部隊も森にいる。ついでに探してこい。'], ['ai', 'カメの移動速度は時速0.3キロです。そんなに遠くには……'], ['ai', '……足跡が、2キロ先まで続いています。'], ['jin', 'カメ吉、速すぎだろ！']],
     [['ai', 'カメ吉、発見しました。……池で泳いでいます。'], ['mina', 'カメ吉〜〜！ よかった〜〜！'], ['narr', 'カメ吉は、07の機体の足元で、のんびりあくびをした。'], ['ren', '……戦闘ロボットでカメを探す部隊は、世界でうちだけだな。']]),
-  FB('しらふは俺だけ', 'desert', { type: 'boss', boss: 'goliath', at: 70, text: '泥酔した敵を機能停止にし、泥酔ボスを止めろ' }, { total: 9, drunkAll: true, ev: [
+  FB('しらふは俺だけ', 'desert', { type: 'boss', boss: 'goliath', at: 20, text: '泥酔した敵を機能停止にし、泥酔ボスを止めろ' }, { total: 9, drunkAll: true, ev: [
       [6, 'ren', 'うぃ〜……07……おれは……よってない……ぞ……ひっく'], [16, 'jin', 'しゅつげきら〜！ かんぱ〜い！'], [28, 'mina', '（通信）みんにゃの……ロボット……ふにゃふにゃ〜……かわいい〜……ひっく'], [34, 'ai', '……敵の機体も、ふらついています。昨夜、敵の基地でも宴会があったようです。'], [44, 'ai', '敵の通信を傍受しました。「うぃ〜……しゅつげき〜……」'], [58, 'ai', '敵はもはや撃つどころではありません。軽く当てるだけで機能停止します。'], [64, 'ai', '味方は……一発も撃っていません。ボタンを押し間違え続けています。'], [70, 'jin', 'あれ……発射ボタン……どれら……？ あ、ワイパー動いた……'], [78, 'ren', 'ジン、それはライトら……ひっく……おれは……クラクション鳴らしてりゅ……'], [110, 'jin', '07〜……ラジオつけちゃった……演歌ながれてりゅ……'], [150, 'ren', 'うぃ〜……ドリンクホルダー……出てきた……'], [92, 'ai', '敵パイロットの通信「なんだこの白い塊は……？ あれ、僕、何に乗ってたんだっけ……ひっく」'],
       [40, 'cmd', 'ひっく……ぜんき……とちゅげき……あれ、とつげき……？'], [52, 'ai', '……司令まで酔っています。この部隊で正常なのは、パイロットと私だけです。'],
       [66, 'ren', '07……おまえ……いいやつらな……おれ、ずっと……いいたかった……'], [72, 'jin', 'レンが泣いてりゅ！ レンが泣いてりゅぞ〜！'], [86, 'ai', '02号機と03号機が、肩を組んで歌っています。……射撃は、まだ0発です。'],
@@ -5817,7 +5817,7 @@ const MIS = (() => {
       if (left === 0) { if (structs.some(s => s.alive && !s.friendly)) { stage++; if (m.stage) say(m.stage[0], m.stage[1]); } else win(); }
       const core = structs.find(s => s.stage > 0 && s.alive && s.kind === 'core'); if (core && !half && core.hp < core.max / 2 && m.half) { half = true; say(m.half[0], m.half[1]); }
     } else if (o.type === 'boss') {
-      if (!bossSpawned && t >= o.at) { bossSpawned = true; boss = spawnBoss(o.boss, m.bv); if (o.rescue) { boss.rescue = true; boss.name = m.act >= 14 ? '〈被験体S〉' : '〈被験体M〉'; } CUT.boss(boss); }
+      if (!bossSpawned && (t >= o.at || (m.fun && t > 5 && !enemies.some(q => q.alive && !q.ally)))) { bossSpawned = true; boss = spawnBoss(o.boss, m.bv); if (o.rescue) { boss.rescue = true; boss.name = m.act >= 14 ? '〈被験体S〉' : '〈被験体M〉'; } CUT.boss(boss); }
       if (boss && boss.saved) { boss.savedT = (boss.savedT || 0) + dt; if (boss.savedT > 3) win(); }
       if (boss && !half && boss.hp < boss.max / 2 && m.half) { half = true; say(m.half[0], m.half[1]); }
       if (boss && !boss.alive) win();
