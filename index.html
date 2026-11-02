@@ -377,6 +377,14 @@ const TAU = Math.PI * 2;
 if (!window.THREE) { $('#boot').textContent = '3D描画ライブラリを読み込めませんでした。ページを再読み込みしてください。'; return; }
 
 /* ================= AUDIO (all synthesized) ================= */
+// comedy: when the whole base is drunk, every human on the radio slurs
+function drunkTalk() { try { return DRUNK_ALL(); } catch (e) { return false; } }
+function slurJP(t) {
+  const R = [['す', 'しゅ'], ['さ', 'しゃ'], ['そ', 'しょ'], ['せ', 'しぇ'], ['ら', 'りゃ'], ['る', 'りゅ'], ['ろ', 'りょ'], ['つ', 'ちゅ'], ['だ', 'ら'], ['ぞ', 'じょ'], ['ざ', 'じゃ'], ['た', 'たぁ'], ['か', 'かぁ'], ['こ', 'きょ'], ['ち', 'ちぃ']];
+  let o = ''; for (const ch of t) { const r = R.find(x => x[0] === ch); o += r && Math.random() < .65 ? r[1] : ch; if ('あいうえおぁぃぅぇぉー'.includes(ch) && Math.random() < .18) o += 'ぁ〜'; }
+  o = o.replace(/([！？。、…])/g, m => Math.random() < .55 ? m + ['ひっく', 'うぃっ', 'ヒック', '……うぃ〜', 'むにゃ'][(Math.random() * 5) | 0] : m);
+  return (Math.random() < .6 ? ['うぃ〜……', 'ひっく……', 'あ〜……', 'えーと……なんらっけ……'][(Math.random() * 4) | 0] : '') + o.slice(0, 1) + '、' + o;
+}
 const AU = { ctx: null, out: null, nb: null, vol: 0.9 };
 function audioInit() {
   if (AU.ctx) { if (AU.ctx.state !== 'running' && AU.ctx.state !== 'closed') AU.ctx.resume().catch(() => {}); return; }
@@ -982,10 +990,12 @@ const VO = (() => {
   return {
     ai(text, pri) { push({ text, pri, who: 'HULL-AI', cls: 'ai', voice: 'female', pitch: .45, rate: .95 }); },
     radio(who, text, v = 1, pitch = 1) {
+      if (drunkTalk()) text = slurJP(text);
       const cmd = who === '司令部';
       push({ text, who: cmd ? '司令部（ハワード大佐）' : who, cls: cmd ? 'cmd' : 'radio', radio: true, voice: cmd ? 'male' : null, v, pitch: cmd ? .7 : pitch, rate: cmd ? .98 : 1.12, pri: cmd ? 'high' : undefined });
     },
     say(sp, text) {
+      if (sp !== 'ai' && sp !== 'narr' && drunkTalk()) text = slurJP(text);
       if (sp === 'ai') return VO.ai(text); if (sp === 'cmd') return VO.radio('司令部', text, 0, .7);
       if (sp === 'ren') return VO.radio('01 レン', text, 1, .85); if (sp === 'jin') return VO.radio('04 ジン', text, 4, 1.18);
       if (sp === 'yu') return push({ text, who: 'ユウ', cls: 'radio', radio: true, voice: 'male', pitch: 1.3, rate: 1.08 });
@@ -4312,6 +4322,7 @@ const DROP = (() => {
     spins.forEach(o => o.o.rotation[o.ax] += o.sp * dt);
     if (flying) { g.position.z -= 34 * dt; g.position.y += 5 * dt; g.rotation.x = Math.min(.12, g.rotation.x + dt * .05); if (g.position.z < -1400) g.visible = false; }
     else g.position.y = H + Math.sin(T * 1.1) * .12;
+    if (drunkTalk()) { g.rotation.z = Math.sin(T * .9) * .16 + Math.sin(T * 2.3) * .04; g.rotation.x = (flying ? g.rotation.x : 0) + Math.sin(T * .7) * .06; g.rotation.y = Math.sin(T * .4) * .12; g.position.y += Math.sin(T * 1.4) * 1.1; }   // the drunk pilot can't hold it level
     door += clamp(doorT - door, -dt * .55, dt * .55);
     doors.forEach(o => o.d.rotation.z = -o.s * door * door * (3 - 2 * door) * 2.15);
     if (carry && !on && (S.phase === 'op' || S.phase === 'end')) { carry = false; P.gy = 0; flying = true; }   // safety: never stay pinned in battle
@@ -4547,7 +4558,7 @@ const FUNMIS = [
       [66, 'ren', '07……おまえ……いいやつらな……おれ、ずっと……いいたかった……'], [72, 'jin', 'レンが泣いてりゅ！ レンが泣いてりゅぞ〜！'], [86, 'ai', '02号機と03号機が、肩を組んで歌っています。……射撃は、まだ0発です。'],
       [100, 'jin', 'しゅき〜焼き〜♪ ……07もうたえ〜！'], [114, 'ren', 'うぉぇ……'], [116, 'ai', 'レンさん、コックピット内で異音。……聞かなかったことにします。'],
       [130, 'cmd', 'ぜんき……あしたは……やすみら……ひっく'], [146, 'ai', '……パイロット、記録します。「司令、明日を休みにすると発言」。'], [160, 'jin', '07……おまえが……たいちょうら……ぐう'], [175, 'ai', '小隊全員、戦場で寝ました。……07、がんばって。']] },
-    [['narr', '── 第5話 ──'], ['narr', '昨夜は、オーディン戦勝利の祝賀会だった。'], ['narr', '07はコーラで乗り切った。……他の全員は、ミナも大佐も、朝まで飲んでいた。'], ['cmd', 'ひっく……ぜんき……しゅつげき……'], ['ren', 'うぃ〜……ハル、おれの機体、ゆれてねえか……？'], ['ai', '揺れているのは、レンさんです。'], ['jin', '07〜！ おまえ、なんで……ひっく……かおいろ、ふつうなんら〜？'], ['07', '……コーラしか飲んでない。'], ['mina', '（通信）えへへ〜……わたひも……のんじゃった〜……07〜、がんばれ〜ひっく'], ['ai', '小隊6機、整備班、司令部、全員泥酔。しらふはパイロット1機だけです。'], ['07', '……最悪だ。']],
+    [['narr', '── 第5話 ──'], ['narr', '昨夜は、オーディン戦勝利の祝賀会だった。'], ['narr', '07はコーラで乗り切った。……他の全員は、ミナも大佐も、朝まで飲んでいた。'], ['cmd', 'ひっく……ぜんき……しゅつげき……'], ['ren', 'うぃ〜……ハル、おれの機体、ゆれてねえか……？'], ['ai', '揺れているのは、レンさんです。'], ['jin', '07〜！ おまえ、なんで……ひっく……かおいろ、ふつうなんら〜？'], ['07', '……コーラしか飲んでない。'], ['mina', '（通信）えへへ〜……わたひも……のんじゃった〜……07〜、がんばれ〜ひっく'], ['ai', '小隊6機、整備班、司令部、全員泥酔。しらふはパイロット1機だけです。'], ['ai', '……輸送機のパイロットも泥酔しています。輸送機、ふにゃふにゃ飛行です。'], ['07', '……降りたい。'], ['07', '……最悪だ。']],
     [['ai', '敵、全滅。……パイロット1機で、ほぼ全部倒しました。'], ['narr', '帰還した格納庫には、ふにゃふにゃのロボットが6機、変なポーズで並んでいた。'], ['cmd', '……07。昨日のことは……何も覚えていない。'], ['ai', '司令は「明日は休み」と発言しました。録音もあります。'], ['cmd', '…………明日は、休みだ。'], ['jin', 'やったー！ じゃあ今夜も飲み会だー！'], ['07', '……もう、いやだ。']]),
   FB('大佐のカツラ', 'town', { type: 'targets', text: '敵が奪った大佐の「大事なもの」を取り返せ', list: [{ kind: 'gen', x: -150, y: 9, z: -470 }, { kind: 'gen', x: 150, y: 9, z: -470 }, { kind: 'core', x: 0, y: 30, z: -650, stage: 1, hp: 3000, label: '大事なものの保管庫' }] }, { total: 10 , ev: [[25, 'cmd', '……07、慎重にな。あれは、私の30年の相棒だ。'], [70, 'jin', '（小声）レン、大佐の頭、今どうなってるんだ？'], [74, 'ren', '（小声）……ヘルメットで隠してる。'], [120, 'ai', '保管庫の中から、ふさふさの反応を検知しました。'], [124, 'cmd', 'ハル、言い方。']]},
     [['narr', '── 第5話 ──'], ['cmd', '……07。極秘任務だ。'], ['07', '……はい。'], ['cmd', '敵の偵察機が、私の……大事なものを、持ち去った。'], ['jin', '大事なもの？ 機密書類ですか？'], ['cmd', '…………帽子の、中身だ。'], ['ren', '（……カツラか）'], ['jin', '（カツラだ）'], ['ai', '（カツラですね）'], ['cmd', '誰にも言うな。……行け。']],
