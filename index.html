@@ -3968,7 +3968,7 @@ function updateEnemies(dt) {
       const G = e.gait, evx = -Math.sin(e.yaw) * e.spd, evz = -Math.cos(e.yaw) * e.spd;
       e.g.position.set(e.x + Math.cos(e.yaw) * G.sway, (e.y || 0) - .18 - Math.min(1, Math.abs(e.spd) / 4.5) * .3, e.z - Math.sin(e.yaw) * G.sway);
       e.g.rotation.set(-e.spd * .016, e.yaw, -G.sway * .06);
-      if (STORY.on && STORY.m && STORY.m.drunkAll && !e.crazy && e.fallK == null && !e.cutHold) DRUNKFX.pose(e, e.g, dt, (e.cy || 6) * 1.6, e.x, e.z, 1.8);
+      if (STORY.on && STORY.m && STORY.m.drunkAll && !e.crazy && e.fallK == null && !e.cutHold) DRUNKFX.pose(e, e.g, dt, (e.cy || 6) * 1.6, e.x, e.z, 1.4);
       if (STORY.on && STORY.m && STORY.m.drunkAll) { const tt = performance.now() / 1000 + (e.seed || 0), A = e.crazy ? 3.2 : 0, W = e.crazy ? 3.5 : 1; e.g.rotation.z += Math.sin(tt * 1.6 * W) * .3 * A; e.g.rotation.x += Math.sin(tt * 1.2 * W) * .15 * A; e.g.position.y -= Math.abs(Math.sin(tt * 2.1 * W)) * .6 * A; e.yaw += Math.sin(tt * .8) * .02; if (e.crazy) e.g.position.y += Math.abs(Math.sin(tt * 5)) * 3; if (e.fallK != null) { const f = Math.min(1, e.fallK), q = f * f; e.g.rotation.z = (e.koDir || 1) * 1.45 * q + Math.sin(tt * 9) * .05 * (1 - f); e.g.rotation.x = .1 * q; e.g.position.y = (e.y || 0) - q * 2.6; } }   // even the enemy is drunk
       e.g.updateMatrixWorld(true);
       gaitStep(G, dt, e.x, e.z, e.yaw, evx, evz, () => { if (hd < 160) { const k = clamp(1 - hd / 160, 0, 1); SFX.step(.12 + k * .35); if (S.phase === 'op' && hd < 45) P.trauma = Math.min(1, P.trauma + .1 * k); } });
@@ -7189,7 +7189,7 @@ const DRUNKFX = (() => {
   function pose(o, r, dt, h, x, z, amp = 1) {
     const D = o.dk || (o.dk = { mode: 'sway', t: 0, next: rand(1, 3), spin: 0, side: Math.random() < .5 ? -1 : 1, seed: Math.random() * 9 });
     D.t += dt; const tt = performance.now() / 1000 + D.seed;
-    if (D.t > D.next) { D.t = 0; const mm = amp > 1 ? ['jump', 'hop', 'jump', 'spin', 'fall', 'dance', 'hop', 'jump', 'moon'] : ['sway', 'spin', 'fall', 'dance', 'hop', 'sway', 'moon']; D.mode = mm[(Math.random() * mm.length) | 0]; D.next = D.mode === 'fall' ? 3.6 : D.mode === 'spin' ? 1.6 : D.mode === 'jump' ? 1.3 : rand(amp > 1 ? 1.2 : 2, amp > 1 ? 2.4 : 3.5); D.side = Math.random() < .5 ? -1 : 1; if (Math.random() < .8) pop(x, h + 4, z); if (D.mode !== 'sway' && Math.random() < .35 && Math.hypot(camera.position.x - x, camera.position.z - z) < 220) tsukkomi(D.mode, !!o.boss || o.legs && !o.hpMax); }
+    if (D.t > D.next) { D.t = 0; const mm = amp > 1 ? ['spin', 'moon', 'sway', 'dance', 'spin', 'moon', 'fall', 'hop'] : ['sway', 'spin', 'fall', 'dance', 'hop', 'sway', 'moon']; D.mode = mm[(Math.random() * mm.length) | 0]; D.next = D.mode === 'fall' ? 3.6 : D.mode === 'spin' ? 1.6 : D.mode === 'jump' ? 1.3 : rand(amp > 1 ? 1.2 : 2, amp > 1 ? 2.4 : 3.5); D.side = Math.random() < .5 ? -1 : 1; if (Math.random() < .8) pop(x, h + 4, z); if (D.mode !== 'sway' && Math.random() < .35 && Math.hypot(camera.position.x - x, camera.position.z - z) < 220) tsukkomi(D.mode, !!o.boss || o.legs && !o.hpMax); }
     // always: a big drunken sway
     r.rotation.z += (Math.sin(tt * 1.7) * .32 + Math.sin(tt * 4.1) * .08) * amp; r.rotation.x += Math.sin(tt * 1.2) * .16 * amp; r.position.y -= Math.abs(Math.sin(tt * 2.2)) * .5 * amp; if (amp > 1) { r.rotation.y += Math.sin(tt * 2.7) * .35; r.position.x += Math.sin(tt * 1.9) * 1.2; }
     if (D.mode === 'spin') { D.spin += dt * 9; if (Math.random() < dt * 2) pop(x, h + 4, z, 'まわりゅ〜'); }
@@ -7198,7 +7198,7 @@ const DRUNKFX = (() => {
     if (D.mode === 'dance') { r.rotation.z += Math.sin(tt * 16) * .35; r.position.y += Math.abs(Math.sin(tt * 8)) * 1.2; r.rotation.y += Math.sin(tt * 8) * .5; if (Math.random() < dt * 1.5) pop(x, h + 4, z, '♪〜'); }
     if (D.mode === 'moon') { r.rotation.x += -.35; r.rotation.z += Math.sin(tt * 10) * .25; r.position.y += Math.abs(Math.sin(tt * 10)) * .5; }
     if (D.mode === 'jump') { const k = Math.sin(Math.min(1, D.t / 1.3) * Math.PI); r.position.y += k * 14; r.rotation.x += Math.sin(D.t * 6) * .6; r.rotation.z += Math.sin(D.t * 5) * .5; D.spin += dt * 5; if (D.t < .05) pop(x, h + 4, z, 'ぴょーん！'); if (D.t > 1.25 && !D.land) { D.land = true; for (let i = 0; i < 6; i++) addPart({ pos: new THREE.Vector3(x + rand(-3, 3), .6, z + rand(-3, 3)), color: 0x9a8a6c, op: .5, s0: 1.4, s1: 5, life: 1, vel: new THREE.Vector3(rand(-5, 5), 2, rand(-5, 5)) }); } } else D.land = false;
-    if (D.mode === 'hop') { const k = Math.abs(Math.sin(D.t * 5)); r.position.y += k * 5 * amp; r.rotation.x += (1 - k) * .3; if (k < .05 && Math.random() < .5) pop(x, h + 4, z, 'ひっく！'); }
+    if (D.mode === 'hop') { const k = Math.abs(Math.sin(D.t * 5)); r.position.y += k * 5; r.rotation.x += (1 - k) * .3; if (k < .05 && Math.random() < .5) pop(x, h + 4, z, 'ひっく！'); }
     if (D.mode === 'fall') {   // trip, faceplant flat on the ground, flail, scramble back up
       const a = D.t < .45 ? D.t / .45 : D.t < 2.6 ? 1 : Math.max(0, 1 - (D.t - 2.6) / 1);
       r.rotation.x += a * 1.45 * (D.side > 0 ? 1 : -1) * .9; r.rotation.z += a * .4 * D.side; r.position.y -= a * 2.4;
