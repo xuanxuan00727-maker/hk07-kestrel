@@ -3948,7 +3948,7 @@ function updateEnemies(dt) {
       const G = e.gait, evx = -Math.sin(e.yaw) * e.spd, evz = -Math.cos(e.yaw) * e.spd;
       e.g.position.set(e.x + Math.cos(e.yaw) * G.sway, (e.y || 0) - .18 - Math.min(1, Math.abs(e.spd) / 4.5) * .3, e.z - Math.sin(e.yaw) * G.sway);
       e.g.rotation.set(-e.spd * .016, e.yaw, -G.sway * .06);
-      if (STORY.on && STORY.m && STORY.m.drunkAll) { const tt = performance.now() / 1000 + (e.seed || 0); e.g.rotation.z += Math.sin(tt * 1.6) * .3; e.g.rotation.x += Math.sin(tt * 1.2) * .15; e.g.position.y -= Math.abs(Math.sin(tt * 2.1)) * .6; e.yaw += Math.sin(tt * .8) * .02; }   // even the enemy is drunk
+      if (STORY.on && STORY.m && STORY.m.drunkAll) { const tt = performance.now() / 1000 + (e.seed || 0), A = e.crazy ? 3.2 : 1, W = e.crazy ? 3.5 : 1; e.g.rotation.z += Math.sin(tt * 1.6 * W) * .3 * A; e.g.rotation.x += Math.sin(tt * 1.2 * W) * .15 * A; e.g.position.y -= Math.abs(Math.sin(tt * 2.1 * W)) * .6 * A; e.yaw += Math.sin(tt * .8) * .02; if (e.crazy) e.g.position.y += Math.abs(Math.sin(tt * 5)) * 3; if (e.fallK != null) { const f = Math.min(1, e.fallK), q = f * f; e.g.rotation.z = (e.koDir || 1) * 1.45 * q + Math.sin(tt * 9) * .05 * (1 - f); e.g.rotation.x = .1 * q; e.g.position.y = (e.y || 0) - q * 2.6; } }   // even the enemy is drunk
       e.g.updateMatrixWorld(true);
       gaitStep(G, dt, e.x, e.z, e.yaw, evx, evz, () => { if (hd < 160) { const k = clamp(1 - hd / 160, 0, 1); SFX.step(.12 + k * .35); if (S.phase === 'op' && hd < 45) P.trauma = Math.min(1, P.trauma + .1 * k); } });
       solveLegs(G); e.tur.rotation.z = G.twist * -.5;
@@ -4322,7 +4322,7 @@ const DROP = (() => {
     spins.forEach(o => o.o.rotation[o.ax] += o.sp * dt);
     if (flying) { g.position.z -= 34 * dt; g.position.y += 5 * dt; g.rotation.x = Math.min(.12, g.rotation.x + dt * .05); if (g.position.z < -1400) g.visible = false; }
     else g.position.y = H + Math.sin(T * 1.1) * .12;
-    if (drunkTalk()) { g.rotation.z = Math.sin(T * .9) * .16 + Math.sin(T * 2.3) * .04; g.rotation.x = (flying ? g.rotation.x : 0) + Math.sin(T * .7) * .06; g.rotation.y = Math.sin(T * .4) * .12; g.position.y += Math.sin(T * 1.4) * 1.1; }   // the drunk pilot can't hold it level
+    if (drunkTalk()) { g.rotation.z = Math.sin(T * .9) * .42 + Math.sin(T * 2.3) * .1; g.rotation.x = (flying ? g.rotation.x : 0) + Math.sin(T * .7) * .16; g.rotation.y = Math.sin(T * .4) * .3; g.position.y += Math.sin(T * 1.4) * 3.2 + Math.sin(T * 3.1) * .8; }   // the drunk pilot can't hold it level
     door += clamp(doorT - door, -dt * .55, dt * .55);
     doors.forEach(o => o.d.rotation.z = -o.s * door * door * (3 - 2 * door) * 2.15);
     if (carry && !on && (S.phase === 'op' || S.phase === 'end')) { carry = false; P.gy = 0; flying = true; }   // safety: never stay pinned in battle
@@ -4552,7 +4552,7 @@ const FUNMIS = [
   FB('カメを探せ', 'forest', { type: 'waypoints', text: '脱走したミナのカメの足跡をたどれ', list: [[50, 12, -240], [-120, 12, -420], [80, 12, -600], [0, 12, -780]] }, { ev: [[20, 'mina', 'カメ吉〜！ 出ておいで〜！ レタスあるよ〜！'], [60, 'ai', '足跡の横に、レタスの食べかすがあります。カメ吉、グルメです。'], [100, 'jin', 'おいミナ、カメ吉って何歳だ？'], [104, 'mina', '87歳！'], [108, 'jin', '俺らより年上じゃねえか！']]},
     [['narr', '── 第4話 ──'], ['mina', '大変！ 私のカメの「カメ吉」が脱走したの！'], ['ren', '……カメが？ 脱走？'], ['mina', '格納庫の扉が開いてて……足跡が森の方に！'], ['cmd', '……敵の偵察部隊も森にいる。ついでに探してこい。'], ['ai', 'カメの移動速度は時速0.3キロです。そんなに遠くには……'], ['ai', '……足跡が、2キロ先まで続いています。'], ['jin', 'カメ吉、速すぎだろ！']],
     [['ai', 'カメ吉、発見しました。……池で泳いでいます。'], ['mina', 'カメ吉〜〜！ よかった〜〜！'], ['narr', 'カメ吉は、07の機体の足元で、のんびりあくびをした。'], ['ren', '……戦闘ロボットでカメを探す部隊は、世界でうちだけだな。']]),
-  FB('しらふは俺だけ', 'town', { type: 'destroy', text: '泥酔した敵を、全員機能停止にしろ（敵もフラフラ）' }, { total: 11, drunkAll: true, ev: [
+  FB('しらふは俺だけ', 'town', { type: 'boss', boss: 'goliath', at: 70, text: '泥酔した敵を機能停止にし、泥酔ボスを止めろ' }, { total: 9, drunkAll: true, ev: [
       [6, 'ren', 'うぃ〜……07……おれは……よってない……ぞ……ひっく'], [16, 'jin', 'しゅつげきら〜！ かんぱ〜い！'], [28, 'mina', '（通信）みんにゃの……ロボット……ふにゃふにゃ〜……かわいい〜……ひっく'], [34, 'ai', '……敵の機体も、ふらついています。昨夜、敵の基地でも宴会があったようです。'], [44, 'ai', '敵の通信を傍受しました。「うぃ〜……しゅつげき〜……」'], [58, 'ai', '敵はもはや撃つどころではありません。軽く当てるだけで機能停止します。'], [64, 'ai', '味方は……一発も撃っていません。ボタンを押し間違え続けています。'], [70, 'jin', 'あれ……発射ボタン……どれら……？ あ、ワイパー動いた……'], [78, 'ren', 'ジン、それはライトら……ひっく……おれは……クラクション鳴らしてりゅ……'], [110, 'jin', '07〜……ラジオつけちゃった……演歌ながれてりゅ……'], [150, 'ren', 'うぃ〜……ドリンクホルダー……出てきた……'], [92, 'ai', '敵パイロットの通信「なんだこの白い塊は……？ あれ、僕、何に乗ってたんだっけ……ひっく」'],
       [40, 'cmd', 'ひっく……ぜんき……とちゅげき……あれ、とつげき……？'], [52, 'ai', '……司令まで酔っています。この部隊で正常なのは、パイロットと私だけです。'],
       [66, 'ren', '07……おまえ……いいやつらな……おれ、ずっと……いいたかった……'], [72, 'jin', 'レンが泣いてりゅ！ レンが泣いてりゅぞ〜！'], [86, 'ai', '02号機と03号機が、肩を組んで歌っています。……射撃は、まだ0発です。'],
@@ -6502,8 +6502,10 @@ const CUT = (() => {
     $('#controls').hidden = false; $('#obj').style.visibility = ''; P.thrust = 0; P.reach = 0; P.getup = null; P.knock = false; P.fallX = P.fallZ = 0; P.vy = 0; P.y = Math.max(0, P.y); P.spd = 0;
     if (d && d.wall) { const w = d.wall; setTimeout(() => scene.remove(w), 9000); }
     if (d && d.boss) { d.boss.cutHold = false; d.boss.alert = true; d.boss.cd = 1.5; }
+    const hackNext = d && d.boss && d.boss.drunkBoss && kind !== 'hack' && d.boss.alive ? d.boss : null;
     camera.near = .5; camera.updateProjectionMatrix(); window.dispatchEvent(new Event('resize'));
     const f = done; done = null; if (f) f();
+    if (hackNext) setTimeout(() => hack(hackNext), 300);
   }
   const fwd = () => V.set(-Math.sin(P.yaw), 0, -Math.cos(P.yaw)).clone();
   const right = () => new THREE.Vector3(Math.cos(P.yaw), 0, -Math.sin(P.yaw));
@@ -6782,10 +6784,51 @@ const CUT = (() => {
   function update(dt) {
     if (!on) return;
     t += dt;
-    if (kind === 'shell') upShell(dt); else if (kind === 'ram') upRam(dt); else if (kind === 'grab') upGrab(dt); else end();
+    if (kind === 'shell') upShell(dt); else if (kind === 'ram') upRam(dt); else if (kind === 'grab') upGrab(dt); else if (kind === 'hack') upHack(dt); else end();
+    if (on && d && d.boss && d.boss.drunkBoss && kind !== 'hack' && d.boss.g) { d.boss.g.rotation.z += Math.sin(t * 2.4) * .35; d.boss.g.rotation.x += Math.sin(t * 1.7) * .15; }
     if (on) shake(dt);
   }
-  function boss(e) { if (!e || S.phase !== 'op') return; (e.kind === 'phantom' ? bossRam : bossShell)(e); }
+  function boss(e) { if (!e || S.phase !== 'op') return; if (drunkTalk()) { e.armor0 = P.armor; e.drunkBoss = true; } (e.kind === 'phantom' ? bossRam : bossShell)(e); }
+  // comedy ep5: the drunk boss's hit does nothing, so HAL just hacks it — it thrashes about, runs into a building and keels over
+  function hack(e) {
+    if (!begin('hack', { boss: e, ph: 0, said: {}, tgt: null })) return;
+    P.armor = e.armor0 != null ? e.armor0 : P.armor; e.cutHold = true; e.alert = false; e.cd = 99;
+  }
+  function upHack(dt) {
+    const D = d, e = D.boss, say1 = (k, at, fn) => { if (t > at && !D.said[k]) { D.said[k] = true; fn(); } };
+    const pp = new THREE.Vector3(P.x, 0, P.z), ep = new THREE.Vector3(e.x, 0, e.z);
+    say1('a', .4, () => { VO.ai('……確かに吹き飛ばされましたが、相手のふにゃふにゃのせいで威力が低すぎて、全くダメージが入りませんでした。', 'high'); caption('ダメージ：0', 'HULL-AI'); });
+    say1('b', 4.6, () => { VO.ai('立ち上がります。', 'high'); });
+    say1('c', 6.2, () => { VO.ai('……倒すのがめんどくさいので、このままハッキングして機能を停止させます。', 'high'); caption('ハッキング開始', 'HULL-AI'); });
+    say1('d', 9.6, () => { caption('敵ボス、制御不能！', 'HACKED'); e.crazy = true; SFX.spinup(); });
+    if (t < 6) { // standing back up, watching the swaying giant
+      shot(pp.clone().add(new THREE.Vector3(Math.cos(P.yaw) * 14 + Math.sin(P.yaw) * 16, 7, -Math.sin(P.yaw) * 14 + Math.cos(P.yaw) * 16)), ep.clone().lerp(pp, .35).setY(6), dt, 2);
+    } else if (t < 9.6) { // data stream from 07 to the boss
+      if (Math.random() < .7) { const k = Math.random(); addPart({ pos: pp.clone().lerp(ep, k).setY(7 + Math.sin(k * 9) * 2), color: Math.random() < .5 ? 0x3fd8ff : 0x7affd8, add: true, s0: .9, s1: .2, life: .5 }); }
+      shot(pp.clone().lerp(ep, .5).add(new THREE.Vector3(Math.cos(P.yaw) * 40, 14, -Math.sin(P.yaw) * 40)), pp.clone().lerp(ep, .5).setY(6), dt, 1.5);
+    } else if (!D.tgt) { // thrash about at random
+      if (!D.wt || t > D.wt) { D.wt = t + rand(.4, .9); D.wy = rand(-Math.PI, Math.PI); }
+      e.yaw += clamp(wrapA(D.wy - e.yaw), -6 * dt, 6 * dt) + Math.sin(t * 13) * .15; e.x += -Math.sin(e.yaw) * 22 * dt; e.z += -Math.cos(e.yaw) * 22 * dt;
+      if (Math.random() < .15) sparks(ep.clone().setY(8));
+      if (Math.random() < dt * 2) VO.event('crz', () => VO.radio('強化人間パイロット', ['うわぁぁ〜〜、止まらにゃい〜〜', 'ひゃっほ〜〜〜……ひっく', 'まわりゅ〜〜〜'][(Math.random() * 3) | 0], 9, .9), 1.5);
+      shot(ep.clone().add(new THREE.Vector3(30, 18, 30)), ep.clone().setY(6), dt, 2);
+      if (t > 14.5) { let best = null, bd = 1e9; for (const o of obstacles) { const dd = Math.hypot(o.x - e.x, o.z - e.z); if (dd > 25 && dd < 260 && dd < bd) { bd = dd; best = o; } } D.tgt = best || { x: e.x + 80, z: e.z - 40, r: 8 }; D.ct = t; caption('建物に一直線！', 'HACKED'); }
+    } else if (!D.crash) { // charge headlong into the building
+      const dx = D.tgt.x - e.x, dz = D.tgt.z - e.z, dl = Math.hypot(dx, dz) || 1; e.yaw = Math.atan2(-dx, -dz); e.x += dx / dl * 42 * dt; e.z += dz / dl * 42 * dt;
+      shot(new THREE.Vector3(D.tgt.x, 0, D.tgt.z).add(new THREE.Vector3(45, 16, 35)), ep.clone().setY(6), dt, 2.5);
+      if (dl < (D.tgt.r || 8) + 6 || t - D.ct > 5) { D.crash = t; e.crazy = false; e.koDir = Math.random() < .5 ? -1 : 1; e.fallK = 0; explosion(ep.clone().setY(8), 3); for (let i = 0; i < 20; i++) addPart({ pos: ep.clone().setY(rand(2, 14)), color: 0x9a8a6c, op: .6, s0: 2, s1: 9, life: 2.5, vel: new THREE.Vector3(rand(-8, 8), rand(2, 9), rand(-8, 8)) }); SFX.clunk(); P.trauma = .9; buzz([120, 60, 200]); caption('ドゴォォン！', ''); }
+    } else { // keeled over; the augmented pilot wakes up confused
+      e.fallK = Math.min(1, (t - D.crash) / 1.4);
+      shot(ep.clone().add(new THREE.Vector3(26, 9, 26)), ep.clone().setY(3), dt, 1.5);
+      const c = t - D.crash;
+      say1('p1', 2.2, () => { VO.radio('強化人間パイロット', 'あれ……何してたっけ……', 9, .9); caption('', ''); });
+      say1('p2', 5.0, () => VO.radio('強化人間パイロット', 'あ、そうだ……乗ってたんだ……', 9, .9));
+      say1('p3', 7.8, () => VO.radio('強化人間パイロット', 'このロボット……名前……なんだったっけ……', 9, .9));
+      say1('p4', 10.8, () => VO.radio('強化人間パイロット', 'あ……ジェットコースターに乗ってたんだ……ひっく', 9, .9));
+      say1('p5', 14, () => { VO.ai('……敵ボス、機能停止。パイロットは無事です。……たぶん。', 'high'); caption('敵ボス 機能停止', 'TARGET DOWN'); });
+      if (c > 17) { const fk = e.koDir; end(); e.cutHold = false; e.alive = true; killEnemy(e, true); e.drunkKO = 10; e.koDir = fk; }
+    }
+  }
   return { boss, grab, update, get on() { return on; }, get k() { return slowK; } };
 })();
 
@@ -7107,7 +7150,7 @@ function killEnemy(e, byPlayer = true) {
   if (!e.alive) return;
   if (e.rescue) { if (!e.saved) rescueStop(e); return; } e.alive = false; const wasA = e.ally; e.ally = false; if (byPlayer && !wasA) S.kills++;
   if (DRUNK_ALL()) {   // drunk enemies don't blow up: they stagger in silly poses, then keel over and stop
-    e.drunkKO = 0; e.koDir = Math.random() < .5 ? -1 : 1; e.koSpin = rand(-2, 2);
+    e.drunkKO = e.fallK != null ? 10 : 0; e.koDir = e.koDir || (Math.random() < .5 ? -1 : 1); e.koSpin = rand(-2, 2);
     if (S.phase === 'op') { say('機能停止', 'a', 1.4); if (Math.random() < .85) VO.radio('敵パイロット（無事）', DRUNK_EN[(Math.random() * DRUNK_EN.length) | 0], 9, .75); }
     if (S.phase === 'op' && allDestroyedWins() && S.spawned >= ENEMY_TOTAL && enemies.every(x => !x.alive || x.ally)) setTimeout(() => endGame(true), 2600);
     return;
