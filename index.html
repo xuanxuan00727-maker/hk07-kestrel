@@ -3824,6 +3824,7 @@ function updateAllies(dt) {
     a.crouch += ((a.y > .3 ? .1 : .22 + .42 * Math.min(1, sp / 10)) - a.crouch) * Math.min(1, dt * 3);
     r.position.set(a.x + Math.cos(a.yaw) * G.sway, a.y - a.crouch, a.z - Math.sin(a.yaw) * G.sway);
     r.rotation.set(-a.spd * .01, a.yaw, -G.sway * .05);
+    if (a.blown > 0) { a.blown -= dt; r.rotation.x += a.blownSpin * (2.2 - a.blown); r.rotation.z += Math.sin(a.blown * 9) * .4; }
     if (a.drunk) { DRUNKFX.pose(a, r, dt, 9, a.x, a.z); if (S.phase === 'op' && Math.random() < dt * .09) VO.radio(['01 レン', '02', '03', '04 ジン', '05', '06'][idx] || '04 ジン', DRUNK_TALK[(Math.random() * DRUNK_TALK.length) | 0], idx + 1, 1); }
     r.updateMatrixWorld(true);
     if (a.y > .3) { G.airborne = true; a.legs.forEach((l, i) => { l.thigh.rotation.z = 0; l.foot.rotation.z = 0; l.thigh.rotation.x += ((i ? .45 : .2) - l.thigh.rotation.x) * Math.min(1, dt * 5); l.knee.rotation.x += ((i ? -.9 : -.5) - l.knee.rotation.x) * Math.min(1, dt * 5); l.foot.rotation.x = -(l.thigh.rotation.x + l.knee.rotation.x) * .6; }); }
@@ -4625,9 +4626,9 @@ const FUNMIS = [
   FB('ジンのデート尾行', 'town', { type: 'waypoints', text: 'アリアとデート中のジンを、こっそり尾行しろ', list: [[40, 12, -250], [-140, 12, -430], [100, 12, -610], [0, 12, -800]] }, { total: 10 , ev: [[30, 'mina', '（小声）あ、ジンが手をつなごうとしてる！'], [36, 'mina', '（小声）……あ、引っ込めた！ ヘタレ！'], [80, 'ai', 'ジンさんの心拍数、戦闘中より高いです。'], [130, 'ren', '……なんで俺まで尾行してるんだ。']]},
     [['narr', '── 第17話 ──'], ['mina', '大変大変！ ジンとアリアさんが、今日デートなの！'], ['ren', '……それで？'], ['mina', '尾行しよう！'], ['ren', 'なんでだ。'], ['mina', '心配だから！ ジン、絶対何かやらかすもん！'], ['cmd', '……ちょうど、デートコースに敵の偵察部隊がいる。07、ついでに片付けてこい。'], ['ai', '（大佐も気になっていますね）']],
     [['narr', 'デートの最後、ジンはアリアに花を渡した。'], ['narr', '……造花だった。しかも、値札がついていた。'], ['narr', '〈アリア〉「……ふふ。ジンらしいな」'], ['mina', 'よかった〜！ アリアさん、笑ってる！'], ['jin', '……お前ら、全部見てただろ!!']]),
-  FB('宅配便の受け取り', 'desert', { type: 'destroy', text: '宅配便の配達時間までに全滅させろ' }, { total: 11, limit: 230, limitLabel: '📦 RG 2.0 RX-78-2が届くまで', limitFail: 'ポストに「不在連絡票」が入っていた。<br>07「……半年待ったRG 2.0のRX-78-2が……」<br>ハル「再配達、来週になるそうです。……パイロット、泣かないでください」', ev: [[90, 'ai', '配達員さん、基地の入口に到着しました！'], [150, 'ai', '配達員さんが、帰ろうとしています！'], [175, '07', '待ってくれえええ！ 配達員さあああん！']] },
+  FB('宅配便の受け取り', 'desert', { type: 'destroy', text: '宅配便の配達時間までに全滅させろ' }, { total: 11, joyCut: true, limit: 230, limitLabel: '📦 RG 2.0 RX-78-2が届くまで', limitFail: 'ポストに「不在連絡票」が入っていた。<br>07「……半年待ったRG 2.0のRX-78-2が……」<br>ハル「再配達、来週になるそうです。……パイロット、泣かないでください」', ev: [[90, 'ai', '配達員さん、基地の入口に到着しました！'], [150, 'ai', '配達員さんが、帰ろうとしています！'], [175, '07', '待ってくれえええ！ 配達員さあああん！']] },
     [['narr', '── 第18話 ──'], ['07', '……今日、荷物が届く。'], ['ai', '中身は……ガンプラです。リアルグレード2.0の、RX-78-2 ガンダム Ver.2.0。世界一難しいと言われるキットです。'], ['07', '……RG 2.0のRX-78-2は、毎日売り切れで……半年かけて、やっと買えたんだ。'], ['ai', 'パイロット、毎朝5時に模型店の前に並んでいましたね。'], ['07', '……もう2回、不在で受け取れなかった。'], ['cmd', '敵襲だ。'], ['07', '……なんで毎回、配達の時間に敵が来るんだ。'], ['ai', '偶然です。たぶん。'], ['jin', '07、サインは俺が代わりにしといてやろうか？'], ['07', '……触るな。RG 2.0のRX-78-2だぞ。初代RGとは別物だ。'], ['jin', 'リアル……なんだって？'], ['ai', '関節の一つ一つまで本物そっくりに動く、世界一細かいプラモデルです。']],
-    [['narr', '07は、配達員さんの目の前に、ロボットのまま着地した。'], ['narr', '〈配達員〉「ひぃっ！ ……あ、07さんですね。ハンコお願いします」'], ['07', '……（ロボットの指で、ハンコを押した）'], ['07', '…………っっっ！！！'], ['07', 'うおおおおおおおお！！！ キターーーーーーー！！！ RG 2.0！！！ RX-78-2 Ver.2.0だああああああ！！！'], ['07', '半年！！！ 半年だぞ！！！ 毎朝5時！！！ ついに！！！ ついにいいいい！！！'], ['jin', 'な、07が……叫んでる……!?'], ['ren', '……初めて聞いたぞ、あいつの大声。'], ['mina', '07が、ロボットのまま踊ってるー！'], ['ai', 'パイロットの心拍数、過去最高を記録。……戦闘中より、ずっと高いです。'], ['07', 'ハル！！！ 見ろ！！！ この箱！！！ この箱だああああ！！！'], ['ai', '……はい、見てます。……よかったですね、パイロット。'], ['ai', '……配達員さん、プロですね。'], ['narr', 'その夜、07は徹夜でガンプラを組み立てた。'], ['jin', '07……ロボットに乗って、ロボットのプラモ作ってんのか……'], ['07', '……悪いか。'], ['ai', '……パイロット、今日一番うれしそうです。']]),
+    [['narr', '07は、配達員さんの目の前に、ロボットのまま着地した。'], ['narr', '〈配達員〉「ひぃっ！ ……あ、07さんですね。ハンコお願いします」'], ['07', '……（ロボットの指で、ハンコを押した）'], ['jin', '07……お前……喜びすぎて、俺たちを吹っ飛ばしたぞ……'], ['mina', '左腕のネジ、3本取れた……'], ['07', '……すまん。……でも、うれしかった。'], ['ai', '……パイロットが、あんなに叫ぶの、初めて見ました。'], ['ai', '……配達員さん、プロですね。'], ['narr', 'その夜、07は徹夜でガンプラを組み立てた。'], ['jin', '07……ロボットに乗って、ロボットのプラモ作ってんのか……'], ['07', '……悪いか。'], ['ai', '……パイロット、今日一番うれしそうです。']]),
   FB('弟子にしてください', 'forest', { type: 'boss', boss: 'phantom', at: 15, text: '弟子入りを志願する〈ファントム・ジュニア〉と手合わせしろ' }, { total: 8 , ev: [[25, 'jin', '07、弟子ができたら、まず何教えるんだ？'], [30, 'ai', '……トイレは出撃前に、ですね。'], [70, 'ren', '弟子のほうが、礼儀正しいな。']]},
     [['narr', '── 第19話 ──'], ['narr', '〈謎の声〉「07さん！ 僕を、弟子にしてください！」'], ['jin', '誰だ？'], ['narr', '〈ファントム・ジュニア〉「ファントムの息子です！ 父さんを倒した07さんに憧れて！」'], ['ren', '……無人機の息子が、弟子入り志願？'], ['ai', '本気で戦って、腕を見てほしいそうです。'], ['cmd', '……手合わせしてやれ、07。']],
     [['narr', '〈ファントム・ジュニア〉「ま、まいりました……！ やっぱり07さんはすごいです！」'], ['07', '……いい動きだった。'], ['narr', '〈ファントム・ジュニア〉「師匠〜〜！！」'], ['jin', '07に弟子ができた……'], ['ai', '……AIの後輩が増えていきますね。']]),
@@ -6059,7 +6060,7 @@ const MIS = (() => {
     ui.hidden = false;
   }
   const say = (sp, text) => VO.say(sp, text);
-  const win = () => { if (done) return; done = true; setTimeout(() => endGame(true), 1800); };
+  const win = () => { if (done) return; done = true; if (m && m.joyCut) { setTimeout(() => { if (!CUT.joy(() => setTimeout(() => endGame(true), 400))) endGame(true); }, 900); return; } setTimeout(() => endGame(true), 1800); };
   const fail = r => { if (done) return; done = true; setTimeout(() => endGame(false, r), 1200); };
   function damage(s, dmg, byPlayer, at) {
     if (!s.alive) return;
@@ -7116,9 +7117,44 @@ const CUT = (() => {
   function update(dt) {
     if (!on) return;
     t += dt;
-    if (kind === 'shell') upShell(dt); else if (kind === 'ram') upRam(dt); else if (kind === 'grab') upGrab(dt); else if (kind === 'hack') upHack(dt); else end();
+    if (kind === 'shell') upShell(dt); else if (kind === 'ram') upRam(dt); else if (kind === 'grab') upGrab(dt); else if (kind === 'hack') upHack(dt); else if (kind === 'joy') upJoy(dt); else end();
     if (on && d && d.boss && d.boss.drunkBoss && kind !== 'hack' && d.boss.g) { d.boss.g.rotation.z += Math.sin(t * 2.4) * .35; d.boss.g.rotation.x += Math.sin(t * 1.7) * .15; }
     if (on) shake(dt);
+  }
+  // ep19: the kit arrives — 07's machine goes berserk with joy; Jin and Mina rush in to stop it and get flung away
+  function joy(cb) {
+    const jin = allies[3] && allies[3].alive ? allies[3] : allies.find(a => a.alive), mina = allies.find(a => a.alive && a !== jin);
+    if (!begin('joy', { jin, mina, said: {}, ox: P.x, oz: P.z }, cb)) return false; slowK = 2;
+    [jin, mina].forEach((a, i) => { if (a) { a.x = P.x + (i ? -1 : 1) * 70; a.z = P.z - 30; } });
+    return true;
+  }
+  function upJoy(dt) {
+    const D = d, s1 = (k, at, fn) => { if (t > at && !D.said[k]) { D.said[k] = true; fn(); } };
+    s1('a', .2, () => { VO.radio('07（あなた）', 'うおおおおおおおお！！！ キターーーーーーー！！！ RG 2.0だああああああ！！！', 7, 1); caption('パイロット、発狂', 'HULL-AI'); });
+    s1('b', 2.6, () => VO.ai('パイロットの心拍数、測定不能。……機体が、勝手に踊っています！', 'high'));
+    s1('c', 4.2, () => { VO.radio('04 ジン', '07！ 落ち着けー！ 止まれー！', 4, 1.18); });
+    s1('d', 5.0, () => VO.radio('整備長ミナ', '07、止まってー！ 機体が壊れちゃうー！', 2, 1.15));
+    s1('e', 8.6, () => VO.radio('04 ジン', 'ぎゃあああああ！！', 4, 1.18));
+    s1('f', 9.0, () => VO.radio('整備長ミナ', 'きゃああああ！！', 2, 1.15));
+    s1('g', 11.5, () => VO.radio('07（あなた）', '半年！！！ 半年だぞおおおお！！！', 7, 1));
+    s1('h', 14, () => { VO.ai('……ジンさんとミナさん、無事です。……パイロット、そろそろ落ち着いてください。', 'high'); caption('……二人とも、無事です', ''); });
+    // 07's machine thrashes about: spins, hops, dashes, flails
+    const k = t; P.yaw += Math.sin(k * 1.3) * dt * 7 + dt * 3; P.y = Math.max(0, Math.abs(Math.sin(k * 3.1)) * 6 - 1); P.thrust = P.y > .5 ? 1 : 0;
+    const r = 14 + Math.sin(k * .7) * 8; P.x = D.ox + Math.cos(k * 1.7) * r; P.z = D.oz + Math.sin(k * 1.1) * r;
+    P.fallX = Math.sin(k * 5.3) * .35; P.fallZ = Math.sin(k * 4.1) * .45; P.trauma = Math.max(P.trauma, .25);
+    if (Math.random() < dt * 6) { addPart({ pos: new THREE.Vector3(P.x, P.y + 10, P.z), color: 0xffe14a, add: true, s0: 1.5, s1: 4, life: .5 }); }
+    if (Math.random() < dt * 1.2) try { DRUNKFX.pop(P.x, P.y + 14, P.z, ['うおおお！', 'キターー！', 'RG！！', '最高！！', 'ひゃっほう！'][(Math.random() * 5) | 0]); } catch (e) {}
+    // Jin and Mina charge in, then get flung
+    [D.jin, D.mina].forEach((a, i) => {
+      if (!a) return;
+      if (t > 3.5 && t < 8.4) { const dx = P.x - a.x, dz = P.z - a.z, dl = Math.hypot(dx, dz) || 1; if (dl > 12) { a.x += dx / dl * 24 * dt; a.z += dz / dl * 24 * dt; } a.yaw = Math.atan2(-dx, -dz); }
+      if (t > 8.4 && !a.flung) { a.flung = true; const dx = a.x - P.x, dz = a.z - P.z, dl = Math.hypot(dx, dz) || 1; a.fvx = dx / dl * 42; a.fvz = dz / dl * 42; a.vy = 16; a.y = .2; a.blown = 2.2; a.blownSpin = (i ? -1 : 1) * 2.4; explosion(new THREE.Vector3(a.x, 6, a.z), 1.4); try { SFX.clunk(); } catch (e) {} P.trauma = 1; }
+      if (a.flung && a.fvx != null) { a.x += a.fvx * dt; a.z += a.fvz * dt; a.fvx *= Math.exp(-1.6 * dt); a.fvz *= Math.exp(-1.6 * dt); if (a.y <= 0 && !a.thud && t > 9.2) { a.thud = true; for (let q = 0; q < 8; q++) addPart({ pos: new THREE.Vector3(a.x + rand(-3, 3), .6, a.z + rand(-3, 3)), color: 0x9a8a6c, op: .5, s0: 1.6, s1: 6, life: 1.2, vel: new THREE.Vector3(rand(-6, 6), 2, rand(-6, 6)) }); } }
+    });
+    // camera: wide shot that keeps the madness and the victims in frame
+    const mid = new THREE.Vector3(P.x, 4, P.z); if (t > 3.5 && D.jin) mid.lerp(new THREE.Vector3(D.jin.x, 4, D.jin.z), .3);
+    shot(mid.clone().add(new THREE.Vector3(Math.sin(t * .25) * 55, 22, Math.cos(t * .25) * 55)), mid, dt, 1.5);
+    if (t > 17) { [D.jin, D.mina].forEach(a => { if (a) { a.flung = false; a.fvx = null; a.thud = false; } }); P.y = 0; P.fallX = P.fallZ = 0; end(); }
   }
   function boss(e) { if (!e || S.phase !== 'op') return; if (drunkTalk()) { e.armor0 = P.armor; e.drunkBoss = true; } (e.kind === 'phantom' ? bossRam : bossShell)(e); }
   // comedy ep5: the drunk boss's hit does nothing, so HAL just hacks it — it thrashes about, runs into a building and keels over
@@ -7161,7 +7197,7 @@ const CUT = (() => {
       if (c > 11) end();
     }
   }
-  return { boss, grab, update, get on() { return on; }, get k() { return slowK; } };
+  return { boss, grab, joy, update, get on() { return on; }, get k() { return slowK; } };
 })();
 
 /* ---------- boss fighting styles: the giant shells and stomps, the wraith charges and rams ---------- */
