@@ -4060,7 +4060,7 @@ DROP.place();
 async function doLaunch() {
   for (let i = 0; i < 3; i++) { sTone({ f: 520, dur: .35, type: 'sawtooth', gain: .06, at: i * .5 }); sTone({ f: 390, dur: .15, type: 'sawtooth', gain: .06, at: i * .5 + .35 }); }
   SFX.spinup(); buzz([100, 60, 200]); P.trauma = .6;
-  say('出撃！', 'a', 2.2); VO.ai('HK-07、発進。', 'high'); DANGER.on = false; BGM.play('battle', { intensity: 2, fade: .4, resume: false }); await wait(600);
+  say('出撃！', 'a', 2.2); VO.ai('HK-07、発進。', 'high'); DANGER.on = false; S.banT = 14; S.banUsed = {}; BGM.play('battle', { intensity: 2, fade: .4, resume: false }); await wait(600);
   if (S.mode !== 'space') {
     $('#bootPanel').hidden = true; await DROP.start(); if (S.phase !== 'drop') return;
   }
@@ -5401,6 +5401,72 @@ function headCamGlitch(dt) {
   P.headGlT = rand(2.5, 6.5); S.camStatic = rand(.15, .45); P.glitch = Math.max(P.glitch, 1.2); SFX.static ? SFX.static(.35) : sNoise({ dur: .35, type: 'highpass', f: 3000, gain: .25 });
 }
 
+/* ---------- squad chatter: short exchanges during battle, picked to fit what is happening ---------- */
+const BANTER = {
+  general: [
+    [['jin', 'レン、右の奴は俺がやる！'], ['ren', '任せた。07、正面を頼む！']],
+    [['jin', 'なあ、帰ったら何食う？'], ['ren', '戦闘中だぞ、ジン！'], ['jin', 'だから励みにしてんだよ！']],
+    [['ai', 'パイロット、弾道予測を更新しました。'], ['ren', '頼りになるな、AI。']],
+    [['ren', '陣形を崩すな！互いの背中を守れ！'], ['jin', 'わかってるって！']],
+    [['cmd', '07、戦況は優勢だ。このまま押し込め。'], ['ren', '了解。全機、前進！']],
+    [['jin', 'うおっ、今の弾かすったぞ！'], ['ren', '頭を下げろ、ジン！']],
+    [['ai', '左側面に敵の反応が増えています。'], ['ren', '左を固めろ！07、援護を頼む！']],
+    [['jin', '07の射撃、見たか今の！'], ['ren', 'ああ。俺たちも負けてられないな。']],
+    [['ren', '弾は気にするな、撃ち続けろ！'], ['ai', '残弾、無制限モードです。']],
+    [['jin', 'こいつら、どんどん湧いてくるな……'], ['ren', 'だったら、どんどん落とすだけだ。']],
+  ],
+  minaBase: [
+    [['mina', 'こちら整備班！みんな、壊しすぎないでよね！'], ['jin', '努力はする！'], ['mina', 'もう！']],
+    [['mina', '07、機体の調子はどう？無理してない？'], ['ai', '各部、正常です。'], ['mina', 'よかった。帰ってきたら、ピカピカにするからね。']],
+    [['mina', 'ジン、また左脚引きずってるでしょ！'], ['jin', 'な、なんでわかるんだよ！'], ['mina', '整備長をなめないで。']],
+  ],
+  minaGone: [
+    [['jin', '……ミナの声が聞こえないと、調子狂うな。'], ['ren', '必ず取り戻す。今は目の前に集中しろ。']],
+    [['ai', 'ミナさんの反応は、まだ見つかりません。'], ['ren', '……そうか。探し続けてくれ。']],
+    [['jin', 'ミナ……待ってろよ。'], ['ren', '07、行くぞ。']],
+  ],
+  minaPilot: [
+    [['mina', '08、右の敵を引きつける！'], ['ren', '無茶するなよ、ミナ！'], ['mina', '整備士の勘を信じて！']],
+    [['jin', 'ミナ、腕の調子は？'], ['mina', '絶好調！……って言いたいけど、ちょっと熱い。'], ['ai', '冷却を補助します。']],
+    [['mina', '07、背中は任せて！'], ['jin', 'おいおい、俺の出番がなくなるだろ！']],
+    [['mina', '撃破！……ふふ、パイロットも悪くないね。'], ['ren', '頼もしいな、08。']],
+  ],
+  sea: [[['jin', 'くそっ、水の中は動きが重てえ！'], ['ren', '焦るな。敵も同じ条件だ。']], [['ai', '水圧、正常範囲。浸水はありません。'], ['jin', 'そりゃよかった……息が詰まりそうだぜ。']]],
+  sky: [[['jin', '下を見るなよ……高すぎる！'], ['ren', '甲板だけ見てろ！']], [['ai', '敵機、上空から接近。照準を上げてください。'], ['ren', '空から来るぞ、上を警戒しろ！']]],
+  forest: [[['ren', '木の陰に気をつけろ。待ち伏せがいるぞ。'], ['jin', '葉っぱが揺れるたびにビビっちまう！']], [['ai', '森の中では、レーダーの反応が乱れます。'], ['ren', '目で確かめろ。']]],
+  town: [[['jin', 'ビルの陰からうじゃうじゃ出てくるな！'], ['ren', '撃ち続けろ！止まったら囲まれる！']], [['ai', '建物の上にも反応があります。'], ['jin', '上からかよ！']]],
+  desert: [[['jin', '砂が関節に入りそうだ……'], ['ai', 'フィルター、正常です。']], [['ren', '視界がいい。遠くの敵から確実に落とせ。'], ['jin', '了解！']]],
+  lowP: [[['ren', '07、被弾しすぎだ！少し下がれ！'], ['jin', 'カバーする！07、一旦引け！']], [['ai', '装甲、危険域です。……パイロット、まだやれますか？'], ['ren', '07、無理はするな！']]],
+  many: [[['jin', 'おいおい、数が多すぎるだろ！'], ['ren', '一機ずつ確実に落とせ！']], [['ai', '敵の数、増加中。包囲されつつあります。'], ['ren', '背中合わせだ！全機、円陣を組め！']]],
+  few: [[['ren', '残りわずかだ！押し切れ！'], ['jin', 'よっしゃ、ラストスパート！']]],
+  boss: [[['jin', 'あのデカブツ、硬すぎる！'], ['ren', '脚を狙え！動きを止めるんだ！'], ['ai', '関節部への攻撃が有効です。']], [['ren', 'ボスの攻撃は重い。正面に立つな！'], ['jin', '言われなくても逃げるっての！']]],
+  hacked: [[['jin', '青い奴、ちゃんと味方してくれてるな！'], ['ai', '私の自慢の仲間です。']], [['ren', 'ハッキングした機体を盾に使え。'], ['ai', '……少しかわいそうですが、了解です。']]],
+  allyDown: [[['ren', 'くそっ……仲間がやられた。'], ['jin', '仇は取る！絶対にだ！']]],
+};
+function banter(dt) {
+  if (S.phase !== 'op' || P.dead || (STORY.on && STORY.m.tutorial)) return;
+  if (S.banT == null) S.banT = 12;
+  S.banT -= dt; if (S.banT > 0) return;
+  S.banT = rand(16, 26);
+  const alive = enemies.filter(e => e.alive && !e.ally), idx = STORY.on ? STORY.idx : -1, now = performance.now(), pools = [];
+  if (P.armor < 40) pools.push('lowP');
+  if (S.allyDownT && now - S.allyDownT < 12000) pools.push('allyDown');
+  if (alive.some(e => e.boss)) pools.push('boss');
+  if (enemies.some(e => e.alive && e.ally)) pools.push('hacked');
+  if (alive.length > 18) pools.push('many');
+  if (alive.length > 0 && alive.length < 5 && allDestroyedWins() && S.spawned >= ENEMY_TOTAL) pools.push('few');
+  const urgent = pools.length && Math.random() < .55;
+  if (!urgent) {
+    pools.length = 0; pools.push('general', TERRAIN.cur);
+    if (STORY.on) pools.push(idx >= 62 ? 'minaPilot' : idx >= 52 ? 'minaGone' : 'minaBase'); else if (allies.some(a => a.mina)) pools.push('minaPilot');
+  }
+  const key = pools[(Math.random() * pools.length) | 0], pool = BANTER[key] || BANTER.general;
+  S.banUsed = S.banUsed || {}; let pick = null;
+  for (let k = 0; k < 6 && !pick; k++) { const c = pool[(Math.random() * pool.length) | 0]; if (!S.banUsed[c[0][1]] || pool.length === 1) pick = c; }
+  if (!pick) pick = pool[0]; S.banUsed[pick[0][1]] = 1;
+  pick.forEach(([sp, text], i) => setTimeout(() => { if (S.phase === 'op' && !P.dead) VO.say(sp, text); }, i * 2600));
+}
+
 /* ================= INPUT ================= */
 const keys = {}; const btn = { l: false, r: false, sub: false, jump: false };
 addEventListener('keydown', e => {
@@ -6257,7 +6323,7 @@ function frameBody(now) {
   if (live) {
     if (S.phase === 'cut') CUT.update(dt); else if (S.phase === 'drop') DROP.update(dt); else { updatePlayer(dt); DROP.update(dt); } updateMech(dt); followSun(); TERRAIN.tick(dt);
     if (S.phase === 'op' && allDestroyedWins() && S.spawned >= ENEMY_TOTAL && !enemies.some(e => e.alive && !e.ally)) endGame(true);
-    MIS.update(dt, T); dangerMusic(dt); headCamGlitch(dt);
+    MIS.update(dt, T); dangerMusic(dt); headCamGlitch(dt); banter(dt);
     if (S.phase === 'op' && !P.dead) { S.cmdT -= dt; if (S.cmdT <= 0) { S.cmdT = rand(30, 46); const CL = CMD_LINES[S.mode]; VO.radio('司令部', CL[Math.random() * CL.length | 0], 0, .7); } } updateGantry(dt, T); updateEnemies(dt); updateAllies(dt); updateShells(dt); updateParts(dt); if (S.phase !== 'cut') updateCamera(T, dt);
     if (CK.combatOn) CK.update(dt, T);
     lodPass(); updatePistons(); renderer.render(scene, camera); CK.renderCombat(); drawLever();
