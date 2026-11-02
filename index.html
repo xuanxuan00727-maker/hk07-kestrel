@@ -7185,7 +7185,7 @@ const DRUNKFX = (() => {
   function pose(o, r, dt, h, x, z) {
     const D = o.dk || (o.dk = { mode: 'sway', t: 0, next: rand(1, 3), spin: 0, side: Math.random() < .5 ? -1 : 1, seed: Math.random() * 9 });
     D.t += dt; const tt = performance.now() / 1000 + D.seed;
-    if (D.t > D.next) { D.t = 0; const mm = ['sway', 'spin', 'fall', 'dance', 'hop', 'sway', 'moon']; D.mode = mm[(Math.random() * mm.length) | 0]; D.next = D.mode === 'fall' ? 3.6 : D.mode === 'spin' ? 1.6 : rand(2, 3.5); D.side = Math.random() < .5 ? -1 : 1; if (Math.random() < .8) pop(x, h + 4, z); }
+    if (D.t > D.next) { D.t = 0; const mm = ['sway', 'spin', 'fall', 'dance', 'hop', 'sway', 'moon']; D.mode = mm[(Math.random() * mm.length) | 0]; D.next = D.mode === 'fall' ? 3.6 : D.mode === 'spin' ? 1.6 : rand(2, 3.5); D.side = Math.random() < .5 ? -1 : 1; if (Math.random() < .8) pop(x, h + 4, z); if (D.mode !== 'sway' && Math.random() < .35 && Math.hypot(camera.position.x - x, camera.position.z - z) < 220) tsukkomi(D.mode, !!o.boss || o.legs && !o.hpMax); }
     // always: a big drunken sway
     r.rotation.z += Math.sin(tt * 1.7) * .32 + Math.sin(tt * 4.1) * .08; r.rotation.x += Math.sin(tt * 1.2) * .16; r.position.y -= Math.abs(Math.sin(tt * 2.2)) * .5;
     if (D.mode === 'spin') { D.spin += dt * 9; if (Math.random() < dt * 2) pop(x, h + 4, z, 'まわりゅ〜'); }
@@ -7202,7 +7202,23 @@ const DRUNKFX = (() => {
     } else { D.thud = false; D.up = false; }
   }
   const pick2 = a => a[(Math.random() * a.length) | 0];
-  return { pose, tick, pop };
+  // 07 plays the straight man; the commander answers (sober, or just as drunk)
+  const TSUKKOMI = {
+    dance: [['司令官、あいつら踊ってるんですけど……これ、どうするんですか。', 'あいつらほっとけ。お前だけでもできるだろ。他の敵も全部酔っ払ってんだから。', 'ん〜？ おどれ〜……07も、おどれ〜……'], ['……戦場で盆踊りしてます。', '見なかったことにしろ。', 'えんやこら〜……どっこいしょ〜……']],
+    fall: [['司令官、味方が顔から地面に突っ込みました。', '……起こさなくていい。前を見ろ。', 'わはは……おれも、いま、いすから落ちた……'], ['……また転びました。これで5回目です。', '数えるな。', 'ごかいめ？ おれは、じゅっかいめ……']],
+    spin: [['……なんで回ってるんですか、あれ。', '知らん。見るな、うつるぞ。', 'まわるのは、たのしいだろ〜'], ['味方が独楽みたいに回ってます。', '……放っておけ。そのうち止まる。', 'おれも……まわってる……いすが……']],
+    hop: [['しゃっくりでジャンプしてます。', '……戦場で跳ねるな。', 'ひっく……おれも……ひっく……'], ['あれ、着地のたびに地面揺れてるんですけど。', '気にするな。地震ってことにしとけ。', 'じしん？ ……あ、おれが揺れてるのか……']],
+    moon: [['……ムーンウォークしてます。', 'ほっとけ。', 'おれも、できる……あ、こけた……']],
+    enemy: [['司令官、敵も踊ってるんですけど。', 'だから言っただろ。全部酔っ払ってんだ。さっさと止めてこい。', 'てきも……ともだち……みんな、ともだち……'], ['……敵が味方と肩組んで歌ってます。', '……今のうちに敵だけ止めろ。', 'かたくむの、いいなあ……おれもまぜて……']],
+  };
+  let tsT = 0;
+  function tsukkomi(mode, enemy) {
+    const now = performance.now(); if (S.phase !== 'op' || now - tsT < 14000) return; tsT = now;
+    const L = TSUKKOMI[enemy ? 'enemy' : mode]; if (!L) return; const l = pick2(L), drunk = drunkTalk();
+    VO.radio('07（あなた）', l[0], 7, 1);
+    setTimeout(() => { if (S.phase === 'op') VO.radio('司令部', drunk ? l[2] : l[1], 0, .7); }, 2600);
+  }
+  return { pose, tick, pop, tsukkomi };
 })();
 const DRUNK_TALK = ['07〜、おれのこと、しゅき？', 'ロボットって……なんで二本足なんら……', 'みてみて〜、片足で立ってりゅ〜', 'ちょっと……コックピットで寝ていい……？', 'あれ？ 操縦桿が……二本に見える……', 'おれの機体……なんでこんなにグラグラすんの……地震？', 'うぃ〜……空が……下にありゅ……', '07〜、写真とって〜、ピース〜', 'あ、敵さん、こんばんは〜', 'もう一杯〜……いや、もう一機〜', 'ひっく……いま、何時……？ 朝？ 夜？ 昼？', 'ハル〜、水ちょうらい……'];
 const DRUNK_ALL = () => { try { return !!(STORY.on && STORY.m && STORY.m.drunkAll); } catch (e) { return false; } };
