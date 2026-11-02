@@ -6308,7 +6308,7 @@ const STORYUI = (() => {
   return { chapters, openBrief, debrief: (i, cb) => play(i, 'debrief', cb) };
 })();
 function beginMission(i) {
-  STORY.on = true; STORY.idx = i; STORY.m = misAt(i); STORY.limitHit = false; STORY.gaveUp = false; STORY.joyDone = false;
+  STORY.on = true; STORY.idx = i; STORY.m = misAt(i); STORY.limitHit = false; STORY.gaveUp = false; STORY.joyDone = false; STORY.joyLock = false;
   if (S.phase === 'title') MOV.ignite(STORY.m.mode); else resetSortie();
 }
 
@@ -7777,7 +7777,8 @@ function playerHit(from, k = 1) {
   if (P.armor <= 0) { VO.ai('機体損傷、限界。脱出します。', 'high'); P.dead = true; P.glitch = 2.5; explosion(new THREE.Vector3(P.x + rand(-3, 3), 7, P.z + rand(-3, 3)), 2); S.viewSave = S.view; S.view = 'tp'; ME.flames.forEach(f => f.visible = false); WRECK.start(ME.root, { legs: ME.legs, h: 9, size: 7, drop: 1.6 }); setTimeout(() => endGame(false), 6200); }
 }
 function endGame(win, reason) {
-  if (win && STORY.on && STORY.m && STORY.m.joyCut && !STORY.joyDone && S.phase === 'op') { STORY.joyDone = true; if (CUT.joy(() => setTimeout(() => endGame(true), 400))) return; }   // ep19: the joy rampage plays before the result
+  if (STORY.joyLock) return;   // the joy scene is still playing: the result waits until it has completely finished
+  if (win && STORY.on && STORY.m && STORY.m.joyCut && !STORY.joyDone && S.phase === 'op') { STORY.joyDone = true; if (CUT.joy(() => { STORY.joyLock = false; setTimeout(() => endGame(true), 600); })) { STORY.joyLock = true; return; } }   // ep19: the joy rampage plays before the result
   if (S.phase === 'end') return; S.phase = 'end';
   const sec = Math.round((performance.now() - S.t0) / 1000);
   const el = $('#end'); el.className = win ? '' : 'lose'; el.hidden = false; $('#hint').hidden = true;
