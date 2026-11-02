@@ -77,7 +77,7 @@ body.cine #monitor{border-radius:0;box-shadow:none}
 #chap,#brief{position:absolute;inset:0;z-index:8;display:grid;place-items:center;padding:16px;background:rgba(3,5,4,.82)}
 .ch-in{width:min(760px,100%);max-height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;display:flex;flex-direction:column;gap:10px}
 #brief button,#end button{touch-action:pan-y}
-#bar{position:fixed;inset:0;z-index:60;background:radial-gradient(ellipse at 50% 30%,#4a2a14,#1a0c06 70%);color:#ffe9c8;font-family:"M PLUS Rounded 1c","Hiragino Maru Gothic ProN",sans-serif;display:flex;flex-direction:column;align-items:center;padding:10px 12px;overflow:hidden;touch-action:manipulation}#bar .bt{font-size:13px;letter-spacing:.2em;color:#ffb860;margin:2px 0 6px}#bar .stat{display:flex;gap:10px;font-size:12px;flex-wrap:wrap;justify-content:center}#bar .stat b{display:inline-block;min-width:54px}#bar .meter{display:inline-block;width:70px;height:8px;background:#3a2010;border-radius:4px;vertical-align:middle;overflow:hidden}#bar .meter i{display:block;height:100%;background:#ff6a3a;transition:width .3s}#bar .row{display:flex;gap:8px;justify-content:center;margin:12px 0 4px;width:100%;max-width:560px}#bar .pp{flex:1;background:#2c170a;border:2px solid #5a3418;border-radius:12px;padding:8px 4px;text-align:center;position:relative;transition:border-color .2s,transform .2s}#bar .pp .f{font-size:38px;line-height:1.1}#bar .pp .n{font-size:12px;color:#ffcf90}#bar .pp .d{font-size:11px;min-height:28px;color:#e8c8a0;margin-top:2px}#bar .pp.look{border-color:#ff4030;transform:scale(1.04)}#bar .pp.look::after{content:'👀 見てる！';position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#ff4030;color:#fff;font-size:10px;padding:1px 6px;border-radius:8px;white-space:nowrap}#bar .pp.turn::after{content:'⚠ 振り向く…';position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#e0a020;color:#000;font-size:10px;padding:1px 6px;border-radius:8px;white-space:nowrap}#bar .bub{min-height:44px;max-width:560px;width:100%;background:#fff3dc;color:#3a1e0a;border-radius:12px;padding:8px 12px;font-size:14px;margin:8px 0;position:relative}#bar .bub small{display:block;font-size:11px;color:#a05a20;font-weight:700}#bar .me{display:flex;align-items:center;gap:14px;margin:6px 0}#bar .glass{font-size:64px;transition:transform .3s;filter:drop-shadow(0 4px 6px #000)}#bar .glass.sw{transform:rotate(-25deg) scale(.8)}#bar .gl{font-size:12px;text-align:center}#bar .hal{font-size:12px;background:#0c2a34;color:#7ae8ff;border:1px solid #3fd8ff;border-radius:10px;padding:6px 10px;max-width:220px}#bar .btns{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;justify-content:center}#bar .btns button{font-size:16px;padding:14px 18px;border-radius:12px;border:2px solid #ffb860;background:#5a2e10;color:#ffe9c8;font-weight:700;min-width:140px}#bar .btns button.hot{background:#c0401a;border-color:#ffd080;animation:barp .5s infinite alternate}#bar .btns button:disabled{opacity:.4}@keyframes barp{to{transform:scale(1.07)}}#bar.drunk1 .row,#bar.drunk1 .me{animation:barw 2.6s infinite ease-in-out}#bar.drunk2 .row,#bar.drunk2 .me{animation:barw 1.4s infinite ease-in-out;filter:blur(1px)}@keyframes barw{0%,100%{transform:translate(0,0) rotate(0)}50%{transform:translate(8px,3px) rotate(2deg)}}#bar .toast{position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);font-size:44px;font-weight:900;color:#ffd040;text-shadow:0 4px 0 #8a3a00,0 0 20px #ff8020;pointer-events:none;opacity:0;transition:opacity .2s}#bar .toast.on{opacity:1}#bar .end{position:absolute;inset:0;background:rgba(10,4,0,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:20px}#bar .end h2{font-size:28px;color:#ffd040;margin:0}#bar .end p{font-size:15px;line-height:1.7;margin:0}#bar .skipb{position:absolute;top:8px;right:10px;font-size:11px;background:none;border:1px solid #8a5a30;color:#c8a070;border-radius:6px;padding:4px 8px}
+#bar{position:fixed;inset:0;z-index:60;background:radial-gradient(ellipse at 50% 30%,#4a2a14,#1a0c06 70%);color:#ffe9c8;font-family:"M PLUS Rounded 1c","Hiragino Maru Gothic ProN",sans-serif;display:flex;flex-direction:column;align-items:center;padding:10px 12px;overflow:hidden;touch-action:manipulation}#bar .bt{font-size:13px;letter-spacing:.2em;color:#ffb860;margin:2px 0 6px}#bar .stat{display:flex;gap:10px;font-size:12px;flex-wrap:wrap;justify-content:center}#bar .stat b{display:inline-block;min-width:54px}#bar .meter{display:inline-block;width:70px;height:8px;background:#3a2010;border-radius:4px;vertical-align:middle;overflow:hidden}#bar .meter i{display:block;height:100%;background:#ff6a3a;transition:width .3s}#bar .row{display:flex;gap:8px;justify-content:center;margin:12px 0 4px;width:100%;max-width:560px}#bar .pp{flex:1;background:#2c170a;border:2px solid #5a3418;border-radius:12px;padding:8px 4px;text-align:center;position:relative;transition:border-color .2s,transform .2s}#bar .pp .f{font-size:38px;line-height:1.1}#bar .pp .n{font-size:12px;color:#ffcf90}#bar .pp .d{font-size:11px;min-height:28px;color:#e8c8a0;margin-top:2px}#bar .pp.look{border-color:#ff4030;transform:scale(1.04)}#bar .pp.look::after{content:'👀 見てる！';position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#ff4030;color:#fff;font-size:10px;padding:1px 6px;border-radius:8px;white-space:nowrap}#bar .pp.turn::after{content:'⚠ 振り向く…';position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#e0a020;color:#000;font-size:10px;padding:1px 6px;border-radius:8px;white-space:nowrap}#bar .bub{min-height:44px;max-width:560px;width:100%;background:#fff3dc;color:#3a1e0a;border-radius:12px;padding:8px 12px;font-size:14px;margin:8px 0;position:relative}#bar .bub small{display:block;font-size:11px;color:#a05a20;font-weight:700}#bar .me{display:flex;align-items:center;gap:14px;margin:6px 0}#bar .glass{font-size:64px;transition:transform .3s;filter:drop-shadow(0 4px 6px #000)}#bar .glass.sw{transform:rotate(-25deg) scale(.8)}#bar .gl{font-size:12px;text-align:center}#bar .hal{font-size:12px;background:#0c2a34;color:#7ae8ff;border:1px solid #3fd8ff;border-radius:10px;padding:6px 10px;max-width:220px}#bar .btns{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;justify-content:center}#bar .btns button{font-size:16px;padding:14px 18px;border-radius:12px;border:2px solid #ffb860;background:#5a2e10;color:#ffe9c8;font-weight:700;min-width:140px}#bar .btns button.hot{background:#c0401a;border-color:#ffd080;animation:barp .5s infinite alternate}#bar .btns button:disabled{opacity:.4}@keyframes barp{to{transform:scale(1.07)}}#bar.drunk1 .row,#bar.drunk1 .me{animation:barw 2.6s infinite ease-in-out}#bar.drunk2 .row,#bar.drunk2 .me{animation:barw 1.4s infinite ease-in-out;filter:blur(1px)}@keyframes barw{0%,100%{transform:translate(0,0) rotate(0)}50%{transform:translate(8px,3px) rotate(2deg)}}#bar .toast{position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);font-size:44px;font-weight:900;color:#ffd040;text-shadow:0 4px 0 #8a3a00,0 0 20px #ff8020;pointer-events:none;opacity:0;transition:opacity .2s}#bar .toast.on{opacity:1}#bar .end{position:absolute;inset:0;background:rgba(10,4,0,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:20px}#bar .end h2{font-size:28px;color:#ffd040;margin:0}#bar .end p{font-size:15px;line-height:1.7;margin:0}#bar .fl{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;width:100%;max-width:760px;overflow:auto;flex:1;padding:4px}#bar .fb{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;background:#2c170a;border:2px solid #5a3418;border-radius:10px;padding:8px;color:#ffe9c8}#bar .fb b{color:#ffb860;font-size:12px}#bar .fb span{font-size:14px;font-weight:700}#bar .fb small{font-size:10px;color:#c8a070}#bar .fback{margin-top:8px}#bar .fcv{position:relative;border-radius:12px;overflow:hidden;border:2px solid #5a3418}#bar .fcv canvas{display:block!important;position:static!important;inset:auto!important;width:auto;height:auto}#bar .vom{position:absolute;inset:0;background:radial-gradient(circle,rgba(150,220,60,.0),rgba(120,200,40,.0));transition:background 1s}#bar .vom.on{background:radial-gradient(circle,rgba(170,230,60,.85),rgba(90,160,30,.95))}#bar .vom.on::after{content:'🤮';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:90px}#bar .race{width:100%;max-width:560px;margin:6px 0;font-size:12px}#bar .rl{display:flex;align-items:center;gap:6px;margin:2px 0}#bar .rl span{width:110px;white-space:nowrap;overflow:hidden}#bar .rl i{flex:1;height:10px;background:#3a2010;border-radius:5px;overflow:hidden}#bar .rl i b{display:block;height:100%;background:#ffb860;transition:width .2s}#bar .rl em{width:44px;text-align:right;font-style:normal}#bar .eat{font-size:22px!important;padding:18px 30px!important;min-width:260px!important;user-select:none;-webkit-user-select:none}#bar .eat:active{transform:scale(.95)}#bar .end .btns{margin-top:6px}#bar .skipb{position:absolute;top:8px;right:10px;font-size:11px;background:none;border:1px solid #8a5a30;color:#c8a070;border-radius:6px;padding:4px 8px}
 #garage,#garage *,#chap .ch-in,#chap .ch-in *{touch-action:none}
 #garage{-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 #chap{place-items:start center}
@@ -294,7 +294,7 @@ body.op #panel3d{height:104px;border-radius:6px}
       <div class="t-kicker">重装歩行兵器シミュレーター</div>
       <h1>HK-07<span>KESTREL</span></h1>
       <p>ハッチを閉め、機体を起こし、出撃せよ。</p>
-      <div class="t-modes"><button id="storyBtn" class="t-btn">ストーリー<small>全25幕・122章のキャンペーン</small></button></div>
+      <div class="t-modes"><button id="storyBtn" class="t-btn">ストーリー<small>全29幕・222章のキャンペーン</small></button><button id="funBtn" class="t-btn">😂 爆笑ステージ<small>全30ステージ（ストーリーとは別）</small></button></div>
       <div class="t-free"><button id="startLand" class="btn">フリー出撃</button><button id="garBtn" class="btn">格納庫（カスタマイズ）</button></div>
       <div class="t-note">音が出ます ・ オープニングムービーから始まります</div>
     </div></div>
@@ -4455,6 +4455,7 @@ const MOV = (() => {
   }
   $('#startLand').addEventListener('click', () => { STORY.on = false; ignite('land'); });
   $('#garBtn').addEventListener('click', () => GARUI.open());
+  $('#funBtn').addEventListener('click', () => { audioInit(); SFX.click(); $('#title').hidden = true; FUN.menu(); });
   $('#storyBtn').addEventListener('click', () => { audioInit(); SFX.click(); BGM.play('title'); $('#title').hidden = true; if (!tutDone() && !UNLOCK_ALL) STORYUI.openBrief(-1); else STORYUI.chapters(); });
   $('#movieSkip').addEventListener('click', () => { SFX.click(); end(); });
   return { update, end, white, ignite };
@@ -4894,9 +4895,6 @@ const MISSIONS = [
   { act: 25, title: '夜明けの名前', mode: 'land', env: 'desert', total: 60, first: 16, dmgK: 3.0, obj: { type: 'destroy', text: '暴走した残存機を全滅させ、全員で帰還せよ' },
     brief: [['cmd', '要塞から落ちてきた残存機が暴れている。これが本当に最後の戦いだ。'], ['mina', 'みんな、帰ったら約束のこと、忘れないでね。'], ['ren', '全機、これで終わりだ！']],
     debrief: [['cmd', '残存機、全滅。……全員、生還だ。'], ['mina', 'じゃあ、約束！　AIさんの名前……「ハル」はどう？　HULL-AIの、ハル。'], ['jin', '安直だけど、いいじゃねえか！'], ['ren', 'ハル。……よろしくな。'], ['ai', 'ハル……。私の、名前。'], ['ai', 'ありがとうございます。パイロット、皆さん。……ハルは、これからもずっと一緒です。'], ['cmd', '世界は、お前たちを英雄と呼んでいる。……07、よくやった。'], ['narr', '── HK-07 KESTREL ── 完']] },
-  { act: 26, title: '休日の作戦', mode: 'land', env: 'town', total: 0, first: 0, obj: { type: 'bar', text: '乾杯を5回、バレずにコーラで乗り切れ（ミニステージ）' },
-    brief: [['narr', '── 番外編 ──'], ['jin', '07！ 今日は休みだ！ お前に飯をおごってやる！'], ['ren', 'ジンがおごる？ 明日は槍が降るな。'], ['mina', 'やった！ みんなで飲み会ね！'], ['narr', '……しかし07には、誰にも言えない秘密があった。'], ['ai', 'パイロット。あなたは、お酒が一滴も飲めません。'], ['ai', '作戦名「バレずにコーラを飲め」。……みんなが見ていない隙に、ビールをコーラにすり替えてください。'], ['ai', '乾杯の合図で「飲む」を押すこと。ビールのまま飲むと酔います。見られながらすり替えると、疑われます。']],
-    debrief: [['narr', '翌朝。'], ['jin', 'うう……頭いてえ……。07はなんでケロッとしてんだよ……。'], ['mina', '07、本当にお酒強いのね。'], ['ai', '……（秘密は、守りました）'], ['cmd', 'お前たち、休みは終わりだ。哨戒任務に出ろ。']] },
   { act: 26, title: '静かな朝', mode: 'land', env: 'town', total: 40, first: 12, dmgK: 2.2, obj: { type: 'destroy', text: '敵部隊を全滅させよ' },
     brief: [['narr', '── 第六部 残響 ──'], ['cmd', 'オーディン戦から三か月。今日はただの哨戒だ、07。'], ['ai', 'ハルです。……名前で呼ばれるの、まだ少し照れます。'], ['jin', '平和すぎて腕がなまっちまうぜ。']],
     debrief: [['ai', '撃破した無人機から、見覚えのある信号が……。'], ['ren', '見覚えって、まさか。'], ['ai', 'オーディンの……欠片です。']] },
@@ -5539,104 +5537,304 @@ const STORYUI = (() => {
 })();
 function beginMission(i) {
   STORY.on = true; STORY.idx = i; STORY.m = misAt(i);
-  if (STORY.m.obj.type === 'bar') { BAR.start(i); return; }
   if (S.phase === 'title') MOV.ignite(STORY.m.mode); else resetSortie();
 }
 
 
-/* ================= MINI COMEDY STAGE: the night out — swap your beer for cola without anyone noticing ================= */
-const BAR = (() => {
-  const el = $('#bar'); let st = null, raf = 0, idx = -1;
-  const PPL = [
-    { k: 'jin', n: 'ジン', f: '🍺😆', away: ['店員さんに追加注文中', 'からあげに夢中', '自分の武勇伝を熱弁中', 'スマホで自撮り中', 'トイレに行こうか迷い中'] },
-    { k: 'ren', n: 'レン', f: '🍶😏', away: ['メニューを熟読中', '枝豆の皮をむき中', 'ジンにツッコミ中', 'テレビの野球を見てる'] },
-    { k: 'mina', n: 'ミナ', f: '🍹😊', away: ['左腕の調子を確認中', '店員さんと話し中', 'デザートを選び中', 'ジンの写真を撮影中'] },
+
+/* ================= 爆笑ステージ: 30 comedy mini-games, picked from their own menu (not part of the story) ================= */
+const FUN = (() => {
+  const el = $('#bar'); let raf = 0, cur = null, R3 = null;
+  const H = q => el.querySelector(q), pick = a => a[(Math.random() * a.length) | 0];
+  const VOK = { 'ジン': 'jin', 'レン': 'ren', 'ミナ': 'mina', 'ハル': 'ai', 'ハワード大佐': 'cmd' };
+  const done = (() => { try { return JSON.parse(localStorage.getItem('hk07-fun') || '{}'); } catch (e) { return {}; } })();
+  const saveDone = () => { try { localStorage.setItem('hk07-fun', JSON.stringify(done)); } catch (e) {} };
+  function say(who, text) { const b = H('.bub'); if (!b) return; b.innerHTML = (who ? `<small>${who}</small>` : '') + text; if (VOK[who]) try { VO.cancel(); VO.say(VOK[who], text); } catch (e) {} }
+
+  /* ---------- engine A: sneak (do the secret thing while nobody looks, then answer the call) ---------- */
+  const P3 = (j, r, m) => [{ n: 'ジン', f: j[0], away: j[1] }, { n: 'レン', f: r[0], away: r[1] }, { n: 'ミナ', f: m[0], away: m[1] }];
+  const STEALTH = [
+    { t: 'バレずにコーラを飲め', place: '居酒屋「機甲亭」', intro: [['ジン', '今日は休みだ！ 07、お前に飯をおごってやる！ 好きなだけ飲め！'], ['07（心の声）', '（まずい……酒は一滴も飲めない。でもジンの好意は無駄にできない……！）']],
+      ppl: P3(['🍺😆', ['追加注文中', 'からあげに夢中', '武勇伝を熱弁中', '自撮り中']], ['🍶😏', ['メニュー熟読中', '枝豆むき中', 'テレビの野球を見てる']], ['🍹😊', ['店員さんと話し中', 'デザート選び中', '写真を撮影中']]),
+      A: ['🍺', 'ビール'], B: ['🥤', 'コーラ'], sneak: '🥤 コーラにすり替える', act: '🍻 飲む！', big: 'かんぱーい！', pen: '酔い',
+      call: [['ジン', '07の活躍に、かんぱーい！'], ['ジン', 'オーディン撃破記念に、かんぱーい！'], ['ジン', 'ミナの左腕に、かんぱーい！'], ['ジン', 'ハルの名前に、かんぱーい！'], ['ジン', '第3機甲小隊に、かんぱーーい！！']],
+      ok: [['ジン', 'いい飲みっぷりだ！'], ['ミナ', '07、強いんだね！'], ['レン', '顔色ひとつ変えねえな……化け物か？']], bad: '（ゴクッ……世界が回る……！）', reset: ['ジン', 'おかわりだ！ ほら、注いでやるよ！'],
+      caught: ['07……そのグラス、なんか黒くね？', '今なにか入れ替えなかったか？', 'ビール、泡がシュワシュワしすぎじゃない？'], excuse: ['……黒ビールです（震え声）', '……新作のビールです', '……光の加減です'],
+      lose1: 'ビール3杯でテーブルに突っ伏した。<br>ジン「えっ、07、酒弱かったのか!? ……ごめん！」', lose2: 'ジン「お前……ずっとコーラ飲んでたのか！」<br>ミナ「07、かわいい〜！」', win: 'ジン「07、お前……酒豪だったんだな！ 飲み会は毎週だ！」<br>07（心の声）「……地獄が始まった」' },
+    { t: '会議中に早弁しろ', place: '作戦会議室', intro: [['ハワード大佐', 'これより3時間の作戦会議を始める。'], ['07（心の声）', '（朝ごはんを食べ忘れた……腹が鳴ったら終わりだ……！）']],
+      ppl: [{ n: 'ハワード大佐', f: '🎖️😐', away: ['地図に書き込み中', 'スライドを操作中', '咳払い中'] }, { n: 'レン', f: '📋😑', away: ['メモ中', 'あくびをこらえ中'] }, { n: 'ジン', f: '😴', away: ['居眠り中', 'よだれを垂らし中'] }],
+      A: ['😫', '腹ペコ'], B: ['🍙', '満腹'], sneak: '🍙 おにぎりを一口', act: '🙋 答える！', big: '07、どう思う？', pen: '腹の音',
+      call: [['ハワード大佐', '07、この作戦をどう思う？'], ['ハワード大佐', '07、敵の数は覚えているか？'], ['ハワード大佐', '07、意見はあるか？'], ['ハワード大佐', '07、聞いているか？'], ['ハワード大佐', '最後に07、締めの一言を。']],
+      ok: [['ハワード大佐', 'うむ、いい答えだ。'], ['レン', '（07、珍しく冴えてるな）']], bad: '（グゥゥゥ〜〜〜〜……）', reset: ['07（心の声）', '（また腹が減ってきた……）'],
+      caught: ['07、口が動いているぞ。', '……米粒がついてるぞ。', '何か食べてないか？'], excuse: ['……ガムです', '……発声練習です', '……米粒ではなく、デコレーションです'],
+      lose1: '会議室に、壮大な腹の音が響き渡った。<br>大佐「……07、会議の後で食堂に行け」', lose2: '大佐「07……早弁は軍規違反だ。腕立て100回」', win: '大佐「今日の07は素晴らしかった」<br>07（心の声）「（おにぎりのおかげです）」' },
+    { t: 'ミナの手料理を処理しろ', place: 'ミナの部屋', intro: [['ミナ', 'みんなのために、初めて料理を作ってみたの！'], ['07（心の声）', '（紫色のシチュー……泡が出てる……）']],
+      ppl: P3(['😰', ['窓の外を見てる', '水を飲みまくり中']], ['😶', ['皿をじっと見てる', '祈ってる']], ['🍲😊', ['おかわりを作り中', 'エプロンを直し中', 'レシピを確認中']]),
+      A: ['🟣', '謎のシチュー'], B: ['🍽️', '空の皿'], sneak: '🪴 植木鉢に捨てる', act: '😋 おいしい！', big: 'どう？ おいしい？', pen: '気絶',
+      call: [['ミナ', 'どう？ おいしい？'], ['ミナ', '隠し味、わかる？'], ['ミナ', 'おかわりもあるよ！'], ['ミナ', 'ちゃんと食べてる？'], ['ミナ', '最後のひと口、どうぞ！']],
+      ok: [['ミナ', 'よかったー！'], ['ジン', '（07……お前は勇者だ）']], bad: '（ぐはっ……意識が……遠のく……）', reset: ['ミナ', 'はい、おかわり！'],
+      caught: ['07……今、植木鉢に何か入れなかった？', '植木が紫色になってるんだけど……'], excuse: ['……肥料です', '……植木にもおすそわけです'],
+      lose1: '07はスプーンを握ったまま気絶した。<br>ミナ「えっ!? 感動で!?」', lose2: 'ミナ「……植木、枯れてる」<br>ミナ「07のバカ〜！」', win: 'ミナ「全部食べてくれたね！ また作るね！」<br>07（心の声）「（また……？）」' },
+    { t: 'カラオケで音痴を隠せ', place: 'カラオケ「ギア」', intro: [['ジン', 'よっしゃ、次は07の番だ！'], ['07（心の声）', '（歌は……壊滅的に下手だ……口パクで乗り切る……！）']],
+      ppl: P3(['🎤😆', ['選曲中', 'タンバリン連打中']], ['🥤😏', ['ドリンク注文中', 'スマホ操作中']], ['🎶😊', ['手拍子中', '歌詞を見てる']]),
+      A: ['😬', '生歌'], B: ['📻', '口パク準備OK'], sneak: '📻 録音を仕込む', act: '🎤 歌う！', big: 'サビだー！', pen: '音痴',
+      call: [['ジン', 'イントロ来たぞ！'], ['ミナ', 'サビだよ、07！'], ['レン', '2番もいけ！'], ['ジン', '転調だー！'], ['ミナ', 'ラストのロングトーン！']],
+      ok: [['ミナ', 'うまっ！'], ['ジン', 'プロかよ！']], bad: '（ボエ〜〜〜♪）', reset: ['ジン', '次の曲も07な！'],
+      caught: ['07、口とマイクがズレてるぞ', 'ポケットから音が出てない？'], excuse: ['……エコーです', '……最新の歌唱法です'],
+      lose1: '07の歌声で、店のグラスが割れた。<br>ジン「……お、おう」', lose2: 'レン「口パクじゃねえか！」<br>ミナ「録音の声、ハルじゃない？」', win: 'ジン「07、歌手になれるぞ！」<br>ハル「録音は私が歌いました」' },
+    { t: '筋トレをサボれ', place: '基地のジム', intro: [['レン', '今日は筋トレの日だ。俺が教官をやる。'], ['07（心の声）', '（重りを発泡スチロールにすり替えれば……）']],
+      ppl: [{ n: 'レン', f: '💪😤', away: ['自分の筋肉を見てる', 'プロテイン作り中'] }, { n: 'ジン', f: '🏋️😵', away: ['ダンベルに潰され中', '倒れてる'] }, { n: 'ミナ', f: '📏😊', away: ['記録をつけ中', '水を配り中'] }],
+      A: ['🏋️', '本物の重り'], B: ['⬜', '発泡スチロール'], sneak: '⬜ すり替える', act: '💪 上げる！', big: '上げろ！', pen: '筋肉痛',
+      call: [['レン', '上げろ！'], ['レン', 'もう一回！'], ['レン', '腕が震えてるぞ！ 上げろ！'], ['レン', 'ラスト2回！'], ['レン', 'ラスト！']],
+      ok: [['レン', 'いいぞ07！'], ['ミナ', 'すごい、軽々！']], bad: '（ぐおおおお……腕がちぎれる……！）', reset: ['レン', '重り、追加だ！'],
+      caught: ['07、その重り……軽そうじゃないか？', '重りが風で揺れてるぞ'], excuse: ['……鍛えすぎました', '……気のせいです'],
+      lose1: '07は重りの下敷きになった。<br>レン「……今日は休め」', lose2: 'レン「発泡スチロールじゃねえか！ 腕立て200回！」', win: 'レン「07、今日から筋トレ隊長だ」<br>07（心の声）「（明日も……？）」' },
+    { t: 'ピーマンを残すな', place: '基地の食堂', intro: [['食堂のおばちゃん', '残したら承知しないよ！'], ['07（心の声）', '（ピーマンだけは……無理だ……！）']],
+      ppl: [{ n: '食堂のおばちゃん', f: '👵😠', away: ['鍋をかき混ぜ中', '皿洗い中'] }, { n: 'ジン', f: '🍛😋', away: ['カレーに夢中'] }, { n: 'レン', f: '🍱😐', away: ['新聞を読み中', '黙々と食事中'] }],
+      A: ['🫑', 'ピーマン'], B: ['🍽️', 'きれいな皿'], sneak: '🫑 ジンの皿に移す', act: '😋 完食アピール', big: '残してないだろうね！', pen: '苦味',
+      call: [['食堂のおばちゃん', '残してないだろうね！'], ['食堂のおばちゃん', '見せてみな！'], ['食堂のおばちゃん', 'ピーマンは体にいいんだよ！'], ['食堂のおばちゃん', 'おかわりいるかい？'], ['食堂のおばちゃん', '最後のチェックだよ！']],
+      ok: [['食堂のおばちゃん', 'えらいねえ！'], ['ジン', '（なんか俺の皿、ピーマン多くね？）']], bad: '（にがっ……！ 涙が……！）', reset: ['食堂のおばちゃん', 'ほら、ピーマン追加だよ！'],
+      caught: ['あんた、今ピーマン移したね？', '07、俺の皿に何入れた？'], excuse: ['……おすそわけです', '……ジンが好きだと言っていたので'],
+      lose1: '07はピーマンの苦さで泣いた。<br>おばちゃん「泣くほどおいしいかい？」', lose2: 'おばちゃん「明日からピーマン定食だよ！」', win: 'おばちゃん「よく食べたね！」<br>ジン「俺、ピーマン30個食った気がする……」' },
+    { t: 'お化け屋敷で平気なフリ', place: '遊園地のお化け屋敷', intro: [['ジン', '07、まさか怖いのか？'], ['07（心の声）', '（怖い……でも、エースが悲鳴を上げるわけには……！）']],
+      ppl: P3(['😏', ['懐中電灯を振り回し中', '先に進んでる']], ['😑', ['出口を探し中', '地図を見てる']], ['😨', ['ジンの腕にしがみつき中', '目を閉じてる']]),
+      A: ['😱', '素の状態'], B: ['🎧', '耳栓＋目隠し'], sneak: '🎧 こっそり耳栓', act: '😎 平気な顔', big: 'ばあっ！！', pen: '悲鳴',
+      call: [['お化け', 'ばあっ！！'], ['お化け', 'うらめしや〜'], ['お化け', 'ギャアアア！'], ['お化け', '足元にもいるよ〜'], ['お化け', '最後の……お出迎えだ……！']],
+      ok: [['ジン', '07、全然動じねえ……'], ['ミナ', '07、かっこいい……']], bad: '「ぴぎゃあああああ！！」', reset: ['07（心の声）', '（耳栓が落ちた……！）'],
+      caught: ['07、耳に何か入ってない？', '目隠ししてるじゃねえか！'], excuse: ['……集中力を高めています', '……瞑想中です'],
+      lose1: '07の悲鳴で、お化け役の人が逃げた。<br>ジン「お化けより怖え」', lose2: 'ジン「耳栓とか反則だろ！」<br>ミナ「07、怖かったんだね〜」', win: 'ミナ「07がいたから怖くなかった！」<br>07（心の声）「（足が震えて動けない）」' },
+    { t: '大佐の長話で寝るな', place: '表彰式', intro: [['ハワード大佐', 'これより、私の話を2時間ほど……'], ['07（心の声）', '（昨日は夜勤……眠い……）']],
+      ppl: [{ n: 'ハワード大佐', f: '🎖️🗣️', away: ['原稿をめくり中', '遠い目をしてる', '思い出に浸り中'] }, { n: 'レン', f: '😪', away: ['目を開けたまま寝てる'] }, { n: 'ミナ', f: '😊', away: ['拍手の準備中', '時計を見てる'] }],
+      A: ['😪', '眠い'], B: ['☕', '覚醒'], sneak: '☕ こっそりコーヒー', act: '🫡 はい！', big: '07、聞いているか？', pen: '居眠り',
+      call: [['ハワード大佐', '07、聞いているか？'], ['ハワード大佐', '07、今の話を復唱しろ'], ['ハワード大佐', '07、拍手！'], ['ハワード大佐', '07、起立！'], ['ハワード大佐', '07、敬礼！']],
+      ok: [['ハワード大佐', 'うむ。'], ['レン', '（07、すげえ集中力だな）']], bad: '「……すぴー……」', reset: ['ハワード大佐', '……さて、話は30年前にさかのぼる'],
+      caught: ['07、コーヒーの匂いがするぞ', '式典中に飲み物か？'], excuse: ['……香水です', '……目薬です'],
+      lose1: '07は立ったまま熟睡した。<br>大佐「……話が長かったか」', lose2: '大佐「式典中にコーヒーとは……減給だ」', win: '大佐「07だけが最後まで聞いてくれた」<br>大佐「……もう2時間話そう」' },
+    { t: '写真で目をつぶるな', place: '部隊の記念撮影', intro: [['カメラマン', 'はーい、撮りまーす！'], ['07（心の声）', '（なぜか毎回、目をつぶってしまう……）']],
+      ppl: [{ n: 'カメラマン', f: '📷😄', away: ['レンズを拭き中', '設定をいじり中'] }, { n: 'ジン', f: '✌️😆', away: ['変顔の練習中', 'ポーズを考え中'] }, { n: 'ミナ', f: '😊', away: ['前髪を直し中'] }],
+      A: ['😑', 'ドライアイ'], B: ['👁️', 'うるうる目'], sneak: '💧 目薬をさす', act: '😎 キメ顔', big: 'はい、チーズ！', pen: 'まばたき',
+      call: [['カメラマン', 'はい、チーズ！'], ['カメラマン', 'もう一枚！'], ['カメラマン', '今度は変顔で！'], ['カメラマン', '全員ジャンプ！'], ['カメラマン', 'ラスト一枚！']],
+      ok: [['カメラマン', 'いい顔！'], ['ジン', '07がイケメンに写ってる！']], bad: '（パチッ……目を閉じた……）', reset: ['カメラマン', 'もう一回いきまーす'],
+      caught: ['07さん、今なにか目に入れました？', '泣いてるの？'], excuse: ['……感動の涙です', '……花粉です'],
+      lose1: '全部の写真で07だけ目をつぶっていた。<br>ジン「寝てる顔がアルバムの表紙だな」', lose2: 'ミナ「07、泣いてる写真しかない……」', win: '最高の集合写真が撮れた。<br>ハル「ポスターにします」' },
+    { t: '秘密の漫画を隠せ', place: '格納庫', intro: [['ジン', '07、頼む！ 俺の漫画を預かってくれ！ 大佐が来る！'], ['07（心の声）', '（なぜ俺が……）']],
+      ppl: [{ n: 'ハワード大佐', f: '🎖️🧐', away: ['機体を点検中', 'クリップボード確認中'] }, { n: 'ジン', f: '😅', away: ['口笛を吹いてる', '天井を見てる'] }, { n: 'ミナ', f: '🔧😊', away: ['整備中', 'ネジを数え中'] }],
+      A: ['📕', '漫画'], B: ['📘', '整備マニュアル'], sneak: '📘 カバーをすり替え', act: '📖 見せる', big: '何を読んでいる？', pen: '没収',
+      call: [['ハワード大佐', '07、何を読んでいる？'], ['ハワード大佐', 'ページをめくって見せろ'], ['ハワード大佐', '面白いか、それ'], ['ハワード大佐', '中身を音読しろ'], ['ハワード大佐', '最後に表紙を見せろ']],
+      ok: [['ハワード大佐', '勉強熱心だな'], ['ジン', '（07、神……）']], bad: '（大佐の目が漫画に……！）', reset: ['ジン', '（あ、2巻もあるんだ）'],
+      caught: ['07、そのマニュアル、絵が多くないか？', '今カバーを替えたな？'], excuse: ['……図解が多い版です', '……最新版です'],
+      lose1: '漫画は没収された。<br>大佐「……続きが気になるな」', lose2: '大佐「ジン、07、二人とも格納庫掃除だ」', win: '大佐が去った。<br>ジン「07、お前は命の恩人だ！」' },
+    { t: '激辛カレーを甘口に', place: 'カレー屋「地獄」', intro: [['ジン', '激辛カレー10辛、食えたらタダだぞ！'], ['07（心の声）', '（辛いのは……無理だ……！）']],
+      ppl: P3(['🍛🥵', ['汗だく中', '水を探し中']], ['🍛😐', ['無表情で食べてる']], ['🥛😊', ['ラッシーを飲み中', '店長と話し中']]),
+      A: ['🌶️', '10辛カレー'], B: ['🍛', '甘口カレー'], sneak: '🍯 甘口にすり替え', act: '🥄 食べる！', big: 'せーので食え！', pen: '辛さ',
+      call: [['ジン', 'せーの！'], ['店長', '辛さ追加サービスです'], ['ジン', 'まだまだー！'], ['店長', 'あと半分！'], ['ジン', 'ラストスパート！']],
+      ok: [['店長', 'お、お客さん、すごい……'], ['ジン', '07、汗ひとつかいてねえ……']], bad: '（口から火が……！）', reset: ['店長', 'ルー、追加しまーす'],
+      caught: ['07のカレー、色が薄くない？', 'お客さん、それ甘口では？'], excuse: ['……辛さが一周しました', '……照明のせいです'],
+      lose1: '07の口から炎が出た。<br>ジン「ドラゴンかよ」', lose2: '店長「甘口ならお代は倍です」', win: '店長「伝説の客として壁に写真を飾ります」' },
+    { t: '誕生日サプライズを守れ', place: 'ミナの誕生日前日', intro: [['ジン', '明日はミナの誕生日だ。サプライズのプレゼント、07が隠しとけ'], ['07（心の声）', '（ミナは勘が鋭い……）']],
+      ppl: [{ n: 'ミナ', f: '🤔', away: ['工具を探し中', '鼻歌を歌い中', 'カレンダーを見てる'] }, { n: 'ジン', f: '🎁😅', away: ['ケーキを隠し中'] }, { n: 'レン', f: '🎈😐', away: ['風船をふくらまし中'] }],
+      A: ['🎁', 'むき出しのプレゼント'], B: ['📦', '工具箱に偽装'], sneak: '📦 工具箱に隠す', act: '🙄 とぼける', big: '何隠してるの？', pen: 'ネタバレ',
+      call: [['ミナ', '何隠してるの？'], ['ミナ', 'その箱、なに？'], ['ミナ', '明日って何の日だっけ〜？'], ['ミナ', 'なんかリボン落ちてるよ？'], ['ミナ', 'ねえ、何か企んでない？']],
+      ok: [['ミナ', 'ふーん……まあいいけど'], ['ジン', '（ナイス07！）']], bad: '（プレゼントが丸見えだ……！）', reset: ['ジン', '（07、プレゼント追加で買ってきた）'],
+      caught: ['07、今その箱に何入れた？', 'リボン……見えてるよ？'], excuse: ['……工具です', '……リボン型のネジです'],
+      lose1: 'ミナ「わあ、プレゼント！ ……あ、ごめん、見ちゃった」', lose2: 'ミナ「サプライズ、バレバレだよ〜（でも嬉しい）」', win: '翌日、ミナは泣いて喜んだ。<br>ミナ「全然気づかなかった！」' },
   ];
-  const CAUGHT = [['jin', '07……そのグラス、なんか黒くね？'], ['ren', 'おい07、今なにか入れ替えなかったか？'], ['mina', 'あれ？ 07のビール、泡がシュワシュワしすぎじゃない？'], ['jin', 'お前、まさか……コーラ飲んでねえよな？']];
-  const EXCUSE = ['……これは、黒ビールです（震え声）', '……気のせいです', '……新作のビールです', '……光の加減です'];
-  const DRUNK = [['ai', 'パイロット、心拍数が上昇しています。顔が真っ赤です。'], ['ai', '警告。パイロットの姿勢制御に異常。……ジンさんが二人に見えていませんか？']];
-  const TOAST_IN = [['jin', 'よーし！ 07の活躍に、かんぱーい！'], ['jin', 'オーディンをぶっ倒した記念に、かんぱーい！'], ['jin', 'ミナの左腕に、かんぱーい！'], ['jin', 'ハルの名前に、かんぱーい！'], ['jin', '最後に！ 第3機甲小隊に、かんぱーーい！！']];
-  const H = (t) => el.querySelector(t);
-  function say(who, text) { const nm = { jin: 'ジン', ren: 'レン', mina: 'ミナ', ai: 'ハル（スマホ）', me: '07（心の声）', narr: '' }[who] || ''; H('.bub').innerHTML = (nm ? `<small>${nm}</small>` : '') + text; if (who !== 'me' && who !== 'narr') try { VO.say(who === 'ai' ? 'ai' : who, text); } catch (e) {} }
-  function hal(t) { H('.hal').textContent = '📱ハル：' + t; }
-  function render() {
-    el.innerHTML = `<button class="skipb">スキップ</button><div class="bt">🏮 居酒屋「機甲亭」 ── 極秘作戦：バレずにコーラを飲め 🏮</div>
-      <div class="stat"><span>乾杯 <b class="tc"></b></span><span>酔い <span class="meter"><i class="dm"></i></span></span><span>疑い <span class="meter"><i class="sm"></i></span></span></div>
-      <div class="row">${PPL.map((p, i) => `<div class="pp" data-i="${i}"><div class="f">${p.f}</div><div class="n">${p.n}</div><div class="d"></div></div>`).join('')}</div>
-      <div class="bub"></div>
-      <div class="me"><div><div class="glass">🍺</div><div class="gl">あなたのグラス</div></div><div class="hal">📱ハル：……</div></div>
-      <div class="btns"><button class="swap">🥤 コーラにすり替える</button><button class="drink">🍻 飲む！</button></div>
-      <div class="toast">かんぱーい！</div>`;
-    H('.swap').addEventListener('click', swap); H('.drink').addEventListener('click', drink);
-    H('.skipb').addEventListener('click', () => finish(true, true));
+
+  /* ---------- engine B: eating race (mash to eat, mash too hard and you throw up) ---------- */
+  const MASH = [
+    { t: 'バック食い寿司早食い競争', food: 'sushi', n: 20, time: 45, riv: [['ジン（酔）', 'jin', .62, 'drunk'], ['レン', 'ren', .5]], intro: [['narr', '停戦から半年。平和すぎる日々に、ジンは刺激に飢えていた。'], ['ジン', 'うぃ〜……酒も飲んだ、カラオケも行った……刺激が足りねえ！'], ['ジン', 'よし！ 寿司の爆食い競争だ！ 20皿先に食った奴の勝ち！'], ['ハル', '連打で食べます。ただし連打しすぎると吐き気が上がります。……吐いたら負けです。']], win: 'ジン「う、嘘だろ……07、お前の胃袋どうなってんだ……」<br>店主「……今日は店じまいです」', lose: 'ジン「うぃ〜、俺の勝ちだ〜！」<br>レン「お前、酔ってるのに強すぎだろ」', puke: '07は寿司を……カウンターに……。<br>店主「……出禁です」' },
+    { t: '激辛ラーメン完食バトル', food: 'ramen', n: 8, time: 50, nk: 1.25, riv: [['ジン', 'jin', .17], ['ミナ', 'mina', .14]], intro: [['ジン', '激辛ラーメン8杯、先に食った奴が勝ち！'], ['ミナ', '私、辛いの得意なのよね。']], win: 'ジン「水……水をくれ……」', lose: 'ミナ「ごちそうさま♪」<br>ジン「ミナ、怪物かよ……」', puke: '07の顔が真っ赤になって倒れた。' },
+    { t: '餃子100個チャレンジ', food: 'gyoza', n: 30, time: 45, riv: [['ジン', 'jin', .7], ['レン', 'ren', .6]], intro: [['ジン', '餃子だ！ 30皿！ 酢醤油は飲み物！'], ['レン', 'ニンニク臭くなるぞ……']], win: '基地中がニンニク臭くなった。<br>大佐「……お前たち、3日間出撃禁止だ」', lose: 'ジン「餃子は俺の魂だ！」', puke: '07「……もう、皮しか見えない……」' },
+    { t: 'わんこそば地獄', food: 'soba', n: 40, time: 40, riv: [['ジン', 'jin', 1.0], ['店員さん（無限）', 'narr', 0, 'serve']], intro: [['店員さん', 'はい、じゃんじゃん！'], ['ジン', 'わんこそば40杯勝負だ！']], win: '店員さん「お、お客さん……伝説です……」', lose: 'ジン「わんこそばは、気合いだ！」', puke: '07「じゃんじゃんは……もう……やめて……」' },
+    { t: 'たこ焼きロシアンルーレット', food: 'takoyaki', n: 24, time: 40, spicy: true, riv: [['ジン', 'jin', .6], ['ミナ', 'mina', .55]], intro: [['ミナ', 'この中に、激辛たこ焼きがいくつか入ってまーす！'], ['ジン', '当たっても止まるなよ！']], win: 'ジン「全部激辛だった気がする……」', lose: 'ミナ「当たり引かなかった〜♪」', puke: '07「ハズレしか……引いてない……」' },
+    { t: 'カツカレー大盛り対決', food: 'curry', n: 6, time: 45, nk: 1.15, riv: [['ジン', 'jin', .13], ['レン', 'ren', .12]], intro: [['ジン', 'カツカレー特盛6皿！'], ['レン', '……昼飯抜いてきた。']], win: 'レン「……カレーはしばらく見たくない」', lose: 'ジン「カツは裏切らねえ！」', puke: '07「……カツが……逆流してくる……」' },
+    { t: 'ハンバーガータワー', food: 'burger', n: 10, time: 45, nk: 1.1, riv: [['ジン', 'jin', .22], ['ミナ', 'mina', .18]], intro: [['ジン', 'バーガー10個タワー崩しだ！'], ['ミナ', 'ポテトは別腹ね。']], win: '店の壁に07の写真が飾られた。', lose: 'ジン「肉は正義！」', puke: '07「……ピクルスが……」' },
+    { t: 'ピザ早食いトーナメント', food: 'pizza', n: 16, time: 45, riv: [['ジン', 'jin', .4], ['ECHO（食べられない）', 'narr', 0, 'echo']], intro: [['ECHO', 'ワタシモ、参加スル。'], ['ジン', 'お前、口ないだろ！']], win: 'ECHO「タベル、トハ、ナニ？」', lose: 'ジン「チーズは伸びるほど強い！」', puke: '07「チーズが……のどに……」' },
+    { t: 'おにぎり100個握り食い', food: 'onigiri', n: 25, time: 45, riv: [['ミナ', 'mina', .6], ['ジン', 'jin', .55]], intro: [['ミナ', '今日は私がおにぎりを握ったの！'], ['ジン', '……具はなんだ？'], ['ミナ', 'ひ・み・つ♪']], win: 'ミナ「全部食べてくれた〜！」', lose: 'ミナ「私の勝ち〜！」', puke: '07「梅干し……10個連続……」' },
+    { t: 'ドーナツ無限回廊', food: 'donut', n: 20, time: 40, riv: [['ミナ', 'mina', .55], ['ハル（応援）', 'narr', 0]], intro: [['ミナ', '甘いものなら負けないわよ！'], ['ハル', 'カロリー計算は、しないでおきます。']], win: 'ミナ「07、甘いもの好きだったの!?」', lose: 'ミナ「スイーツは別腹〜♪」', puke: '07「……砂糖の……海……」' },
+    { t: 'ケーキバイキング決戦', food: 'cake', n: 15, time: 45, riv: [['ミナ', 'mina', .45], ['アリア大尉', 'narr', .4]], intro: [['アリア', '……甘いものは、少しだけ好きだ。'], ['ミナ', 'アリアさん、目が本気！']], win: 'アリア「……07、次は負けない」', lose: 'アリア「……ふふ」<br>ミナ「アリアさんが笑った！」', puke: '07「……生クリームが……」' },
+    { t: 'ホットドッグ選手権', food: 'hotdog', n: 15, time: 40, riv: [['ジン', 'jin', .45], ['レン', 'ren', .42]], intro: [['ジン', 'ホットドッグ世界大会、基地予選だ！'], ['レン', 'なんで俺まで……']], win: '07、基地代表に選ばれた。', lose: 'ジン「世界大会、行ってくるぜ！」', puke: '07「ケチャップの……悪夢……」' },
+    { t: 'みたらし団子リレー', food: 'dango', n: 20, time: 40, riv: [['ミナ', 'mina', .55], ['ジン', 'jin', .5]], intro: [['ミナ', 'お花見だよ！ 団子食べよ！'], ['ジン', '花より団子だ！ 20本勝負！']], win: 'ミナ「桜、全然見てない……」', lose: 'ジン「花より団子！」', puke: '07「……タレで……溺れる……」' },
+    { t: '回転寿司・二回戦', food: 'sushi', n: 30, time: 45, riv: [['ジン（さらに酔）', 'jin', .85, 'drunk'], ['ミナ', 'mina', .6]], intro: [['ジン', 'リベンジだ07！ 今度は30皿！ うぃ〜っく！'], ['ミナ', 'ジン、ろれつ回ってないよ……']], win: 'ジン「……07、お前は寿司の神だ……ぐう」', lose: 'ジン「リベンジ成功〜！ うぃ〜！」', puke: '07は再び……カウンターに……。<br>店主「二度目の出禁です」' },
+    { t: '焼き鳥100本ノック', food: 'yakitori', n: 25, time: 40, riv: [['ジン', 'jin', .6], ['ハワード大佐', 'cmd', .55]], intro: [['ハワード大佐', '……私も若い頃は、焼き鳥の鬼と呼ばれていた。'], ['ジン', '大佐が参戦!?']], win: '大佐「……07、お前に鬼の称号を譲ろう」', lose: '大佐「……まだまだだな」', puke: '07「……タレか塩か……もう……どっちでも……」' },
+    { t: 'プリン100個', food: 'pudding', n: 25, time: 35, riv: [['ミナ', 'mina', .7], ['ジン', 'jin', .55]], intro: [['ミナ', 'プリン、ぷるぷるで好き〜！'], ['ジン', '飲み物だろ、プリンは！']], win: 'ミナ「07……プリン好きなら言ってよ〜」', lose: 'ジン「プリンは飲み物！」', puke: '07「ぷるぷるが……止まらない……」' },
+    { t: '激盛り丼ぶり祭り', food: 'don', n: 6, time: 45, nk: 1.2, riv: [['ジン', 'jin', .13], ['レン', 'ren', .13]], intro: [['ジン', 'メガ盛り丼6杯！'], ['レン', '……これ、3人前じゃねえか？']], win: 'レン「……07、お前は胃袋もエースだな」', lose: 'ジン「米は力だ！」', puke: '07「……米粒が……宇宙に見える……」' },
+    { t: '最終決戦・全部盛り', food: 'mix', n: 30, time: 50, riv: [['ジン（泥酔）', 'jin', .7, 'drunk'], ['ミナ', 'mina', .6]], intro: [['ジン', 'これが最後の戦いだ！ 寿司も餃子もケーキも全部盛りだ！'], ['ミナ', '組み合わせ最悪じゃない!?'], ['ハル', '……パイロット、ご武運を。']], win: 'ジン「……07、お前が……真のチャンピオンだ……」<br>ハル「胃袋、エースです」', lose: 'ジン「俺がチャンピオンだ〜！」', puke: '07「……寿司とケーキが……胃の中で……戦争を……」' },
+  ];
+  const STAGES = [...STEALTH.map((c, i) => ({ k: 'S' + i, kind: 'stealth', c })), ...MASH.map((c, i) => ({ k: 'M' + i, kind: 'mash', c }))];
+  const ORDER = []; { const s = STAGES.filter(x => x.kind === 'stealth'), m = STAGES.filter(x => x.kind === 'mash'); ORDER.push(s[0], m[0]); for (let i = 1; i < 18; i++) { if (m[i]) ORDER.push(m[i]); if (s[i]) ORDER.push(s[i]); } }
+
+  /* ---------- menu ---------- */
+  function menu() {
+    stop(); el.hidden = false; el.className = '';
+    el.innerHTML = `<div class="bt">😂 爆笑ステージ 😂 <small style="color:#c8a070">（ストーリーとは別のお話）</small></div><div class="fl">${ORDER.map((s, i) => `<button class="fb" data-i="${i}"><b>${i + 1}</b><span>${s.c.t}</span><small>${s.kind === 'mash' ? '🍣 連打で早食い' : '🤫 バレずに作戦'}${done[s.k] ? '　★クリア' : ''}</small></button>`).join('')}</div><button class="btn fback">タイトルにもどる</button>`;
+    el.querySelectorAll('.fb').forEach(b => b.addEventListener('click', () => { try { SFX.click(); } catch (e) {} play(+b.dataset.i); }));
+    H('.fback').addEventListener('click', () => { stop(); el.hidden = true; $('#title').hidden = false; });
   }
-  function start(i) {
-    idx = i; el.hidden = false; render(); try { BGM.play('title'); } catch (e) {}
-    st = { t: 0, glass: 'beer', drunk: 0, sus: 0, toasts: 0, need: 5, phase: 'talk', nextToast: 7, window: 0, ppl: PPL.map(() => ({ look: false, warn: 0, tm: rand(1.5, 3.5) })), lastT: performance.now(), over: false };
-    say('jin', '今日は休みだ！ 07、お前に飯をおごってやる！ 好きなだけ飲め！'); hal('パイロットはお酒が飲めません。……作戦を開始しますか？');
-    setTimeout(() => { if (st && !st.over) { say('me', '（まずい……酒は一滴も飲めない。でもジンの好意は無駄にできない……！）'); hal('みんなが見ていない隙に、コーラにすり替えてください。'); } }, 3200);
+  function stop() { cancelAnimationFrame(raf); cur = null; if (R3) { R3.alive = false; } }
+  function play(i) { const s = ORDER[i]; stop(); cur = { i, s }; try { BGM.play('title'); } catch (e) {} if (s.kind === 'mash') mash(s.c, i); else stealth(s.c, i); }
+  function endBox(ok, title, text, i, key) {
+    if (ok && key) { done[key] = 1; saveDone(); }
+    const box = document.createElement('div'); box.className = 'end';
+    box.innerHTML = `<h2>${title}</h2><p>${text}</p><div class="btns"><button class="btn e1">${ok ? 'もう一回' : 'リトライ'}</button>${ok && i + 1 < ORDER.length ? '<button class="btn e2">次のステージ ▶</button>' : ''}<button class="btn e3">ステージ選択</button></div>`;
+    el.appendChild(box);
+    box.querySelector('.e1').addEventListener('click', () => play(i));
+    const e2 = box.querySelector('.e2'); if (e2) e2.addEventListener('click', () => play(i + 1));
+    box.querySelector('.e3').addEventListener('click', menu);
+  }
+  function introSeq(lines, cb) { let k = 0; const nx = () => { if (!cur) return; if (k >= lines.length) return cb(); const [w, t] = lines[k++]; say(w === 'narr' ? '' : w, t); setTimeout(nx, 2300); }; nx(); }
+
+  /* ---------- engine A ---------- */
+  function stealth(c, idx) {
+    el.innerHTML = `<button class="skipb">✕</button><div class="bt">🏮 ${c.place} ── 極秘作戦：${c.t} 🏮</div>
+      <div class="stat"><span>${c.big.length > 8 ? '合図' : c.big} <b class="tc"></b></span><span>${c.pen} <span class="meter"><i class="dm"></i></span></span><span>疑い <span class="meter"><i class="sm"></i></span></span></div>
+      <div class="row">${c.ppl.map((p, i) => `<div class="pp" data-i="${i}"><div class="f">${p.f}</div><div class="n">${p.n}</div><div class="d"></div></div>`).join('')}</div>
+      <div class="bub"></div><div class="me"><div><div class="glass"></div><div class="gl"></div></div><div class="hal">📱ハル：……</div></div>
+      <div class="btns"><button class="swap">${c.sneak}</button><button class="drink">${c.act}</button></div><div class="toast">${c.big}</div>`;
+    H('.skipb').addEventListener('click', menu);
+    const st = { t: 0, a: true, pen: 0, sus: 0, n: 0, need: 5, phase: 'intro', next: 0, win: 0, ppl: c.ppl.map(() => ({ look: false, warn: 0, tm: rand(1.5, 3.5) })), last: performance.now(), over: false };
+    const hal = t => H('.hal').textContent = '📱ハル：' + t;
+    const upd = () => {
+      H('.tc').textContent = `${st.n} / ${st.need}`; H('.dm').style.width = st.pen / 3 * 100 + '%'; H('.sm').style.width = st.sus / 3 * 100 + '%';
+      H('.glass').textContent = st.a ? c.A[0] : c.B[0]; H('.gl').textContent = st.a ? c.A[1] : c.B[1];
+      el.classList.toggle('drunk1', st.pen === 1); el.classList.toggle('drunk2', st.pen >= 2);
+      el.querySelectorAll('.pp').forEach((d, i) => { const p = st.ppl[i]; d.classList.toggle('look', p.look); d.classList.toggle('turn', !p.look && p.warn > 0); d.querySelector('.d').textContent = p.look ? 'こっちを見てる' : (p.txt || ''); });
+      H('.swap').disabled = !st.a || st.over || st.phase === 'intro'; H('.drink').classList.toggle('hot', st.phase === 'call'); H('.drink').disabled = st.over || st.phase === 'intro';
+    };
+    const finish = (ok, why) => { if (st.over) return; st.over = true; cancelAnimationFrame(raf); upd(); setTimeout(() => endBox(ok, ok ? '🎉 作戦成功！ 🎉' : why === 'pen' ? `💫 ${c.pen}で撃沈 💫` : '🚨 バレた 🚨', ok ? c.win : why === 'pen' ? c.lose1 : c.lose2, idx, ORDER[idx].k), 700); };
+    const check = () => { if (st.pen >= 3) finish(false, 'pen'); else if (st.sus >= 3) finish(false, 'sus'); else if (st.n >= st.need) finish(true); };
+    const call = () => { st.phase = 'call'; st.win = 3.2; const l = c.call[Math.min(st.n, c.call.length - 1)]; say(l[0], l[1]); H('.toast').classList.add('on'); setTimeout(() => H('.toast') && H('.toast').classList.remove('on'), 900); st.ppl.forEach(p => { p.look = true; p.warn = 0; p.tm = 1.4; }); try { SFX.clunk(); } catch (e) {} };
+    H('.swap').addEventListener('click', () => {
+      if (!st.a || st.over || st.phase === 'intro') return; const seen = st.ppl.findIndex(p => p.look);
+      H('.glass').classList.add('sw'); setTimeout(() => H('.glass') && H('.glass').classList.remove('sw'), 300);
+      if (seen >= 0) { say(c.ppl[seen].n, pick(c.caught)); setTimeout(() => !st.over && say('07（心の声）', pick(c.excuse)), 1300); st.sus++; try { buzz(80); } catch (e) {} check(); }
+      else { st.a = false; say('07（心の声）', `（……成功。${c.B[1]}になった。誰も気づいていない）`); hal('作戦成功です。'); try { SFX.beep(1400); } catch (e) {} }
+      upd();
+    });
+    H('.drink').addEventListener('click', () => {
+      if (st.over || st.phase === 'intro') return;
+      if (st.phase !== 'call') { say('07（心の声）', '（しまった、合図の前に……！）'); if (st.a) st.pen++; st.a = true; check(); upd(); return; }
+      st.phase = 'talk'; st.n++; st.next = st.t + rand(6.5, 9.5);
+      if (st.a) { st.pen++; say('07（心の声）', c.bad); } else { const l = pick(c.ok); say(l[0], l[1]); }
+      setTimeout(() => { if (!st.over && st.n < st.need) { say(c.reset[0], c.reset[1]); st.a = true; upd(); } }, 2400);
+      check(); upd();
+    });
+    const loop = () => {
+      if (st.over || !cur) return; raf = requestAnimationFrame(loop);
+      const now = performance.now(), dt = Math.min(.1, (now - st.last) / 1000); st.last = now; if (st.phase === 'intro') { upd(); return; } st.t += dt;
+      st.ppl.forEach((p, i) => { p.tm -= dt; if (!p.look && p.warn > 0) { p.warn -= dt; if (p.warn <= 0) { p.look = true; p.tm = rand(1.2, 2.6); } } else if (p.tm <= 0) { if (p.look) { p.look = false; p.txt = pick(c.ppl[i].away); p.tm = rand(1.6, 4) * Math.max(.6, 1 - st.n * .08); } else p.warn = .7; } });
+      if (st.phase === 'talk' && st.t > st.next + (st.a ? 2.5 : 0)) call();
+      if (st.phase === 'call') { st.win -= dt; if (st.win <= 0) { st.phase = 'talk'; st.next = st.t + rand(6, 9); say(c.call[0][0], '……おい、07！ 無視するな！'); st.sus++; check(); } }
+      if (Math.random() < dt * .25 && st.phase === 'talk') hal(st.ppl.every(p => !p.look && p.warn <= 0) ? '今です！ 誰も見ていません！' : '……まだです。見られています。');
+      upd();
+    };
+    upd(); introSeq(c.intro, () => { if (st.over || !cur) return; st.phase = 'talk'; st.next = 6; hal('見ていない隙に「' + c.sneak.replace(/^\S+\s/, '') + '」。合図が来たら「' + c.act.replace(/^\S+\s/, '') + '」！'); st.last = performance.now(); });
     loop();
   }
-  function upd() {
-    const s = st; H('.tc').textContent = `${s.toasts} / ${s.need}`; H('.dm').style.width = (s.drunk / 3 * 100) + '%'; H('.sm').style.width = (s.sus / 3 * 100) + '%';
-    H('.glass').textContent = s.glass === 'beer' ? '🍺' : '🥤'; H('.gl').textContent = s.glass === 'beer' ? 'あなたのグラス（ビール）' : 'あなたのグラス（コーラ）';
-    el.classList.toggle('drunk1', s.drunk === 1); el.classList.toggle('drunk2', s.drunk >= 2);
-    el.querySelectorAll('.pp').forEach((d, i) => { const p = s.ppl[i]; d.classList.toggle('look', p.look); d.classList.toggle('turn', !p.look && p.warn > 0); d.querySelector('.d').textContent = p.look ? 'こっちを見てる' : (p.txt || ''); });
-    H('.swap').disabled = s.glass === 'cola' || s.over; H('.drink').classList.toggle('hot', s.phase === 'toast'); H('.drink').disabled = s.over;
+
+  /* ---------- 3D food ---------- */
+  function food(kind) {
+    const g = new THREE.Group(), M = (c, r = .6, m = 0) => new THREE.MeshStandardMaterial({ color: c, roughness: r, metalness: m }), add = (geo, mat, x = 0, y = 0, z = 0) => { const o = new THREE.Mesh(geo, mat); o.position.set(x, y, z); g.add(o); return o; };
+    const rice = M(0xf6f3ea, .9), nori = M(0x1a2418, .7);
+    const k = kind === 'mix' ? pick(['sushi', 'gyoza', 'cake', 'burger', 'takoyaki', 'onigiri', 'donut']) : kind;
+    if (k === 'sushi') {
+      const t = Math.random(); add(new THREE.BoxGeometry(1.1, .42, .55), rice, 0, .21, 0).geometry.translate(0, 0, 0);
+      if (t < .55) { const f = add(new THREE.BoxGeometry(1.3, .14, .66), M(pick([0xff6a4a, 0xf08a70, 0xff9a40, 0xe8e0d8, 0xd02a2a]), .35), 0, .48, 0); f.rotation.z = .05; for (let i = 0; i < 4; i++) add(new THREE.BoxGeometry(.02, .02, .6), M(0xffffff, .4), -.45 + i * .3, .56, 0); }
+      else if (t < .8) { g.clear(); add(new THREE.CylinderGeometry(.42, .42, .5, 20), nori, 0, .25, 0); add(new THREE.CylinderGeometry(.36, .36, .51, 20), rice, 0, .25, 0); add(new THREE.CylinderGeometry(.13, .13, .52, 10), M(pick([0xff4a3a, 0x40a040, 0xf0c040]), .4), 0, .25, 0); }
+      else { add(new THREE.BoxGeometry(1.1, .5, .6), nori, 0, .25, 0); for (let i = 0; i < 9; i++) add(new THREE.SphereGeometry(.12, 8, 6), M(0xff5a10, .2), (i % 3 - 1) * .3, .55, ((i / 3 | 0) - 1) * .15); }
+    } else if (k === 'ramen' || k === 'soba' || k === 'don') {
+      const big = k === 'ramen' ? 1 : k === 'don' ? 1.05 : .62, bowl = M(k === 'soba' ? 0x8a1a10 : 0xe8e0d0, .4);
+      add(new THREE.CylinderGeometry(.95 * big, .55 * big, .7 * big, 24, 1, true), bowl, 0, .35 * big, 0).material.side = THREE.DoubleSide;
+      add(new THREE.CircleGeometry(.55 * big, 20), bowl, 0, .01, 0).rotation.x = -Math.PI / 2;
+      const top = add(new THREE.CircleGeometry(.9 * big, 24), M(k === 'ramen' ? 0xd02a10 : k === 'don' ? 0xf6f3ea : 0x6a4a2a, .3), 0, .6 * big, 0); top.rotation.x = -Math.PI / 2;
+      if (k === 'ramen') { for (let i = 0; i < 6; i++) { const n = add(new THREE.TorusGeometry(.3 + i * .07, .025, 5, 24), M(0xf0d070, .5), 0, .62, 0); n.rotation.x = Math.PI / 2; } add(new THREE.SphereGeometry(.18, 12, 8), M(0xfff8e8, .4), .35, .68, .2).scale.y = .6; add(new THREE.BoxGeometry(.5, .04, .35), M(0xc08060, .6), -.3, .66, -.1); for (let i = 0; i < 12; i++) add(new THREE.SphereGeometry(.05, 6, 4), M(0xff2000, .4), (Math.random() - .5) * 1.2, .63, (Math.random() - .5) * 1.2); }
+      else if (k === 'don') { add(new THREE.SphereGeometry(.85, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2), rice, 0, .6, 0).scale.y = .7; add(new THREE.BoxGeometry(1.1, .2, .7), M(0xc08030, .7), 0, 1.15, 0).rotation.z = .1; add(new THREE.SphereGeometry(.25, 12, 8), M(0xffc020, .3), .2, 1.3, .1).scale.y = .5; }
+      else { for (let i = 0; i < 5; i++) { const n = add(new THREE.TorusGeometry(.12 + i * .06, .02, 5, 20), M(0x9a8060, .6), 0, .4, 0); n.rotation.x = Math.PI / 2; } }
+    } else if (k === 'gyoza') { for (let i = 0; i < 5; i++) { const o = add(new THREE.CylinderGeometry(.32, .32, .3, 16, 1, false, 0, Math.PI), M(0xf0d8a0, .6), (i - 2) * .32, .18, 0); o.rotation.set(0, 0, Math.PI / 2); o.scale.set(1, 1, .6); add(new THREE.BoxGeometry(.28, .02, .5), M(0xa06020, .5), (i - 2) * .32, .02, 0); } }
+    else if (k === 'takoyaki') { for (let i = 0; i < 6; i++) { add(new THREE.SphereGeometry(.26, 14, 10), M(0xc08040, .6), (i % 3 - 1) * .5, .26, ((i / 3 | 0) - .5) * .5); add(new THREE.SphereGeometry(.2, 10, 6, 0, Math.PI * 2, 0, Math.PI / 3), M(0x4a2010, .2), (i % 3 - 1) * .5, .3, ((i / 3 | 0) - .5) * .5); } add(new THREE.BoxGeometry(1.7, .06, 1.1), M(0xd0b080, .8), 0, .0, 0); }
+    else if (k === 'curry') { add(new THREE.CylinderGeometry(1.1, 1.0, .1, 28), M(0xffffff, .3), 0, .05, 0); add(new THREE.SphereGeometry(.6, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), rice, -.3, .1, 0).scale.y = .7; add(new THREE.CylinderGeometry(.7, .7, .08, 20), M(0x7a3a10, .3), .3, .12, 0).scale.z = .8; add(new THREE.BoxGeometry(.9, .15, .5), M(0xd09030, .8), .3, .25, 0).rotation.y = .3; }
+    else if (k === 'burger') { add(new THREE.SphereGeometry(.6, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2), M(0xd08a30, .6), 0, .62, 0).scale.y = .7; add(new THREE.CylinderGeometry(.6, .6, .12, 20), M(0x40c040, .6), 0, .56, 0); add(new THREE.CylinderGeometry(.6, .6, .1, 20), M(0xffc020, .5), 0, .48, 0); add(new THREE.CylinderGeometry(.62, .62, .2, 20), M(0x5a2a10, .7), 0, .34, 0); add(new THREE.CylinderGeometry(.58, .55, .22, 20), M(0xd08a30, .6), 0, .12, 0); }
+    else if (k === 'pizza') { const s = add(new THREE.CylinderGeometry(1.0, 1.0, .1, 3, 1, false, 0, Math.PI / 3), M(0xffd060, .6), 0, .06, 0); s.rotation.y = -.5; for (let i = 0; i < 4; i++) add(new THREE.CylinderGeometry(.11, .11, .04, 12), M(0xc02a1a, .5), Math.sin(i) * .3 + .2, .13, Math.cos(i * 2) * .2 - .3); }
+    else if (k === 'onigiri') { const o = add(new THREE.CylinderGeometry(.08, .62, .9, 3), rice, 0, .45, 0); o.rotation.y = Math.PI / 6; o.scale.z = .6; add(new THREE.BoxGeometry(.7, .35, .4), nori, 0, .18, 0); }
+    else if (k === 'donut') { const d = add(new THREE.TorusGeometry(.42, .22, 14, 24), M(0xd0904a, .6), 0, .22, 0); d.rotation.x = Math.PI / 2; const ic = add(new THREE.TorusGeometry(.42, .23, 10, 24, Math.PI * 2), M(pick([0xff8ac0, 0x5a2a10, 0xf0f0f0]), .3), 0, .28, 0); ic.rotation.x = Math.PI / 2; ic.scale.z = .5; }
+    else if (k === 'cake') { add(new THREE.CylinderGeometry(.7, .7, .7, 3, 1, false, 0, Math.PI / 2.5), M(0xfff4e0, .6), 0, .35, 0); add(new THREE.SphereGeometry(.15, 12, 8), M(0xe01a2a, .3), .25, .78, .2); }
+    else if (k === 'hotdog') { const b = add(new THREE.CylinderGeometry(.28, .28, 1.4, 14), M(0xd8a050, .6), 0, .2, 0); b.rotation.z = Math.PI / 2; b.scale.z = .8; const s = add(new THREE.CylinderGeometry(.17, .17, 1.6, 12), M(0xb04020, .4), 0, .38, 0); s.rotation.z = Math.PI / 2; for (let i = 0; i < 5; i++) add(new THREE.BoxGeometry(.18, .04, .08), M(0xf0c020, .4), -.6 + i * .3, .56, Math.sin(i) * .05); }
+    else if (k === 'dango' || k === 'yakitori') { const st = add(new THREE.CylinderGeometry(.03, .03, 2.0, 6), M(0xd8c090, .7), 0, .3, 0); st.rotation.z = Math.PI / 2; for (let i = 0; i < (k === 'dango' ? 3 : 4); i++) { const b = add(k === 'dango' ? new THREE.SphereGeometry(.26, 14, 10) : new THREE.BoxGeometry(.32, .3, .3), M(k === 'dango' ? 0xf0e8d0 : 0xa05a20, .4), -.45 + i * (k === 'dango' ? .45 : .32), .3, 0); if (k === 'dango') add(new THREE.SphereGeometry(.27, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2.2), M(0x9a5a20, .15), b.position.x, .32, 0); } }
+    else if (k === 'pudding') { add(new THREE.CylinderGeometry(.35, .5, .6, 20), M(0xffd870, .3), 0, .3, 0); add(new THREE.CylinderGeometry(.33, .36, .1, 20), M(0x6a3010, .2), 0, .63, 0); add(new THREE.CylinderGeometry(.75, .75, .04, 24), M(0xffffff, .3), 0, .0, 0); }
+    else add(new THREE.SphereGeometry(.5, 12, 8), M(0xffaa00), 0, .5, 0);
+    g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+    return g;
   }
-  function loop() {
-    cancelAnimationFrame(raf); if (!st || st.over) return; raf = requestAnimationFrame(loop);
-    const now = performance.now(), dt = Math.min(.1, (now - st.lastT) / 1000); st.lastT = now; window.__bar = st; st.t += dt; const s = st;
-    s.ppl.forEach((p, i) => {
-      p.tm -= dt;
-      if (!p.look && p.warn > 0) { p.warn -= dt; if (p.warn <= 0) { p.look = true; p.tm = rand(1.2, 2.6); } }
-      else if (p.tm <= 0) { if (p.look) { p.look = false; p.txt = PPL[i].away[(Math.random() * PPL[i].away.length) | 0]; p.tm = rand(1.6, 4) * (1 + s.toasts * -.08); } else { p.warn = .7; } }
+  function plate(c) { const m = new THREE.Mesh(new THREE.CylinderGeometry(.9, .75, .08, 24), new THREE.MeshStandardMaterial({ color: c, roughness: .3 })); m.castShadow = true; return m; }
+
+  /* ---------- engine B ---------- */
+  function mash(c, idx) {
+    el.innerHTML = `<button class="skipb">✕</button><div class="bt">🍣 ${c.t} 🍣</div><div class="fcv"><canvas></canvas><div class="vom"></div></div>
+      <div class="race"></div><div class="stat"><span>⏱ <b class="tm"></b></span><span>吐き気 <span class="meter" style="width:120px"><i class="nm"></i></span> <b class="fc">😀</b></span></div>
+      <div class="bub"></div><div class="btns"><button class="eat">🍴 食べる！（連打）</button></div>`;
+    H('.skipb').addEventListener('click', menu);
+    const cv = H('.fcv canvas'), w = Math.max(280, Math.min(560, (window.innerWidth || 400) - 24)), h = Math.round(w * .55); cv.width = w * Math.min(2, devicePixelRatio || 1); cv.height = h * Math.min(2, devicePixelRatio || 1); cv.style.width = w + 'px'; cv.style.height = h + 'px';
+    const ren = new THREE.WebGLRenderer({ canvas: cv, antialias: true }); ren.shadowMap.enabled = true;
+    const sc = new THREE.Scene(); sc.background = new THREE.Color(0x3a2010);
+    sc.add(new THREE.HemisphereLight(0xfff0e0, 0x402010, .9)); const dl = new THREE.DirectionalLight(0xffe8c8, 1.2); dl.position.set(3, 8, 4); dl.castShadow = true; dl.shadow.mapSize.set(1024, 1024); Object.assign(dl.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8 }); sc.add(dl);
+    const pl = new THREE.PointLight(0xffb060, .8, 20); pl.position.set(0, 4, 3); sc.add(pl);
+    const table = new THREE.Mesh(new THREE.BoxGeometry(16, .4, 7), new THREE.MeshStandardMaterial({ color: 0x8a5a2a, roughness: .7 })); table.position.y = -.2; table.receiveShadow = true; sc.add(table);
+    if (c.food === 'sushi') { const belt = new THREE.Mesh(new THREE.BoxGeometry(16, .12, 1.4), new THREE.MeshStandardMaterial({ color: 0x5a5a60, metalness: .6, roughness: .4 })); belt.position.set(0, .06, -2.3); sc.add(belt); }
+    const cam = new THREE.PerspectiveCamera(42, w / h, .1, 100); cam.position.set(0, 5.2, 6.4); cam.lookAt(0, .4, -.4);
+    const me = { n: 0, bite: 0, item: null, stack: [], x: 0, z: 1.2 }, riv = c.riv.map((r, i) => ({ name: r[0], key: r[1], spd: r[2], tag: r[3], n: 0, acc: 0, stack: [], x: i ? 4.6 : -4.6, z: .2, item: null }));
+    const PC = [0xd03030, 0x3060d0, 0xe0b020, 0x30a050, 0xf0f0f0];
+    const newItem = (who) => { if (who.item) sc.remove(who.item); const f = food(c.food); f.position.set(who.x, who.stack.length * .09 + .1, who.z); f.scale.setScalar(who === me ? 1.25 : .85); sc.add(f); who.item = f; if (who === me && c.food === 'sushi') { f.position.x = -7; f.userData.slide = 1; } };
+    const pushPlate = (who) => { const p = plate(PC[who.stack.length % PC.length]); p.scale.setScalar(who === me ? 1.1 : .8); p.position.set(who.x + (who === me ? 2.2 : 0), who.stack.length * .09, who.z + (who === me ? .3 : -1.2)); sc.add(p); who.stack.push(p); };
+    newItem(me); riv.forEach(r => { if (r.spd > 0) newItem(r); });
+    // rival heads: simple 3D faces behind their plates
+    riv.forEach(r => { const hd = new THREE.Group(); const sk = new THREE.Mesh(new THREE.SphereGeometry(.8, 18, 14), new THREE.MeshStandardMaterial({ color: 0xf0c8a0, roughness: .7 })); hd.add(sk); const hair = new THREE.Mesh(new THREE.SphereGeometry(.84, 18, 12, 0, Math.PI * 2, 0, Math.PI / 2.2), new THREE.MeshStandardMaterial({ color: r.key === 'mina' ? 0x3a2a20 : r.key === 'jin' ? 0xd06020 : r.key === 'cmd' ? 0x9a9a9a : 0x2a2a3a, roughness: .8 })); hair.position.y = .05; hd.add(hair); [-1, 1].forEach(s => { const e = new THREE.Mesh(new THREE.SphereGeometry(.09, 8, 6), new THREE.MeshStandardMaterial({ color: 0x111111 })); e.position.set(s * .28, .1, .74); hd.add(e); }); const mo = new THREE.Mesh(new THREE.TorusGeometry(.18, .05, 6, 12, Math.PI), new THREE.MeshStandardMaterial({ color: 0x8a2a2a })); mo.position.set(0, -.25, .74); mo.rotation.z = Math.PI; hd.add(mo); if (r.tag === 'drunk') { [-1, 1].forEach(s => { const bl = new THREE.Mesh(new THREE.CircleGeometry(.16, 12), new THREE.MeshBasicMaterial({ color: 0xff5050, transparent: true, opacity: .6 })); bl.position.set(s * .45, -.08, .76); hd.add(bl); }); } hd.position.set(r.x, 1.6, r.z - 2.2); sc.add(hd); r.head = hd; r.mouth = mo; });
+    const raceEl = H('.race'); raceEl.innerHTML = [['07（あなた）', 0], ...riv.map(r => [r.name, 0])].map(([n], i) => `<div class="rl"><span>${n}</span><i><b class="rb${i}"></b></i><em class="rc${i}">0</em></div>`).join('');
+    const NEED = c.n >= 25 ? 3 : c.n >= 15 ? 4 : c.n >= 8 ? 6 : 10, PAR = 4.4 / NEED; riv.forEach((r, i) => { if (r.spd > 0) r.spd = PAR * (i ? .74 : .8) * (r.tag === 'drunk' ? 1.05 : 1); });
+    const st = { t: Math.max(c.time, c.n * NEED / 4 + 8), nau: 0, last: 0, over: false, go: false, lastF: performance.now(), taps: [] };
+    const nk = c.nk || 1;
+    const upd = () => {
+      H('.tm').textContent = Math.max(0, st.t).toFixed(1) + '秒'; H('.nm').style.width = Math.min(100, st.nau) + '%'; H('.nm').style.background = st.nau > 70 ? '#60d040' : st.nau > 45 ? '#d0c020' : '#ff6a3a';
+      H('.fc').textContent = st.nau > 85 ? '🤢' : st.nau > 65 ? '😖' : st.nau > 40 ? '😣' : '😋';
+      [me, ...riv].forEach((r, i) => { const b = H('.rb' + i), cc = H('.rc' + i); if (b) b.style.width = Math.min(100, r.n / c.n * 100) + '%'; if (cc) cc.textContent = r.n + '/' + c.n; });
+      H('.fcv').style.filter = st.nau > 70 ? `hue-rotate(${(st.nau - 70) * 2}deg) blur(${(st.nau - 70) / 30}px)` : '';
+    };
+    const finish = (kind) => {
+      if (st.over) return; st.over = true; H('.eat').disabled = true;
+      if (kind === 'puke') { H('.vom').classList.add('on'); try { sNoise({ dur: 1.2, type: 'lowpass', f: 400, gain: .5 }); sTone({ f: 180, f2: 60, dur: 1, type: 'sawtooth', gain: .1 }); buzz([200, 100, 300]); } catch (e) {} }
+      setTimeout(() => { R3 && (R3.alive = false); endBox(kind === 'win', kind === 'win' ? '🏆 優勝！ 🏆' : kind === 'puke' ? '🤮 リバース…… 🤮' : kind === 'time' ? '⏰ 時間切れ ⏰' : '😭 負けた…… 😭', kind === 'win' ? c.win : kind === 'puke' ? c.puke + '<br><small>（連打しすぎると吐きます。吐き気メーターを見ながら食べよう）</small>' : kind === 'time' ? '食べきれなかった……' : c.lose, idx, ORDER[idx].k); }, kind === 'puke' ? 1800 : 900);
+    };
+    H('.eat').addEventListener('pointerdown', e => {
+      e.preventDefault(); if (!st.go || st.over) return; const now = performance.now(), gap = (now - st.last) / 1000; st.last = now;
+      st.nau += (gap < .12 ? 6 : gap < .18 ? 4 : gap < .25 ? 2.5 : 1.2) * nk * (c.spicy && Math.random() < .12 ? 3.2 : 1);
+      if (c.spicy && Math.random() < .08) say('07（心の声）', '（か、辛っ……！ ハズレだ……！）');
+      me.bite++; const need = NEED; if (me.item) { me.item.scale.multiplyScalar(.8); me.item.rotation.y += .3; me.item.position.y += .05; }
+      try { sTone({ f: 300 + Math.random() * 200, f2: 120, dur: .06, type: 'square', gain: .025 }); } catch (e) {}
+      if (st.nau >= 100) { finish('puke'); upd(); return; }
+      if (me.bite >= need) { me.bite = 0; me.n++; pushPlate(me); newItem(me); try { SFX.beep(900 + me.n * 15); } catch (e) {} if (me.n >= c.n) finish('win'); }
+      if (false) 0; else if (st.nau > 80 && Math.random() < .3) say('07（心の声）', pick(['（うっぷ……）', '（や、やばい……）', '（のどまで来てる……）']));
+      upd();
     });
-    if (s.phase === 'talk' && s.t > s.nextToast && s.glass === 'beer' ? s.t > s.nextToast + 2.5 : s.phase === 'talk' && s.t > s.nextToast) toast();
-    if (s.phase === 'toast') { s.window -= dt; if (s.window <= 0) { s.phase = 'talk'; s.nextToast = s.t + rand(6, 9); say('jin', 'おいおい07！ 乾杯で飲まねえのは失礼だろ！'); s.sus = Math.min(3, s.sus + 1); check(); } }
-    if (Math.random() < dt * .25 && s.phase === 'talk') hal(s.ppl.every(p => !p.look && p.warn <= 0) ? '今です！ 誰も見ていません！' : '……まだです。見られています。');
-    upd();
+    R3 = { alive: true };
+    const myR3 = R3;
+    const loop = () => {
+      if (!myR3.alive) { ren.dispose(); return; } raf = requestAnimationFrame(loop);
+      const now = performance.now(), dt = Math.min(.1, (now - st.lastF) / 1000); st.lastF = now; const T = now / 1000;
+      if (st.go && !st.over) {
+        st.t -= dt; st.nau = Math.max(0, st.nau - dt * 10);
+        riv.forEach(r => { if (r.spd <= 0) return; const wob = r.tag === 'drunk' ? (.6 + .8 * Math.abs(Math.sin(T * .7 + r.x))) : (.8 + .4 * Math.sin(T * 1.3 + r.x)); r.acc += dt * r.spd * wob * (1 + Math.max(0, (me.n - r.n) / c.n) * .6); if (r.item) { r.item.scale.setScalar(.85 * (1 - r.acc * .6)); } if (r.acc >= 1) { r.acc = 0; r.n++; pushPlate(r); newItem(r); r.head.position.y = 1.9; if (r.n >= c.n) finish('lose'); } r.head.position.y += (1.6 - r.head.position.y) * dt * 6; r.mouth.scale.y = 1 + Math.abs(Math.sin(T * 14 + r.x)) * .8; if (r.tag === 'drunk') r.head.rotation.z = Math.sin(T * 1.5) * .25; });
+        if (Math.random() < dt * .18) { const r = pick(riv); if (r && r.spd > 0) say(r.name.replace(/（.*）/, ''), r.tag === 'drunk' ? pick(['うぃ〜っく！ まだまだぁ！', '07〜、お前の皿、2つに見えるぞ〜', 'ひっく……寿司が回ってる……俺が回ってる……']) : pick(['負けないわよ！', 'まだいける……！', 'ペース上げるぞ！'])); }
+        if (st.t <= 0) finish(me.n >= Math.max(...riv.map(r => r.n)) ? 'win' : 'time');
+        upd();
+      }
+      if (me.item && me.item.userData.slide) { me.item.position.x += (0 - me.item.position.x) * Math.min(1, dt * 7); if (Math.abs(me.item.position.x) < .02) me.item.userData.slide = 0; }
+      if (me.item) me.item.rotation.y += dt * .4;
+      cam.position.x = Math.sin(T * .3) * .3 + (st.nau > 70 ? Math.sin(T * 3) * (st.nau - 70) / 60 : 0);
+      cam.lookAt(0, .4, -.4); ren.render(sc, cam);
+    };
+    upd(); loop();
+    introSeq(c.intro, () => { if (!cur) return; say('', 'よーい……スタート！！'); st.go = true; st.lastF = performance.now(); try { SFX.clunk(); } catch (e) {} });
   }
-  function toast() { const s = st; s.phase = 'toast'; s.window = 3.2; const l = TOAST_IN[Math.min(s.toasts, TOAST_IN.length - 1)]; say(l[0], l[1]); H('.toast').classList.add('on'); setTimeout(() => H('.toast') && H('.toast').classList.remove('on'), 900); s.ppl.forEach(p => { p.look = true; p.warn = 0; p.tm = 1.4; }); try { SFX.clunk(); } catch (e) {} }
-  function swap() {
-    const s = st; if (!s || s.over || s.glass === 'cola') return;
-    const seen = s.ppl.findIndex(p => p.look);
-    H('.glass').classList.add('sw'); setTimeout(() => H('.glass') && H('.glass').classList.remove('sw'), 300);
-    if (seen >= 0) { const c = CAUGHT.filter(x => x[0] === PPL[seen].k); const l = (c.length ? c : CAUGHT)[(Math.random() * (c.length || CAUGHT.length)) | 0]; say(l[0], l[1]); setTimeout(() => st && !st.over && say('me', EXCUSE[(Math.random() * EXCUSE.length) | 0]), 1300); s.sus = Math.min(3, s.sus + 1); try { buzz(80); } catch (e) {} check(); }
-    else { s.glass = 'cola'; say('me', '（……すり替え成功。誰も気づいていない。完璧だ）'); hal('作戦成功です。……少しドキドキしました。'); try { SFX.beep(1400); } catch (e) {} }
-    upd();
-  }
-  function drink() {
-    const s = st; if (!s || s.over) return;
-    if (s.phase !== 'toast') { if (s.glass === 'beer') { s.drunk++; say('me', '（しまった、うっかりビールを一口……！）'); const l = DRUNK[Math.min(s.drunk - 1, 1)]; setTimeout(() => st && !st.over && say(l[0], l[1]), 1200); } else { say('ren', '……07、乾杯の前に飲んでるぞ。のどかわいてたのか？'); } s.glass = 'beer'; check(); upd(); return; }
-    s.phase = 'talk'; s.toasts++; s.nextToast = s.t + rand(7, 10);
-    if (s.glass === 'beer') { s.drunk++; say('me', '（ゴクッ……ぐっ……世界が回る……！）'); const l = DRUNK[Math.min(s.drunk - 1, 1)]; setTimeout(() => st && !st.over && say(l[0], l[1]), 1300); }
-    else { const lines = [['jin', 'いい飲みっぷりだ！ さすが07！'], ['mina', '07、強いんだね！ 意外！'], ['ren', '顔色ひとつ変えねえな……化け物か？'], ['jin', 'うおお、07が一番飲んでるぞ！'], ['mina', 'すごーい！ ……あれ、なんで顔赤くならないの？']]; const l = lines[(s.toasts - 1) % lines.length]; say(l[0], l[1]); }
-    setTimeout(() => { if (st && !st.over && st.toasts < st.need) { say('jin', 'おかわりだ！ ほら、注いでやるよ！'); st.glass = 'beer'; upd(); } }, 2400);
-    check(); upd();
-  }
-  function check() {
-    const s = st; if (s.over) return;
-    if (s.drunk >= 3) return finish(false, false, 'drunk');
-    if (s.sus >= 3) return finish(false, false, 'sus');
-    if (s.toasts >= s.need) return finish(true);
-  }
-  function finish(win, skipped, why) {
-    const s = st; if (!s || s.over) return; s.over = true; cancelAnimationFrame(raf);
-    const box = document.createElement('div'); box.className = 'end';
-    if (win) {
-      box.innerHTML = `<h2>🥤 作戦成功！ 🥤</h2><p>${skipped ? '（作戦をスキップしました）' : '5回の乾杯を、すべてコーラで乗り切った。<br>ジン「07、お前……酒豪だったんだな！ 今度から飲み会は毎週だ！」<br>07（心の声）「……地獄が始まった」<br>ハル「お疲れさまでした、パイロット。秘密は守ります」'}</p><button class="btn bnx">次へ ▶</button>`;
-      if (idx >= 0) { saveProg(idx + 2); CLR[idx] = (CLR[idx] | 0) + 1; saveClr(); }
-    } else {
-      box.innerHTML = why === 'drunk' ? `<h2>💫 撃沈 💫</h2><p>07はビール3杯でテーブルに突っ伏した。<br>ジン「えっ、07、酒弱かったのか!? ……ごめん！」<br>ミナ「だから無理しないでって言ったのに……」<br>ハル「パイロットの意識、ロスト。……おやすみなさい」</p><button class="btn brt">もう一度</button>`
-        : `<h2>🚨 バレた 🚨</h2><p>ジン「お前……ずっとコーラ飲んでたのか！」<br>レン「最初から言えばよかっただろ」<br>ミナ「07、かわいい〜！」<br>07（心の声）「……穴があったら入りたい」</p><button class="btn brt">もう一度</button>`;
-    }
-    el.appendChild(box);
-    const nx = box.querySelector('.bnx'), rt = box.querySelector('.brt');
-    if (nx) nx.addEventListener('click', () => { el.hidden = true; st = null; STORYUI.debrief(idx, () => { if (idx + 1 < MISSIONS.length) STORYUI.openBrief(idx + 1); else location.reload(); }); });
-    if (rt) rt.addEventListener('click', () => start(idx));
-  }
-  return { start };
+  return { menu };
 })();
 
 /* ================= CUTSCENES: boss entrances and story moments ================= */
