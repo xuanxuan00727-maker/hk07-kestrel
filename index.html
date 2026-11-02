@@ -6573,7 +6573,21 @@ ${hist.slice(-8).map(h => h[0] + '：' + h[1]).join('\n')}
   btn.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); try { btn.setPointerCapture(e.pointerId); } catch (er) {} start(); });
   ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(n => btn.addEventListener(n, e => { e.stopPropagation(); if (holding) stop(); }));
   btn.addEventListener('contextmenu', e => e.preventDefault()); btn.style.userSelect = 'none'; btn.style.webkitUserSelect = 'none'; btn.style.touchAction = 'none'; upd();
-  function tick() { const show = S.phase === 'op' || S.phase === 'cut'; btn.style.display = show ? 'block' : 'none'; if (!show && on && S.phase !== 'op') { /* keep listening across scenes */ } if (S.phase === 'title' && holding) stop(); }
+  // easiest way: a chat box — type, or use the phone keyboard's own microphone key (no browser permission needed)
+  const box = document.createElement('div');
+  box.style.cssText = 'position:fixed;left:10px;right:10px;bottom:38%;z-index:41;display:none;gap:6px;align-items:center';
+  box.innerHTML = '<input type="text" enterkeyhint="send" placeholder="ハルに話しかける（キーボードのマイクでもOK）" style="flex:1;font-size:16px;padding:10px 12px;border-radius:20px;border:2px solid #3fd8ff;background:rgba(5,30,40,.95);color:#e8fbff"><button style="padding:10px 14px;border-radius:20px;border:2px solid #3fd8ff;background:#0e5a6a;color:#fff;font-weight:700;font-size:15px">送信</button>';
+  document.body.appendChild(box); box.style.display = 'none';
+  const inp = box.querySelector('input'), sendB = box.querySelector('button');
+  const chatB = document.createElement('button'); chatB.textContent = '💬 ハルに話しかける';
+  chatB.style.cssText = 'position:fixed;left:10px;top:calc(50% + 52px);z-index:40;padding:10px 12px;border-radius:24px;border:2px solid #7affd8;background:rgba(5,30,40,.85);color:#d8fff4;font-size:13px;font-weight:700;display:none;touch-action:manipulation';
+  document.body.appendChild(chatB);
+  const send = () => { const t = inp.value.trim(); inp.value = ''; box.style.display = 'none'; inp.blur(); if (t) heard(t); };
+  chatB.addEventListener('click', e => { e.stopPropagation(); const open = box.style.display === 'none'; box.style.display = open ? 'flex' : 'none'; if (open) setTimeout(() => inp.focus(), 50); });
+  sendB.addEventListener('click', e => { e.stopPropagation(); send(); });
+  inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); send(); } });
+  ['keyup', 'keypress', 'pointerdown', 'touchstart'].forEach(n => { inp.addEventListener(n, e => e.stopPropagation()); box.addEventListener(n, e => e.stopPropagation()); });
+  function tick() { const show = S.phase === 'op' || S.phase === 'cut'; btn.style.display = show ? 'block' : 'none'; chatB.style.display = show ? 'block' : 'none'; if (!show) box.style.display = 'none'; if (!show && on && S.phase !== 'op') { /* keep listening across scenes */ } if (S.phase === 'title' && holding) stop(); }
   setInterval(tick, 500);
   return { answer, heard };
 })();
