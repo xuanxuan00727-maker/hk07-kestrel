@@ -3897,6 +3897,12 @@ function updateEnemies(dt) {
   if (S.mode === 'space') return updateEnemiesSpace(dt, T);
   const battle = BATTLE(), tg = battle ? enemyTargets() : [];
   for (const e of enemies) {
+    if (!e.alive && e.drunkKO != null) {
+      const k = e.drunkKO += dt, G = e.g;
+      if (k < 2.4) { const w = 1 + k; G.rotation.set(Math.sin(k * 3.3) * .35 * w * .5, e.yaw + Math.sin(k * 2) * .6 + e.koSpin * k * .4, Math.sin(k * 5.2) * .45 * w * .5); G.position.set(e.x + Math.sin(k * 4) * 1.2, -Math.abs(Math.sin(k * 6)) * .8, e.z + Math.cos(k * 3.5) * 1.2); e.tur.rotation.x = Math.sin(k * 7) * .5; }
+      else { const f = Math.min(1, (k - 2.4) / .7), ez = f * f; G.rotation.z += (e.koDir * 1.5 - G.rotation.z) * Math.min(1, ez + .05); G.rotation.x *= .95; G.position.y = -ez * 2.2; if (f >= 1 && !e.koThud) { e.koThud = true; for (let i = 0; i < 8; i++) { const q = i / 8 * TAU; addPart({ pos: new THREE.Vector3(e.x + Math.cos(q) * 3, .6, e.z + Math.sin(q) * 3), color: 0x9a8a6c, op: .5, s0: 1.4, s1: 5, life: 1.2, vel: new THREE.Vector3(Math.cos(q) * 6, 1.5, Math.sin(q) * 6) }); } if (Math.hypot(camera.position.x - e.x, camera.position.z - e.z) < 200) try { SFX.clunk(); } catch (er) {} } }
+      continue;
+    }
     if (!e.alive) {
       e.deadT = (e.deadT || 0) + dt;
       if (e.deadT < 12) { e.smokeT -= dt; if (e.smokeT <= 0) { e.smokeT = .6; if (Math.hypot(camera.position.x - e.x, camera.position.z - e.z) < 320) addPart({ pos: new THREE.Vector3(e.x + rand(-1, 1), 4, e.z + rand(-1, 1)), color: 0x2f2b26, op: .55, s0: 1.5, s1: 6, life: 4, vel: new THREE.Vector3(rand(-.5, .5) + 1, rand(3, 5), rand(-.5, .5)) }); } }
@@ -3942,6 +3948,7 @@ function updateEnemies(dt) {
     const dT = wrapA(tWant - e.tur.rotation.y);
     e.tur.rotation.y += clamp(dT, -.7 * dt, .7 * dt);
     e.cd -= dt;
+    if (e.cd <= 0 && DRUNK_ALL() && Math.random() < .8) e.cd = rand(3, 7);   // too drunk to shoot straight
     if (e.alert && t && e.cd <= 0 && dist < 330 && Math.abs(dT) < .08) {
       e.cd = e.boss ? rand(2.2, 3.2) : rand(3.8, 6.5) / (e.elite ? 1.6 : 1);
       e.g.updateMatrixWorld(true); const mz = muzzle(e.muzzle);
@@ -4534,8 +4541,8 @@ const FUNMIS = [
   FB('カメを探せ', 'forest', { type: 'waypoints', text: '脱走したミナのカメの足跡をたどれ', list: [[50, 12, -240], [-120, 12, -420], [80, 12, -600], [0, 12, -780]] }, { ev: [[20, 'mina', 'カメ吉〜！ 出ておいで〜！ レタスあるよ〜！'], [60, 'ai', '足跡の横に、レタスの食べかすがあります。カメ吉、グルメです。'], [100, 'jin', 'おいミナ、カメ吉って何歳だ？'], [104, 'mina', '87歳！'], [108, 'jin', '俺らより年上じゃねえか！']]},
     [['narr', '── 第4話 ──'], ['mina', '大変！ 私のカメの「カメ吉」が脱走したの！'], ['ren', '……カメが？ 脱走？'], ['mina', '格納庫の扉が開いてて……足跡が森の方に！'], ['cmd', '……敵の偵察部隊も森にいる。ついでに探してこい。'], ['ai', 'カメの移動速度は時速0.3キロです。そんなに遠くには……'], ['ai', '……足跡が、2キロ先まで続いています。'], ['jin', 'カメ吉、速すぎだろ！']],
     [['ai', 'カメ吉、発見しました。……池で泳いでいます。'], ['mina', 'カメ吉〜〜！ よかった〜〜！'], ['narr', 'カメ吉は、07の機体の足元で、のんびりあくびをした。'], ['ren', '……戦闘ロボットでカメを探す部隊は、世界でうちだけだな。']]),
-  FB('しらふは俺だけ', 'town', { type: 'destroy', text: '泥酔した小隊を守りながら、ただ一人しらふで敵を全滅させろ' }, { total: 11, drunkAll: true, ev: [
-      [6, 'ren', 'うぃ〜……07……おれは……よってない……ぞ……ひっく'], [16, 'jin', 'しゅつげきら〜！ かんぱ〜い！'], [28, 'mina', '（通信）みんにゃの……ロボット……ふにゃふにゃ〜……かわいい〜……ひっく'], [34, 'ai', '……敵の機体も、ふらついています。昨夜、敵の基地でも宴会があったようです。'], [44, 'ai', '敵の通信を傍受しました。「うぃ〜……しゅつげき〜……」'],
+  FB('しらふは俺だけ', 'town', { type: 'destroy', text: '泥酔した敵を、全員機能停止にしろ（敵もフラフラ）' }, { total: 11, drunkAll: true, ev: [
+      [6, 'ren', 'うぃ〜……07……おれは……よってない……ぞ……ひっく'], [16, 'jin', 'しゅつげきら〜！ かんぱ〜い！'], [28, 'mina', '（通信）みんにゃの……ロボット……ふにゃふにゃ〜……かわいい〜……ひっく'], [34, 'ai', '……敵の機体も、ふらついています。昨夜、敵の基地でも宴会があったようです。'], [44, 'ai', '敵の通信を傍受しました。「うぃ〜……しゅつげき〜……」'], [58, 'ai', '敵はもはや撃つどころではありません。軽く当てるだけで機能停止します。'], [92, 'ai', '敵パイロットの通信「なんだこの白い塊は……？ あれ、僕、何に乗ってたんだっけ……ひっく」'],
       [40, 'cmd', 'ひっく……ぜんき……とちゅげき……あれ、とつげき……？'], [52, 'ai', '……司令まで酔っています。この部隊で正常なのは、パイロットと私だけです。'],
       [66, 'ren', '07……おまえ……いいやつらな……おれ、ずっと……いいたかった……'], [72, 'jin', 'レンが泣いてりゅ！ レンが泣いてりゅぞ〜！'], [86, 'ai', '02号機と03号機が、肩を組んで歌っています。'],
       [100, 'jin', 'しゅき〜焼き〜♪ ……07もうたえ〜！'], [114, 'ren', 'うぉぇ……'], [116, 'ai', 'レンさん、コックピット内で異音。……聞かなかったことにします。'],
@@ -7083,9 +7090,17 @@ function fireMG(dt) {
   if (P.mgN % 2 === 0) addPart({ pos: mp, color: 0xffd890, add: true, s0: .5, s1: 1.1, life: .05 });
   muzzleLight.position.copy(mp); muzzleLight.intensity = Math.max(muzzleLight.intensity, 2.5);
 }
+const DRUNK_ALL = () => { try { return !!(STORY.on && STORY.m && STORY.m.drunkAll); } catch (e) { return false; } };
+const DRUNK_EN = ['なんだ……この白い塊は……？ ひっく', 'あれ……僕……何に乗ってたんだっけ……', 'うぃ〜……地面が……近づいてくりゅ……', 'もう……のめにゃい……', 'おかあしゃん……ひっく', 'ここ……どこら……？ あ、ロボットの中か……', '敵……？ 友達……？ どっちでもいいや……うぃ〜', 'ぐう……すぴー……'];
 function killEnemy(e, byPlayer = true) {
   if (!e.alive) return;
   if (e.rescue) { if (!e.saved) rescueStop(e); return; } e.alive = false; const wasA = e.ally; e.ally = false; if (byPlayer && !wasA) S.kills++;
+  if (DRUNK_ALL() && !e.boss) {   // drunk enemies don't blow up: they stagger in silly poses, then keel over and stop
+    e.drunkKO = 0; e.koDir = Math.random() < .5 ? -1 : 1; e.koSpin = rand(-2, 2);
+    if (S.phase === 'op') { say('機能停止', 'a', 1.4); if (Math.random() < .7) VO.radio('敵パイロット', DRUNK_EN[(Math.random() * DRUNK_EN.length) | 0], 9, .75); }
+    if (S.phase === 'op' && allDestroyedWins() && S.spawned >= ENEMY_TOTAL && enemies.every(x => !x.alive || x.ally)) setTimeout(() => endGame(true), 2600);
+    return;
+  }
   e.tur.rotation.x = rand(-.3, .3);
   explosion(new THREE.Vector3(e.x, (e.cy || E_CY) + (e.y || 0), e.z), e.boss ? 4 : 1.6);
   const big = !!e.boss, sz = e.boss ? 11 : 5;
