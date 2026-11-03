@@ -6610,7 +6610,8 @@ const FUN = (() => {
   /* ---------- menu ---------- */
   function menu() {
     window.FUN_ACTIVE = true; stop(); el.hidden = false; el.className = ''; try { BGM.play('goofy', { fade: .4 }); } catch (e) {}
-    const open = i => i === 0 || i === NB || i === NB + 30 || done[ORDER[i - 1].k];
+    const FUN_UNLOCK_ALL = true;   // temporary: every comedy episode is open
+    const open = i => FUN_UNLOCK_ALL || i === 0 || i === NB || i === NB + 30 || done[ORDER[i - 1].k];
     el.innerHTML = `<div class="bt">😂 爆笑ストーリー 😂 <small style="color:#c8a070">（停戦後のお話・クリアで次の話へ）</small></div><div class="fl">${ORDER.map((s, i) => (i === 0 ? '<div class="fh">🤖 爆笑バトル編（ロボットで出撃！）</div>' : i === NB ? '<div class="fh">第1部「ジンの刺激探し」（ミニゲーム）</div>' : i === NB + 30 ? '<div class="fh">第2部「アリア来日！ ニッポン四季めぐり」（ミニゲーム）</div>' : '') + `<button class="fb${open(i) ? '' : ' lk'}" data-i="${i}"><b>第${i < NB ? i + 1 : i - NB + 1}話</b><span>${open(i) ? s.c.t : '🔒 ？？？'}</span><small>${open(i) ? (s.kind === 'battle' ? '🤖 ロボットで戦闘' : s.kind === 'mash' ? '🍣 連打で早食い' : '🤫 バレずに作戦') + (done[s.k] ? '　★クリア' : '') : '前の話をクリアで解放'}</small></button>`).join('')}</div><button class="btn fback">タイトルにもどる</button>`;
     el.querySelectorAll('.fb').forEach(b => b.addEventListener('click', () => { try { SFX.click(); } catch (e) {} if (!open(+b.dataset.i)) return; play(+b.dataset.i); }));
     H('.fback').addEventListener('click', () => { stop(); window.FUN_ACTIVE = false; el.hidden = true; $('#title').hidden = false; try { BGM.play('title'); } catch (e) {} });
