@@ -990,7 +990,7 @@ const VO = (() => {
   function next() {
     if (busy || !q.length) return;
     const it = q.shift(); show(it.who, it.text, it.cls);
-    if (!ss || !AU.vol) { busy = true; guard = setTimeout(() => done(null), 900 + it.text.length * 90); return; }
+    if (true || !ss || !AU.vol) { busy = true; guard = setTimeout(() => done(null), 1400 + it.text.length * 110); return; }   // text only: voices are left to the player's imagination
     try {
       const u = new SpeechSynthesisUtterance(it.text); u.lang = 'ja-JP';
       const v = it.voice === 'male' ? (male || ja[0]) : it.voice === 'female' ? (female || ja[0]) : ja.length ? ja[(it.v || 0) % ja.length] : null;
