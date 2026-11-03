@@ -6899,7 +6899,7 @@ ${hist.slice(-8).map(h => h[0] + '：' + h[1]).join('\n')}
   sendB.addEventListener('click', e => { e.stopPropagation(); send(); });
   inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); send(); } });
   ['keyup', 'keypress', 'pointerdown', 'touchstart'].forEach(n => { inp.addEventListener(n, e => e.stopPropagation()); box.addEventListener(n, e => e.stopPropagation()); });
-  function tick() { const show = S.phase === 'op' || S.phase === 'cut'; btn.style.display = show ? 'block' : 'none'; chatB.style.display = show ? 'block' : 'none'; if (!show) box.style.display = 'none'; if (!show && on && S.phase !== 'op') { /* keep listening across scenes */ } if (S.phase === 'title' && holding) stop(); }
+  function tick() { const show = !window.FUN_ACTIVE && !['title', 'movie'].includes(S.phase) && S.phase !== undefined; btn.style.display = show ? 'block' : 'none'; chatB.style.display = show ? 'block' : 'none'; if (!show) box.style.display = 'none'; if (!show && on && S.phase !== 'op') { /* keep listening across scenes */ } if (S.phase === 'title' && holding) stop(); }
   setInterval(tick, 500);
   return { answer, heard };
 })();
