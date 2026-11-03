@@ -6813,7 +6813,7 @@ const FUN = (() => {
 const HALTALK = (() => {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition; let rec = null, on = false, busy = false;
   const btn = document.createElement('button'); btn.id = 'halMic'; btn.textContent = '🎤 長押しでハルと話す';
-  btn.style.cssText = 'position:fixed;left:10px;top:50%;z-index:40;padding:10px 12px;border-radius:24px;border:2px solid #3fd8ff;background:rgba(5,30,40,.85);color:#bff4ff;font-size:13px;font-weight:700;display:none;touch-action:manipulation';
+  btn.style.cssText = 'position:fixed;left:10px;top:50%;z-index:9000;padding:10px 12px;border-radius:24px;border:2px solid #3fd8ff;background:rgba(5,30,40,.85);color:#bff4ff;font-size:13px;font-weight:700;display:none;touch-action:manipulation';
   document.body.appendChild(btn);
   const pick = a => a[(Math.random() * a.length) | 0];
   const has = (t, ...w) => w.some(x => t.includes(x));
@@ -6892,14 +6892,14 @@ ${hist.slice(-8).map(h => h[0] + '：' + h[1]).join('\n')}
   document.body.appendChild(box); box.style.display = 'none';
   const inp = box.querySelector('input'), sendB = box.querySelector('button');
   const chatB = document.createElement('button'); chatB.textContent = '💬 ハルに話しかける';
-  chatB.style.cssText = 'position:fixed;left:10px;top:calc(50% + 52px);z-index:40;padding:10px 12px;border-radius:24px;border:2px solid #7affd8;background:rgba(5,30,40,.85);color:#d8fff4;font-size:13px;font-weight:700;display:none;touch-action:manipulation';
+  chatB.style.cssText = 'position:fixed;left:10px;top:calc(50% + 52px);z-index:9000;padding:10px 12px;border-radius:24px;border:2px solid #7affd8;background:rgba(5,30,40,.85);color:#d8fff4;font-size:13px;font-weight:700;display:none;touch-action:manipulation';
   document.body.appendChild(chatB);
   const send = () => { const t = inp.value.trim(); inp.value = ''; box.style.display = 'none'; inp.blur(); if (t) heard(t); };
   chatB.addEventListener('click', e => { e.stopPropagation(); const open = box.style.display === 'none'; box.style.display = open ? 'flex' : 'none'; if (open) setTimeout(() => inp.focus(), 50); });
   sendB.addEventListener('click', e => { e.stopPropagation(); send(); });
   inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); send(); } });
   ['keyup', 'keypress', 'pointerdown', 'touchstart'].forEach(n => { inp.addEventListener(n, e => e.stopPropagation()); box.addEventListener(n, e => e.stopPropagation()); });
-  function tick() { const show = !window.FUN_ACTIVE && !['title', 'movie'].includes(S.phase) && S.phase !== undefined; btn.style.display = show ? 'block' : 'none'; chatB.style.display = show ? 'block' : 'none'; if (!show) box.style.display = 'none'; if (!show && on && S.phase !== 'op') { /* keep listening across scenes */ } if (S.phase === 'title' && holding) stop(); }
+  function tick() { const show = !['title', 'movie'].includes(S.phase) && S.phase !== undefined; btn.style.display = show ? 'block' : 'none'; chatB.style.display = show ? 'block' : 'none'; if (!show) box.style.display = 'none'; if (!show && on && S.phase !== 'op') { /* keep listening across scenes */ } if (S.phase === 'title' && holding) stop(); }
   setInterval(tick, 500);
   return { answer, heard };
 })();
